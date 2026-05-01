@@ -14,6 +14,15 @@ _CHAIN_IDS = {
     "polygon": 137, "optimism": 10,
 }
 
+_NATIVE_TOKEN = {
+    "ethereum": "ETH",
+    "arbitrum": "ETH",
+    "base":     "ETH",
+    "optimism": "ETH",
+    "polygon":  "POL",
+    "bsc":      "BNB",
+}
+
 def get_web3(network: str = "ethereum") -> Web3:
     url = _RPC.get(network.lower(), _RPC["ethereum"])
     w3 = Web3(Web3.HTTPProvider(url))
@@ -22,8 +31,9 @@ def get_web3(network: str = "ethereum") -> Web3:
 def get_balance(address: str, network: str = "ethereum") -> dict:
     w3 = get_web3(network)
     raw = w3.eth.get_balance(Web3.to_checksum_address(address))
-    eth = float(w3.from_wei(raw, "ether"))
-    return {"network": network, "address": address, "balance": eth, "unit": "ETH"}
+    bal = float(w3.from_wei(raw, "ether"))
+    unit = _NATIVE_TOKEN.get(network.lower(), "ETH")
+    return {"network": network, "address": address, "balance": bal, "unit": unit}
 
 def send_tx(private_key: str, to: str, amount_eth: float, network: str = "ethereum") -> str:
     w3 = get_web3(network)

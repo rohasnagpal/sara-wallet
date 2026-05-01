@@ -109,8 +109,10 @@ def _detect_intent(msg: str, db: Session) -> Optional[tuple[str, dict]]:
             amount = 0
         network = _TOKEN_TO_NETWORK.get(token.lower())
         # Resolve to_addr nickname → real address
+        to_nickname = None
         ab_entry = db.query(AddressBook).filter(AddressBook.nickname == to_addr.lower()).first()
         if ab_entry:
+            to_nickname = to_addr
             to_addr = ab_entry.address
         # Resolve which wallet to send from
         wallet = None
@@ -125,6 +127,7 @@ def _detect_intent(msg: str, db: Session) -> Optional[tuple[str, dict]]:
                 return ("send_crypto", {
                     "wallet_name": wallet.name,
                     "to": to_addr,
+                    "to_nickname": to_nickname,
                     "amount": amount,
                     "token": token.upper(),
                     "network": network,
@@ -134,6 +137,7 @@ def _detect_intent(msg: str, db: Session) -> Optional[tuple[str, dict]]:
                     "amount": amount,
                     "token": token.upper(),
                     "to": to_addr,
+                    "to_nickname": to_nickname,
                     "wallets": [w.name for w in wallets],
                 })
             else:
@@ -442,10 +446,22 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         }
                         token_sym = send_args.get("token") or (send_args.get("network") or "native").upper()
                         net_display = (send_args.get("network") or "ethereum").capitalize()
+                        # Fetch current balance
+                        try:
+                            from app.tools.wallet.balance import get_wallet_balance
+                            bal = get_wallet_balance(w, send_args.get("network"))
+                            balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
+                        except Exception:
+                            balance_line = ""
+                        # Format recipient line
+                        nick = send_args.get("to_nickname")
+                        to_line = (f"To: **{nick}** · `{send_args['to']}`" if nick
+                                   else f"To: `{send_args['to']}`")
                         text = (
                             f"Ready to send **{send_args['amount']} {token_sym}** "
                             f"on **{net_display}** from **{send_args['wallet_name']}**\n"
-                            f"To: `{send_args['to']}`\n\n"
+                            f"{balance_line}"
+                            f"{to_line}\n\n"
                             f"Type **CONFIRM** to execute or **CANCEL** to abort."
                         )
                 else:
