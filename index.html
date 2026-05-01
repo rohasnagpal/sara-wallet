@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sara Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   DEFAULT — Pearl (light pastel)
+══════════════════════════════════════ */
+:root {
+  --bg-app-start: #c4cff0;
+  --bg-app-end: #f0e8c4;
+  --bg-sidebar1: rgba(255,255,255,0.45);
+  --bg-sidebar2: rgba(255,255,255,0.38);
+  --bg-card: rgba(255,255,255,0.62);
+  --bg-card2: rgba(255,255,255,0.52);
+  --bg-chat: rgba(255,255,255,0.35);
+  --bg-input: rgba(255,255,255,0.7);
+  --bg-msg-user: #3d5a4a;
+  --bg-msg-bot: rgba(255,255,255,0.75);
+  --text-primary: #1a1814;
+  --text-secondary: rgba(26,24,20,0.6);
+  --text-muted: rgba(26,24,20,0.38);
+  --accent: #3d5a4a;
+  --accent2: #7c6fa0;
+  --green: #3d8a5e;
+  --red: #c0392b;
+  --border: rgba(255,255,255,0.55);
+  --border-dark: rgba(26,24,20,0.08);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+  --sidebar-nav-active: rgba(61,90,74,0.1);
+  --sidebar-nav-hover: rgba(26,24,20,0.04);
+  --pill-bg: rgba(61,90,74,0.08);
+  --chart-line: #3d5a4a;
+  --chart-bg1: rgba(61,90,74,0.15);
+  --chart-bg2: rgba(61,90,74,0);
+  --upgrade-bg: linear-gradient(135deg, rgba(61,90,74,0.12), rgba(124,111,160,0.12));
+  --scrollbar: rgba(26,24,20,0.08);
+  --is-light: 1;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --topbar-bg: rgba(255,255,255,0.4);
+}
+
+/* ══════════════════════════════════════
+   GLASSY
+══════════════════════════════════════ */
+.theme-glassy {
+  --bg-app-start: #0d0820;
+  --bg-app-end: #0a0f2c;
+  --bg-sidebar1: rgba(5,3,18,0.75);
+  --bg-sidebar2: rgba(255,255,255,0.06);
+  --bg-card: rgba(255,255,255,0.09);
+  --bg-card2: rgba(255,255,255,0.13);
+  --bg-chat: rgba(255,255,255,0.05);
+  --bg-input: rgba(255,255,255,0.11);
+  --bg-msg-user: rgba(99,102,241,0.9);
+  --bg-msg-bot: rgba(255,255,255,0.11);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.75);
+  --text-muted: rgba(255,255,255,0.45);
+  --accent: #a78bfa;
+  --accent2: #f0abfc;
+  --green: #34d399;
+  --red: #f87171;
+  --border: rgba(255,255,255,0.18);
+  --border-dark: rgba(255,255,255,0.11);
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18);
+  --sidebar-nav-active: rgba(255,255,255,0.13);
+  --sidebar-nav-hover: rgba(255,255,255,0.06);
+  --pill-bg: rgba(255,255,255,0.13);
+  --chart-line: #a78bfa;
+  --chart-bg1: rgba(167,139,250,0.25);
+  --chart-bg2: rgba(167,139,250,0);
+  --upgrade-bg: linear-gradient(135deg, rgba(99,102,241,0.4), rgba(168,85,247,0.4));
+  --scrollbar: rgba(255,255,255,0.1);
+  --is-light: 0;
+  --topbar-bg: rgba(255,255,255,0.06);
+}
+
+/* ══════════════════════════════════════
+   DARK PRO
+══════════════════════════════════════ */
+.theme-darkpro {
+  --bg-app-start: #050507;
+  --bg-app-end: #0e0914;
+  --bg-sidebar1: #030304;
+  --bg-sidebar2: #0a0a0f;
+  --bg-card: #0f0f17;
+  --bg-card2: #13131e;
+  --bg-chat: #0a0a0f;
+  --bg-input: #0f0f17;
+  --bg-msg-user: #7c3aed;
+  --bg-msg-bot: #13131e;
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
+  --text-muted: #334155;
+  --accent: #7c3aed;
+  --accent2: #ec4899;
+  --green: #22c55e;
+  --red: #f43f5e;
+  --border: rgba(255,255,255,0.04);
+  --border-dark: rgba(255,255,255,0.04);
+  --card-shadow: 0 0 0 1px rgba(124,58,237,0.12), 0 4px 32px rgba(0,0,0,0.6);
+  --sidebar-nav-active: rgba(124,58,237,0.15);
+  --sidebar-nav-hover: rgba(255,255,255,0.02);
+  --pill-bg: rgba(124,58,237,0.12);
+  --chart-line: #7c3aed;
+  --chart-bg1: rgba(124,58,237,0.2);
+  --chart-bg2: rgba(124,58,237,0);
+  --upgrade-bg: linear-gradient(135deg, #1e0a3c, #2d0a2e);
+  --scrollbar: #0f0f17;
+  --is-light: 0;
+  --topbar-bg: #0a0a0f;
+}
+
+/* ══════════════════════════════════════
+   SUNSET
+══════════════════════════════════════ */
+.theme-sunset {
+  --bg-app-start: #1a0a00;
+  --bg-app-end: #2d1200;
+  --bg-sidebar1: #120700;
+  --bg-sidebar2: #1f0e00;
+  --bg-card: #2d1500;
+  --bg-card2: #331a00;
+  --bg-chat: #1f0e00;
+  --bg-input: #2d1500;
+  --bg-msg-user: #ea580c;
+  --bg-msg-bot: #2d1a0a;
+  --text-primary: #fef3c7;
+  --text-secondary: #d97706;
+  --text-muted: #92400e;
+  --accent: #f59e0b;
+  --accent2: #ef4444;
+  --green: #84cc16;
+  --red: #ef4444;
+  --border: rgba(245,158,11,0.1);
+  --border-dark: rgba(245,158,11,0.1);
+  --card-shadow: 0 4px 24px rgba(234,88,12,0.15);
+  --sidebar-nav-active: rgba(245,158,11,0.12);
+  --sidebar-nav-hover: rgba(245,158,11,0.05);
+  --pill-bg: rgba(245,158,11,0.1);
+  --chart-line: #f59e0b;
+  --chart-bg1: rgba(245,158,11,0.2);
+  --chart-bg2: rgba(245,158,11,0);
+  --upgrade-bg: linear-gradient(135deg, #431407, #451a03);
+  --scrollbar: #2d1500;
+  --is-light: 0;
+  --topbar-bg: #1f0e00;
+}
+
+/* ══════════════════════════════════════
+   FOREST
+══════════════════════════════════════ */
+.theme-forest {
+  --bg-app-start: #071410;
+  --bg-app-end: #0a1f18;
+  --bg-sidebar1: #040e0b;
+  --bg-sidebar2: #0a1a14;
+  --bg-card: #0f2218;
+  --bg-card2: #132a1e;
+  --bg-chat: #0a1a14;
+  --bg-input: #0f2218;
+  --bg-msg-user: #059669;
+  --bg-msg-bot: #132a1e;
+  --text-primary: #d1fae5;
+  --text-secondary: #6ee7b7;
+  --text-muted: #065f46;
+  --accent: #10b981;
+  --accent2: #34d399;
+  --green: #4ade80;
+  --red: #f87171;
+  --border: rgba(16,185,129,0.1);
+  --border-dark: rgba(16,185,129,0.1);
+  --card-shadow: 0 4px 24px rgba(16,185,129,0.1);
+  --sidebar-nav-active: rgba(16,185,129,0.12);
+  --sidebar-nav-hover: rgba(16,185,129,0.05);
+  --pill-bg: rgba(16,185,129,0.1);
+  --chart-line: #10b981;
+  --chart-bg1: rgba(16,185,129,0.2);
+  --chart-bg2: rgba(16,185,129,0);
+  --upgrade-bg: linear-gradient(135deg, #052e16, #14532d);
+  --scrollbar: #0f2218;
+  --is-light: 0;
+  --topbar-bg: #0a1a14;
+}
+
+/* ══════════════════════════════════════
+   BASE STYLES
+══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  min-height: 100vh;
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.app-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse at 10% 15%, rgba(196,207,240,0.9) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 10%, rgba(230,196,210,0.8) 0%, transparent 48%),
+    radial-gradient(ellipse at 65% 85%, rgba(196,230,210,0.75) 0%, transparent 50%),
+    radial-gradient(ellipse at 15% 85%, rgba(240,220,196,0.7) 0%, transparent 45%),
+    radial-gradient(ellipse at 92% 68%, rgba(210,196,240,0.65) 0%, transparent 42%),
+    #ede9e3;
+  transition: background 0.5s, opacity 0.4s;
+}
+
+.app-bg.theme-glassy {
+  background: linear-gradient(135deg, #0d0820 0%, #1a0b3d 30%, #0f1760 60%, #1a0a3c 100%);
+}
+.app-bg.theme-darkpro { background: linear-gradient(135deg, #050507, #0e0914); }
+.app-bg.theme-sunset { background: linear-gradient(135deg, #1a0a00, #2d1200); }
+.app-bg.theme-forest { background: linear-gradient(135deg, #071410, #0a1f18); }
+
+.app-shell {
+  position: relative; z-index: 1;
+  display: flex; height: 100vh; overflow: hidden;
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR 1
+══════════════════════════════════════ */
+.sidebar1 {
+  width: 64px; flex-shrink: 0;
+  background: var(--bg-sidebar1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center; padding: 14px 0;
+  gap: 7px;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  transition: background 0.4s, border-color 0.4s;
+}
+
+.s1-logo {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; margin-bottom: 6px; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.s1-coins {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+  align-items: center; gap: 5px; padding: 2px 0;
+  scrollbar-width: none;
+}
+.s1-coins::-webkit-scrollbar { display: none; }
+.s1-coin {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-card); border: 2px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; overflow: hidden; padding: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-size: 14px; font-family: var(--font-mono); font-weight: 700; color: var(--text-secondary);
+}
+.s1-coin img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.s1-coin:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--pill-bg); }
+.s1-coin.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--pill-bg); }
+
+.s1-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--border-dark); display: flex; align-items: center;
+  justify-content: center; color: var(--text-muted); font-size: 15px;
+  cursor: pointer; transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.s1-btn:hover { border-color: var(--accent); color: var(--accent); }
+.s1-btn.active { border-color: var(--accent); color: var(--accent); background: var(--pill-bg); }
+
+/* Column 2 panel nav */
+.col2-panel-nav {
+  display: flex; gap: 6px; padding: 0 2px 14px;
+}
+.col2-nav-btn {
+  flex: 1; padding: 7px 0; border-radius: 9px;
+  border: 1.5px solid var(--border-dark); background: transparent;
+  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  cursor: pointer; font-family: var(--font-body);
+  transition: all 0.15s;
+}
+.col2-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.col2-nav-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Settings inline view */
+.settings-row { margin-bottom: 12px; }
+.settings-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.settings-label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.settings-input-row { display: flex; gap: 6px; }
+.settings-input {
+  flex: 1; padding: 8px 11px; border-radius: 8px;
+  border: 1.5px solid var(--border-dark); background: var(--bg-input);
+  color: var(--text-primary); font-size: 12.5px; font-family: var(--font-mono);
+  outline: none; box-sizing: border-box;
+}
+.settings-input:focus { border-color: var(--accent); }
+.settings-save-btn {
+  padding: 8px 14px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; font-size: 12px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+}
+.settings-save-btn:hover { opacity: 0.85; }
+.settings-status { font-size: 11px; color: var(--green); margin-top: 3px; height: 14px; }
+
+/* Directory inline view */
+.dir-add-form { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.dir-add-row  { display: flex; gap: 6px; }
+.dir-input {
+  flex: 1; padding: 8px 10px; border-radius: 8px;
+  border: 1.5px solid var(--border-dark); background: var(--bg-input);
+  color: var(--text-primary); font-size: 12px; font-family: var(--font-body);
+  outline: none; box-sizing: border-box;
+}
+.dir-input:focus { border-color: var(--accent); }
+.dir-add-btn {
+  padding: 8px 14px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.dir-list { display: flex; flex-direction: column; gap: 6px; }
+.dir-entry {
+  background: var(--bg-card2); border: 1px solid var(--border-dark);
+  border-radius: 10px; padding: 9px 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.dir-nick { font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 60px; }
+.dir-addr { font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dir-chain { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; background: var(--pill-bg); padding: 2px 6px; border-radius: 5px; }
+.dir-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; transition: color 0.15s; }
+.dir-del:hover { color: var(--red); }
+.dir-status { font-size: 11px; color: var(--green); margin-top: 2px; }
+
+.s1-add {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px dashed var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 18px; cursor: pointer;
+  transition: border-color 0.2s, color 0.2s; margin-top: 2px;
+}
+.s1-add:hover { border-color: var(--accent); color: var(--accent); }
+
+.s1-help {
+  margin-top: auto; width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--border-dark); display: flex; align-items: center;
+  justify-content: center; color: var(--text-muted); font-size: 12px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.s1-help:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════
+   SIDEBAR 2
+══════════════════════════════════════ */
+.sidebar2 {
+  width: 210px; flex-shrink: 0;
+  background: var(--bg-sidebar2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  transition: background 0.4s, border-color 0.4s;
+}
+
+.s2-header {
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--border-dark);
+}
+.s2-title {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 600; color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+.s2-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+
+.s2-nav { flex: 1; padding: 8px 7px; overflow-y: auto; }
+.s2-nav::-webkit-scrollbar { width: 3px; }
+.s2-nav::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 9px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  margin-bottom: 1px; font-family: var(--font-body);
+}
+.nav-item:hover { background: var(--sidebar-nav-hover); color: var(--text-primary); }
+.nav-item.active { background: var(--sidebar-nav-active); color: var(--accent); }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+.upgrade-card {
+  margin: 8px 9px 12px;
+  border-radius: 14px; padding: 13px;
+  background: var(--upgrade-bg);
+  border: 1px solid var(--border-dark);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.upgrade-label { font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: 0.6px; text-transform: uppercase; font-family: var(--font-body); }
+.upgrade-price { font-size: 22px; font-weight: 700; color: var(--text-primary); margin: 4px 0 2px; font-family: var(--font-mono); }
+.upgrade-price span { font-size: 11px; font-weight: 400; color: var(--text-secondary); }
+.upgrade-desc { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px; }
+.upgrade-btn {
+  display: block; text-align: center; padding: 8px;
+  background: var(--accent); color: white; border-radius: 8px;
+  font-size: 11.5px; font-weight: 600; cursor: pointer;
+  border: none; width: 100%; font-family: var(--font-body);
+  transition: opacity 0.2s;
+}
+.upgrade-btn:hover { opacity: 0.85; }
+
+/* ══════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════ */
+.main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+}
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-dark);
+  background: var(--topbar-bg);
+  flex-shrink: 0;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  transition: background 0.4s, border-color 0.4s;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 500; letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 9px; }
+
+.theme-switcher {
+  display: flex; gap: 4px;
+  background: var(--bg-card);
+  border-radius: 20px; padding: 4px;
+  border: 1px solid var(--border-dark);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.theme-dot {
+  width: 17px; height: 17px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s;
+}
+.theme-dot:hover { transform: scale(1.2); }
+.theme-dot.active { border-color: var(--text-primary); transform: scale(1.1); }
+.theme-dot[data-theme="default"] { background: linear-gradient(135deg, #c4cff0, #f0c4d4); }
+.theme-dot[data-theme="glassy"] { background: linear-gradient(135deg, #667eea, #f093fb); }
+.theme-dot[data-theme="darkpro"] { background: linear-gradient(135deg, #7c3aed, #ec4899); }
+.theme-dot[data-theme="sunset"] { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.theme-dot[data-theme="forest"] { background: linear-gradient(135deg, #10b981, #34d399); }
+.theme-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-body); }
+
+.focus-btn {
+  font-size: 11.5px; font-weight: 600; font-family: var(--font-body);
+  padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border-dark);
+  background: var(--bg-card); color: var(--text-secondary);
+  cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.focus-btn:hover { border-color: var(--accent); color: var(--accent); }
+.focus-btn.active {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+
+/* Focus mode — hide everything except the chat column */
+.focus-mode .sidebar1,
+.focus-mode .sidebar2,
+.focus-mode .dashboard-left { display: none; }
+.focus-mode .dashboard-right { border-left: none; }
+
+.profile-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--bg-card); border: 1px solid var(--border-dark);
+  border-radius: 20px; padding: 5px 11px 5px 5px; cursor: pointer;
+  transition: border-color 0.2s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.profile-pill:hover { border-color: var(--accent); }
+.profile-avatar { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; }
+.profile-name { font-size: 11.5px; font-weight: 600; font-family: var(--font-body); color: var(--text-primary); }
+.profile-addr { font-size: 9.5px; color: var(--text-muted); font-family: var(--font-mono); }
+.profile-caret { color: var(--text-muted); font-size: 9px; }
+
+/* ══════════════════════════════════════
+   DASHBOARD LAYOUT
+══════════════════════════════════════ */
+.dashboard { flex: 1; display: flex; overflow: hidden; }
+
+/* Left — narrower */
+.dashboard-left {
+  width: 480px; flex-shrink: 0;
+  overflow-y: auto; padding: 16px 14px 16px 18px;
+}
+.dashboard-left::-webkit-scrollbar { width: 3px; }
+.dashboard-left::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+/* Right — wider chat */
+.dashboard-right {
+  flex: 1; min-width: 0;
+  border-left: 1px solid var(--border-dark);
+  display: flex; flex-direction: column;
+  background: var(--bg-chat);
+  transition: background 0.4s, border-color 0.4s;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+
+/* ══════════════════════════════════════
+   CARDS
+══════════════════════════════════════ */
+.cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+}
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.card-icon { width: 30px; height: 30px; border-radius: 9px; background: var(--pill-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.card-icons-row { display: flex; gap: 5px; }
+.card-mini-icon { width: 24px; height: 24px; border-radius: 7px; background: var(--pill-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; transition: background 0.15s; }
+.card-mini-icon:hover { background: var(--sidebar-nav-active); }
+
+.card-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 5px; font-family: var(--font-body); }
+.badge { font-size: 9.5px; padding: 2px 5px; border-radius: 5px; font-weight: 600; }
+.badge-warn { background: rgba(245,158,11,0.12); color: #d97706; }
+.badge-up { background: rgba(34,197,94,0.12); color: #16a34a; }
+.badge-down { background: rgba(239,68,68,0.12); color: #dc2626; }
+
+.card-value { font-size: 26px; font-weight: 700; letter-spacing: -0.8px; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); }
+.card-value span { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+.card-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 32px; }
+.bar { width: 7px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.35; transition: opacity 0.2s; }
+.bar:last-child { opacity: 1; }
+.bar:hover { opacity: 0.75; }
+
+/* Line chart card */
+.chart-card {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: background 0.4s, border-color 0.4s;
+}
+.chart-value { font-size: 28px; font-weight: 700; letter-spacing: -0.8px; font-family: var(--font-mono); margin: 5px 0 12px; color: var(--text-primary); }
+svg.line-chart { width: 100%; height: 72px; overflow: visible; }
+
+/* ══════════════════════════════════════
+   CHARTS REPLACING MAP
+══════════════════════════════════════ */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.donut-card, .gas-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: background 0.4s, border-color 0.4s;
+}
+
+.donut-wrap { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.donut-svg { width: 80px; height: 80px; flex-shrink: 0; }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-name { color: var(--text-secondary); flex: 1; }
+.legend-pct { color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); }
+
+.gas-times { display: flex; justify-content: space-between; margin-top: 6px; }
+.gas-time-label { font-size: 9px; color: var(--text-muted); }
+svg.gas-chart { width: 100%; height: 56px; overflow: visible; margin-top: 4px; }
+.gas-stats-row { display: flex; gap: 8px; margin-top: 8px; }
+.gas-stat { flex: 1; text-align: center; }
+.gas-stat-val { font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); }
+.gas-stat-lbl { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* ══════════════════════════════════════
+   CHAT PANEL
+══════════════════════════════════════ */
+.chat-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border-dark);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.chat-bot-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.chat-title { font-family: var(--font-display); font-size: 15px; font-weight: 500; color: var(--text-primary); }
+.chat-status { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; }
+.chat-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+.chat-close {
+  margin-left: auto; width: 26px; height: 26px; border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border-dark);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-muted); font-size: 12px;
+  transition: background 0.15s;
+}
+.chat-close:hover { background: var(--sidebar-nav-active); color: var(--text-primary); }
+
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+.msg { display: flex; gap: 9px; align-items: flex-start; max-width: 100%; }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.msg-avatar.bot { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+.msg-avatar.user-av { background: var(--bg-card2); border: 1px solid var(--border-dark); font-size: 13px; }
+
+.msg-bubble {
+  padding: 10px 14px; border-radius: 16px;
+  font-size: 13.5px; line-height: 1.6; font-family: var(--font-body);
+  max-width: 78%; word-wrap: break-word;
+}
+.msg.bot > div:last-child { flex: 1; min-width: 0; }
+.msg.bot .msg-bubble {
+  background: var(--bg-msg-bot);
+  color: var(--text-primary);
+  border-radius: 4px 16px 16px 16px;
+  border: 1px solid var(--border-dark);
+  width: 100%; max-width: 100%; box-sizing: border-box;
+}
+.msg.user .msg-bubble {
+  background: var(--bg-msg-user);
+  color: white;
+  border-radius: 16px 4px 16px 16px;
+  min-width: 180px;
+}
+code.chat-addr {
+  display: block; font-family: var(--font-mono); font-size: 11.5px;
+  background: var(--bg-card2); padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border-dark); cursor: pointer;
+  color: var(--text-secondary); word-break: break-all; width: 100%;
+  box-sizing: border-box; transition: border-color 0.15s, color 0.15s;
+  margin-top: 5px; position: relative;
+}
+code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); }
+.copy-icon { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+.msg-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: right; }
+
+.typing-indicator { display: flex; gap: 4px; align-items: center; padding: 10px 14px; background: var(--bg-msg-bot); border: 1px solid var(--border-dark); border-radius: 4px 16px 16px 16px; width: fit-content; }
+.typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: typingBounce 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%,60%,100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+.chat-suggestions {
+  padding: 0 18px 10px;
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.chat-chip {
+  font-size: 11.5px; padding: 5px 11px; border-radius: 20px;
+  background: var(--bg-card); border: 1px solid var(--border-dark);
+  color: var(--text-secondary); cursor: pointer; font-family: var(--font-body);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.chat-chip:hover { background: var(--sidebar-nav-active); color: var(--accent); border-color: var(--accent); }
+
+.chat-input-wrap {
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border-dark);
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input {
+  flex: 1; background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 14px; padding: 10px 14px;
+  font-size: 13px; color: var(--text-primary); outline: none;
+  font-family: var(--font-body); resize: none;
+  min-height: 42px; max-height: 90px;
+  transition: border-color 0.2s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.chat-input::placeholder { color: var(--text-muted); }
+.chat-input:focus { border-color: var(--accent); }
+
+.chat-send {
+  width: 38px; height: 38px; border-radius: 12px; border: none;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: opacity 0.2s, transform 0.1s;
+}
+.chat-send:hover { opacity: 0.85; }
+.chat-send:active { transform: scale(0.92); }
+.chat-send svg { width: 14px; height: 14px; fill: white; }
+
+/* Stats bottom card */
+.stats-card {
+  margin: 0 16px 14px;
+  padding: 13px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dark);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: background 0.4s, border-color 0.4s;
+  flex-shrink: 0;
+}
+.stats-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 5px; font-family: var(--font-body); }
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.stat-item { text-align: center; }
+.stat-val { font-size: 18px; font-weight: 700; font-family: var(--font-mono); letter-spacing: -0.5px; color: var(--text-primary); }
+.stat-lbl { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* ══════════════════════════════════════
+   ASSET WATCHLIST (sidebar2)
+══════════════════════════════════════ */
+.watchlist-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 8px;
+}
+.watchlist-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.wallet-add-btn {
+  width: 22px; height: 22px; border-radius: 6px; border: none;
+  background: var(--accent); color: #fff; font-size: 15px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.wallet-add-btn:hover { opacity: 0.85; }
+.watchlist-scroll {
+  flex: 1; overflow-y: auto; padding-bottom: 12px;
+}
+.watchlist-scroll::-webkit-scrollbar { width: 3px; }
+.watchlist-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+.watchlist-section-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted); padding: 8px 14px 3px;
+}
+.asset-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; cursor: pointer; border-radius: 8px; margin: 1px 6px;
+  transition: background 0.12s;
+}
+.asset-item:hover { background: var(--sidebar-nav-hover); }
+.asset-item.active { background: var(--sidebar-nav-active); }
+.asset-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
+.asset-info { flex: 1; min-width: 0; }
+.asset-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.asset-sym  { font-size: 10px; color: var(--text-muted); }
+.asset-right { text-align: right; flex-shrink: 0; }
+.asset-price { font-size: 11px; font-weight: 500; color: var(--text-primary); white-space: nowrap; }
+.asset-chg   { font-size: 10px; font-weight: 500; }
+.asset-chg.up   { color: var(--green); }
+.asset-chg.down { color: var(--red); }
+
+/* ══════════════════════════════════════
+   ASSET DETAIL (main column)
+══════════════════════════════════════ */
+.asset-headline {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px;
+}
+.asset-headline-price { font-family: var(--font-display); font-size: 28px; font-weight: 500; color: var(--text-primary); }
+.asset-headline-chg   { font-size: 13px; font-weight: 500; }
+.asset-headline-chg.up   { color: var(--green); }
+.asset-headline-chg.down { color: var(--red); }
+.asset-headline-sub { font-size: 11px; color: var(--text-muted); }
+
+/* ── Wallet Modal ── */
+.wallet-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.wallet-modal-overlay.open { display: flex; }
+.wallet-modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px; width: 340px; max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.wallet-modal-title { font-family: var(--font-display); font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 16px; }
+.wallet-form-group { margin-bottom: 12px; }
+.wallet-form-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; }
+.wallet-form-input, .wallet-form-select {
+  width: 100%; padding: 9px 11px; border-radius: 8px;
+  border: 1.5px solid var(--border-dark); background: var(--bg-input);
+  color: var(--text-primary); font-size: 13px; font-family: var(--font-body);
+  box-sizing: border-box; outline: none;
+}
+.wallet-form-input:focus, .wallet-form-select:focus { border-color: var(--accent); }
+.wallet-form-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.wallet-form-tab {
+  flex: 1; padding: 7px; border-radius: 8px; border: 1.5px solid var(--border-dark);
+  background: transparent; color: var(--text-secondary); font-size: 12px;
+  cursor: pointer; font-family: var(--font-body); transition: all 0.15s;
+}
+.wallet-form-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.wallet-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.wallet-btn-cancel {
+  flex: 1; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border-dark);
+  background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 13px;
+}
+.wallet-btn-create {
+  flex: 2; padding: 9px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.wallet-btn-create:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<div class="app-bg" id="appBg"></div>
+
+<div class="app-shell" id="appShell">
+
+  <!-- ── Sidebar 1 ── -->
+  <div class="sidebar1">
+    <div class="s1-logo">💎</div>
+    <div class="s1-coins">
+      <div class="s1-coin" data-id="BNB"  title="BNB"         onclick="selectCoinSidebar('BNB')"><img src="/images/cryptos/BNB.png"  alt="BNB"></div>
+      <div class="s1-coin" data-id="BTC"  title="Bitcoin"     onclick="selectCoinSidebar('BTC')"><img src="/images/cryptos/BTC.png"  alt="BTC"></div>
+      <div class="s1-coin" data-id="DOGE" title="Dogecoin"    onclick="selectCoinSidebar('DOGE')"><img src="/images/cryptos/DOGE.png" alt="DOGE"></div>
+      <div class="s1-coin" data-id="ETH"  title="Ethereum"    onclick="selectCoinSidebar('ETH')"><img src="/images/cryptos/ETH.png"  alt="ETH"></div>
+      <div class="s1-coin" data-id="HYPE" title="Hyperliquid" onclick="selectCoinSidebar('HYPE')">⚡</div>
+      <div class="s1-coin" data-id="LINK" title="Chainlink"   onclick="selectCoinSidebar('LINK')"><img src="/images/cryptos/LINK.png" alt="LINK"></div>
+      <div class="s1-coin" data-id="SOL"  title="Solana"      onclick="selectCoinSidebar('SOL')"><img src="/images/cryptos/SOL.png"  alt="SOL"></div>
+      <div class="s1-coin" data-id="TRX"  title="Tron"        onclick="selectCoinSidebar('TRX')"><img src="/images/cryptos/TRX.png"  alt="TRX"></div>
+      <div class="s1-coin" data-id="XMR"  title="Monero"      onclick="selectCoinSidebar('XMR')"><img src="/images/cryptos/XMR.png"  alt="XMR"></div>
+      <div class="s1-coin" data-id="XRP"  title="XRP"         onclick="selectCoinSidebar('XRP')"><img src="/images/cryptos/XRP.png"  alt="XRP"></div>
+    </div>
+    <div class="s1-add" onclick="openWalletModal()" title="Add wallet">+</div>
+    <div class="s1-btn" id="s1BtnDir" onclick="showCol2('directory')" title="Address Book">📖</div>
+    <div class="s1-btn" id="s1BtnSettings" onclick="showCol2('settings')" title="API Keys & Settings">⚙</div>
+  </div>
+
+  <!-- ── Sidebar 2 : Asset Watchlist ── -->
+  <div class="sidebar2">
+    <div class="s2-header">
+      <div class="s2-title">Sara Wallet</div>
+    </div>
+    <div class="watchlist-header">
+      <div class="watchlist-title">Assets</div>
+      <button class="wallet-add-btn" onclick="openWalletModal()" title="Add wallet">+</button>
+    </div>
+
+    <div class="watchlist-scroll">
+
+    <div class="watchlist-section-label">Crypto</div>
+    <div id="cryptoList">
+      <div class="asset-item" data-id="BNB"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">⬡</div><div class="asset-info"><div class="asset-name">BNB</div><div class="asset-sym">BNB</div></div><div class="asset-right"><div class="asset-price" id="p-BNB">—</div><div class="asset-chg" id="c-BNB">—</div></div></div>
+      <div class="asset-item" data-id="BTC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">₿</div><div class="asset-info"><div class="asset-name">Bitcoin</div><div class="asset-sym">BTC</div></div><div class="asset-right"><div class="asset-price" id="p-BTC">—</div><div class="asset-chg" id="c-BTC">—</div></div></div>
+      <div class="asset-item" data-id="DOGE"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ð</div><div class="asset-info"><div class="asset-name">Dogecoin</div><div class="asset-sym">DOGE</div></div><div class="asset-right"><div class="asset-price" id="p-DOGE">—</div><div class="asset-chg" id="c-DOGE">—</div></div></div>
+      <div class="asset-item" data-id="ETH"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ξ</div><div class="asset-info"><div class="asset-name">Ethereum</div><div class="asset-sym">ETH</div></div><div class="asset-right"><div class="asset-price" id="p-ETH">—</div><div class="asset-chg" id="c-ETH">—</div></div></div>
+      <div class="asset-item" data-id="HYPE"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">⚡</div><div class="asset-info"><div class="asset-name">Hyperliquid</div><div class="asset-sym">HYPE</div></div><div class="asset-right"><div class="asset-price" id="p-HYPE">—</div><div class="asset-chg" id="c-HYPE">—</div></div></div>
+      <div class="asset-item" data-id="LINK"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">🔗</div><div class="asset-info"><div class="asset-name">Chainlink</div><div class="asset-sym">LINK</div></div><div class="asset-right"><div class="asset-price" id="p-LINK">—</div><div class="asset-chg" id="c-LINK">—</div></div></div>
+      <div class="asset-item" data-id="SOL"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◎</div><div class="asset-info"><div class="asset-name">Solana</div><div class="asset-sym">SOL</div></div><div class="asset-right"><div class="asset-price" id="p-SOL">—</div><div class="asset-chg" id="c-SOL">—</div></div></div>
+      <div class="asset-item" data-id="TRX"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◈</div><div class="asset-info"><div class="asset-name">Tron</div><div class="asset-sym">TRX</div></div><div class="asset-right"><div class="asset-price" id="p-TRX">—</div><div class="asset-chg" id="c-TRX">—</div></div></div>
+      <div class="asset-item" data-id="XMR"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">ɱ</div><div class="asset-info"><div class="asset-name">Monero</div><div class="asset-sym">XMR</div></div><div class="asset-right"><div class="asset-price" id="p-XMR">—</div><div class="asset-chg" id="c-XMR">—</div></div></div>
+      <div class="asset-item" data-id="XRP"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">✕</div><div class="asset-info"><div class="asset-name">XRP</div><div class="asset-sym">XRP</div></div><div class="asset-right"><div class="asset-price" id="p-XRP">—</div><div class="asset-chg" id="c-XRP">—</div></div></div>
+    </div>
+
+    <div class="watchlist-section-label">Commodities</div>
+    <div id="commodityList">
+      <div class="asset-item" data-id="BZ=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🛢️</div><div class="asset-info"><div class="asset-name">Brent</div><div class="asset-sym">BZ/USD</div></div><div class="asset-right"><div class="asset-price" id="p-BZF">—</div><div class="asset-chg" id="c-BZF">—</div></div></div>
+      <div class="asset-item" data-id="HG=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🔶</div><div class="asset-info"><div class="asset-name">Copper</div><div class="asset-sym">HG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-HGF">—</div><div class="asset-chg" id="c-HGF">—</div></div></div>
+      <div class="asset-item active" data-id="GC=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🥇</div><div class="asset-info"><div class="asset-name">Gold</div><div class="asset-sym">XAU/USD</div></div><div class="asset-right"><div class="asset-price" id="p-GCF">—</div><div class="asset-chg" id="c-GCF">—</div></div></div>
+      <div class="asset-item" data-id="NG=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🔥</div><div class="asset-info"><div class="asset-name">Nat Gas</div><div class="asset-sym">NG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-NGF">—</div><div class="asset-chg" id="c-NGF">—</div></div></div>
+      <div class="asset-item" data-id="SI=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🥈</div><div class="asset-info"><div class="asset-name">Silver</div><div class="asset-sym">XAG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-SIF">—</div><div class="asset-chg" id="c-SIF">—</div></div></div>
+      <div class="asset-item" data-id="CL=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🛢️</div><div class="asset-info"><div class="asset-name">WTI Oil</div><div class="asset-sym">CL/USD</div></div><div class="asset-right"><div class="asset-price" id="p-CLF">—</div><div class="asset-chg" id="c-CLF">—</div></div></div>
+    </div>
+
+    <div class="watchlist-section-label">Forex</div>
+    <div id="forexList">
+      <div class="asset-item" data-id="AUDUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">$</div><div class="asset-info"><div class="asset-name">Aussie</div><div class="asset-sym">AUD/USD</div></div><div class="asset-right"><div class="asset-price" id="p-AUDUSD">—</div><div class="asset-chg" id="c-AUDUSD">—</div></div></div>
+      <div class="asset-item" data-id="EURUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">€</div><div class="asset-info"><div class="asset-name">Euro</div><div class="asset-sym">EUR/USD</div></div><div class="asset-right"><div class="asset-price" id="p-EURUSD">—</div><div class="asset-chg" id="c-EURUSD">—</div></div></div>
+      <div class="asset-item" data-id="GBPUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">£</div><div class="asset-info"><div class="asset-name">Pound</div><div class="asset-sym">GBP/USD</div></div><div class="asset-right"><div class="asset-price" id="p-GBPUSD">—</div><div class="asset-chg" id="c-GBPUSD">—</div></div></div>
+      <div class="asset-item" data-id="USDJPY=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">¥</div><div class="asset-info"><div class="asset-name">Yen</div><div class="asset-sym">USD/JPY</div></div><div class="asset-right"><div class="asset-price" id="p-USDJPY">—</div><div class="asset-chg" id="c-USDJPY">—</div></div></div>
+    </div>
+
+    </div><!-- /watchlist-scroll -->
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Portfolio</div>
+      <div class="topbar-right">
+        <button class="focus-btn" id="focusBtn" onclick="toggleFocus()">Focus</button>
+        <span class="theme-label">Theme</span>
+        <div class="theme-switcher">
+          <div class="theme-dot active" data-theme="default" title="Pearl (Default)"></div>
+          <div class="theme-dot" data-theme="glassy" title="Glassy"></div>
+          <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
+          <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
+          <div class="theme-dot" data-theme="forest" title="Forest"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <!-- Left column: multi-mode panel -->
+      <div class="dashboard-left">
+
+        <!-- Col2 panel nav (hidden on asset view) -->
+        <div class="col2-panel-nav" id="col2Nav" style="display:none">
+          <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Charts</button>
+          <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
+          <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
+        </div>
+
+        <!-- ── Asset View ── -->
+        <div id="assetView">
+
+        <!-- Asset headline -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-header" style="margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="card-icon" id="assetIcon">🥇</div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary)" id="assetName">Gold</div>
+                <div style="font-size:10px;color:var(--text-muted)" id="assetSym">XAU/USD · Commodity</div>
+              </div>
+            </div>
+          </div>
+          <div class="asset-headline">
+            <div class="asset-headline-price" id="assetPrice">—</div>
+            <div class="asset-headline-chg" id="assetChg">—</div>
+          </div>
+          <div class="asset-headline-sub" id="assetUpdated">Loading…</div>
+        </div>
+
+        <!-- Stat cards row -->
+        <div class="cards-row" style="margin-top:10px">
+          <div class="card">
+            <div class="card-label" id="stat1Label">Open</div>
+            <div class="card-value" id="stat1Val">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label" id="stat2Label">Prev Close</div>
+            <div class="card-value" id="stat2Val">—</div>
+          </div>
+        </div>
+
+        <!-- 5d chart -->
+        <div class="chart-card" style="margin-top:10px">
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="card-icon">📊</div>
+              <div class="card-label">5d <span class="badge badge-up" id="chartBadge5d">…</span></div>
+            </div>
+          </div>
+          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart5d">
+            <defs>
+              <linearGradient id="chartGrad5d" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" id="gradStop1-5d"/>
+                <stop offset="100%" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path id="chartArea5d" fill="url(#chartGrad5d)"/>
+            <path id="chartLine5d" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- 1mo chart -->
+        <div class="chart-card" style="margin-top:10px">
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="card-icon">📈</div>
+              <div class="card-label">1mo <span class="badge badge-up" id="chartBadge">…</span></div>
+            </div>
+          </div>
+          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart">
+            <defs>
+              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" id="gradStop1"/>
+                <stop offset="100%" id="gradStop2" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path id="chartArea" fill="url(#chartGrad)"/>
+            <path id="chartLine" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- 3mo chart -->
+        <div class="chart-card" style="margin-top:10px">
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="card-icon">📉</div>
+              <div class="card-label">3mo <span class="badge badge-up" id="chartBadge3m">…</span></div>
+            </div>
+          </div>
+          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart3m">
+            <defs>
+              <linearGradient id="chartGrad3m" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" id="gradStop1-3m"/>
+                <stop offset="100%" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path id="chartArea3m" fill="url(#chartGrad3m)"/>
+            <path id="chartLine3m" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        </div><!-- /assetView -->
+
+        <!-- ── Settings View ── -->
+        <div id="settingsView" style="display:none">
+          <div class="card">
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">API Keys & Settings</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Stored locally in the database. Changes take effect immediately.</div>
+
+            <div class="settings-row" id="srow-GROQ_API_KEY">
+              <div class="settings-label">Groq API Key <span id="smask-GROQ_API_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-GROQ_API_KEY" type="password" placeholder="gsk_…" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('GROQ_API_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-GROQ_API_KEY"></div>
+            </div>
+
+            <div class="settings-row" id="srow-SARA_MASTER_KEY">
+              <div class="settings-label">Encryption Key <span id="smask-SARA_MASTER_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-SARA_MASTER_KEY" type="password" placeholder="32+ char secret key" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('SARA_MASTER_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-SARA_MASTER_KEY"></div>
+            </div>
+
+            <div class="settings-row" id="srow-COINGECKO_API_KEY">
+              <div class="settings-label">CoinGecko API Key <span id="smask-COINGECKO_API_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-COINGECKO_API_KEY" type="password" placeholder="CG-… (optional)" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('COINGECKO_API_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-COINGECKO_API_KEY"></div>
+            </div>
+
+            <div class="settings-row" id="srow-ALCHEMY_API_KEY">
+              <div class="settings-label">Alchemy API Key <span id="smask-ALCHEMY_API_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-ALCHEMY_API_KEY" type="password" placeholder="(optional)" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('ALCHEMY_API_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-ALCHEMY_API_KEY"></div>
+            </div>
+
+            <div class="settings-row" id="srow-HELIUS_RPC">
+              <div class="settings-label">Helius RPC URL <span id="smask-HELIUS_RPC"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-HELIUS_RPC" type="password" placeholder="https://… (optional)" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('HELIUS_RPC')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-HELIUS_RPC"></div>
+            </div>
+          </div>
+        </div><!-- /settingsView -->
+
+        <!-- ── Directory View ── -->
+        <div id="directoryView" style="display:none">
+          <div class="card">
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">Address Book</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Save nicknames so you can say "send 1 POL from test to <strong>rohas</strong>".</div>
+
+            <div class="dir-add-form">
+              <div class="dir-add-row">
+                <input class="dir-input" id="dirNick" placeholder="Nickname (e.g. rohas)" maxlength="32" style="max-width:130px">
+                <select class="dir-input" id="dirChain" style="max-width:90px">
+                  <option value="evm">EVM</option>
+                  <option value="solana">Solana</option>
+                </select>
+              </div>
+              <div class="dir-add-row">
+                <input class="dir-input" id="dirAddr" placeholder="Wallet address (0x… or base58)">
+                <button class="dir-add-btn" onclick="addDirectoryEntry()">Add</button>
+              </div>
+              <div class="dir-status" id="dirStatus"></div>
+            </div>
+
+            <div class="dir-list" id="dirList"></div>
+          </div>
+        </div><!-- /directoryView -->
+
+      </div><!-- /dashboard-left -->
+
+      <!-- Right: Chat -->
+      <div class="dashboard-right">
+
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg bot">
+            <div class="msg-avatar bot">🌐</div>
+            <div>
+              <div class="msg-bubble">Hi! I'm SARA — your AI financial terminal.<br><br>Add a wallet using the <strong>+</strong> button in the sidebar, then ask me to check balances, fetch prices, or send crypto. Type <strong>CONFIRM</strong> to approve any transaction I propose.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-suggestions" id="chatSuggestions">
+          <div class="chat-chip" onclick="sendChip(this)">List my wallets</div>
+          <div class="chat-chip" onclick="sendChip(this)">Check gas fees</div>
+          <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
+          <div class="chat-chip" onclick="sendChip(this)">ETH price</div>
+          <div class="chat-chip" onclick="sendChip(this)">SOL price</div>
+          <div class="chat-chip" onclick="sendChip(this)">What can you do?</div>
+        </div>
+
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="chatInput" placeholder="Ask Sara anything…" rows="1"></textarea>
+          <button class="chat-send" id="chatSend">
+            <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+          </button>
+        </div>
+
+      </div><!-- /dashboard-right -->
+
+    </div><!-- /dashboard -->
+  </div><!-- /main -->
+
+</div><!-- /app-shell -->
+
+<!-- ── Wallet Modal ── -->
+<div class="wallet-modal-overlay" id="walletModalOverlay" onclick="closeWalletModal(event)">
+  <div class="wallet-modal" onclick="event.stopPropagation()">
+    <div class="wallet-modal-title">Add Wallet</div>
+    <div class="wallet-form-tabs">
+      <button class="wallet-form-tab active" id="tabCreate" onclick="setWalletTab('create')">Create New</button>
+      <button class="wallet-form-tab" id="tabImport" onclick="setWalletTab('import')">Import Key</button>
+    </div>
+    <div class="wallet-form-group">
+      <div class="wallet-form-label">Wallet Name</div>
+      <input class="wallet-form-input" id="walletName" placeholder="e.g. Main ETH" maxlength="32" />
+    </div>
+    <div class="wallet-form-group">
+      <div class="wallet-form-label">Chain</div>
+      <select class="wallet-form-select" id="walletChain">
+        <optgroup label="EVM Networks">
+          <option value="evm">Ethereum / Arbitrum / Base / Optimism</option>
+          <option value="evm">Polygon (MATIC)</option>
+          <option value="evm">BNB Smart Chain</option>
+          <option value="evm">Avalanche C-Chain</option>
+          <option value="evm">Tron (TRC-20, same key format)</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="solana">Solana</option>
+          <option value="evm" disabled>Bitcoin (BTC) — coming in Phase 4</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
+      <div class="wallet-form-label">Private Key (hex)</div>
+      <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" />
+    </div>
+    <div class="wallet-modal-actions">
+      <button class="wallet-btn-cancel" onclick="closeWalletModal()">Cancel</button>
+      <button class="wallet-btn-create" id="walletSubmitBtn" onclick="submitWallet()">Create Wallet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// THEME SWITCHER
+// ══════════════════════════════════════
+const themes = ['default','glassy','darkpro','sunset','forest'];
+const shell = document.getElementById('appShell');
+const appBg = document.getElementById('appBg');
+
+document.querySelectorAll('.theme-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    const theme = dot.dataset.theme;
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    themes.forEach(t => { shell.classList.remove('theme-'+t); appBg.classList.remove('theme-'+t); });
+    if (theme !== 'default') { shell.classList.add('theme-'+theme); appBg.classList.add('theme-'+theme); }
+    setTimeout(() => { drawLineChart(); }, 60);
+  });
+});
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+         getComputedStyle(shell).getPropertyValue(name).trim();
+}
+function makeSmoothPath(xs, ys) {
+  let d = `M ${xs[0]} ${ys[0]}`;
+  for (let i = 1; i < xs.length; i++) {
+    const cpx = (xs[i-1]+xs[i])/2;
+    d += ` C ${cpx} ${ys[i-1]}, ${cpx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+  }
+  return d;
+}
+
+// ══════════════════════════════════════
+// CHART DRAWING
+// ══════════════════════════════════════
+let _chartPts = [380,320,360,290,340,260,300,230,280,200,250,190,240,170,200,160,210,140,190,130];
+
+function _drawChart(pts, lineId, areaId, stop1Id) {
+  if (!pts || pts.length < 2) return;
+  const W=500, H=72;
+  const xs = pts.map((_,i) => i/((pts.length-1)||1)*W);
+  const mn = Math.min(...pts), mx = Math.max(...pts);
+  const range = mx - mn || 1;
+  const ys = pts.map(p => H - ((p-mn)/range)*(H-10) - 5);
+  const d = makeSmoothPath(xs, ys);
+  const area = d + ' L ' + xs[xs.length-1] + ' ' + H + ' L ' + xs[0] + ' ' + H + ' Z';
+  const accentColor = getCSSVar('--chart-line') || '#3d5a4a';
+  const lineEl = document.getElementById(lineId);
+  const areaEl = document.getElementById(areaId);
+  const stopEl = document.getElementById(stop1Id);
+  if (lineEl) { lineEl.setAttribute('d', d); lineEl.setAttribute('stroke', accentColor); }
+  if (areaEl) areaEl.setAttribute('d', area);
+  if (stopEl) { stopEl.setAttribute('stop-color', accentColor); stopEl.setAttribute('stop-opacity', '0.25'); }
+}
+
+function drawLineChart(pts) {
+  if (pts) _chartPts = pts;
+  _drawChart(_chartPts, 'chartLine', 'chartArea', 'gradStop1');
+}
+drawLineChart();
+
+
+// ══════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+
+const SESSION_ID = 'sara-' + Math.random().toString(36).slice(2);
+let chatHistory = [];
+let isStreaming = false;
+
+function addMsg(text, role) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if (role === 'bot') {
+    div.innerHTML = `<div class="msg-avatar bot">🤖</div><div><div class="msg-bubble">${text}</div></div>`;
+  } else {
+    div.innerHTML = `<div class="msg-avatar user-av">👤</div><div><div class="msg-bubble">${text}</div><div class="msg-time">${time}</div></div>`;
+  }
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = `<div class="msg-avatar bot">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}
+
+async function sendMessage(text) {
+  text = (text || chatInput.value).trim();
+  if (!text || isStreaming) return;
+  isStreaming = true;
+
+  addMsg(text, 'user');
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  chatHistory.push({ role: 'user', content: text });
+
+  const typing = showTyping();
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: chatHistory.slice(-20), session_id: SESSION_ID })
+    });
+
+    typing.remove();
+
+    const botDiv = document.createElement('div');
+    botDiv.className = 'msg bot';
+    botDiv.innerHTML = `<div class="msg-avatar bot">🤖</div><div><div class="msg-bubble" id="sara-stream"></div></div>`;
+    chatMessages.appendChild(botDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    const bubble = document.getElementById('sara-stream');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+
+    function renderText(text) {
+      return text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, (_, addr) => {
+          const safe = addr.replace(/"/g,'&quot;');
+          return `<code class="chat-addr" data-addr="${safe}" onclick="copyAddr(this)" title="Click to copy">${addr}<span class="copy-icon"> ⎘</span></code>`;
+        })
+        .replace(/\n/g,'<br>');
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (!data.done && data.token) {
+              fullText += data.token;
+              bubble.innerHTML = renderText(fullText);
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+          } catch(e) {}
+        }
+      }
+    }
+
+    bubble.removeAttribute('id');
+    chatHistory.push({ role: 'assistant', content: fullText });
+    if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
+
+  } catch(err) {
+    typing.remove();
+    addMsg('Connection error — is the SARA backend running? Start it with: cd backend && uvicorn main:app --reload', 'bot');
+  }
+
+  isStreaming = false;
+}
+
+function sendChip(el) { sendMessage(el.textContent); }
+
+chatSend.addEventListener('click', () => sendMessage());
+chatInput.addEventListener('keydown', e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 90) + 'px';
+});
+
+// ══════════════════════════════════════
+// LIVE MARKET DATA (real API)
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+// ASSET WATCHLIST + DETAIL
+// ══════════════════════════════════════
+
+// Descriptor map for every watchlist asset
+const ASSETS = {
+  // Crypto (alphabetical by symbol)
+  'BNB':      { type:'crypto',    yf:'BNB-USD',  label:'BNB',         sym:'BNB',      cat:'Cryptocurrency' },
+  'BTC':      { type:'crypto',    yf:'BTC-USD',  label:'Bitcoin',     sym:'BTC',      cat:'Cryptocurrency' },
+  'DOGE':     { type:'crypto',    yf:'DOGE-USD', label:'Dogecoin',    sym:'DOGE',     cat:'Cryptocurrency' },
+  'ETH':      { type:'crypto',    yf:'ETH-USD',  label:'Ethereum',    sym:'ETH',      cat:'Cryptocurrency' },
+  'HYPE':     { type:'crypto',    yf:'HYPE-USD', label:'Hyperliquid', sym:'HYPE',     cat:'Cryptocurrency' },
+  'LINK':     { type:'crypto',    yf:'LINK-USD', label:'Chainlink',   sym:'LINK',     cat:'Cryptocurrency' },
+  'SOL':      { type:'crypto',    yf:'SOL-USD',  label:'Solana',      sym:'SOL',      cat:'Cryptocurrency' },
+  'TRX':      { type:'crypto',    yf:'TRX-USD',  label:'Tron',        sym:'TRX',      cat:'Cryptocurrency' },
+  'XMR':      { type:'crypto',    yf:'XMR-USD',  label:'Monero',      sym:'XMR',      cat:'Cryptocurrency' },
+  'XRP':      { type:'crypto',    yf:'XRP-USD',  label:'XRP',         sym:'XRP',      cat:'Cryptocurrency' },
+  // Commodities (alphabetical by name)
+  'BZ=F':     { type:'commodity', yf:'BZ=F',     label:'Brent',       sym:'BZ/USD',   cat:'Commodity',    priceId:'BZF',    chgId:'BZF' },
+  'HG=F':     { type:'commodity', yf:'HG=F',     label:'Copper',      sym:'HG/USD',   cat:'Commodity',    priceId:'HGF',    chgId:'HGF' },
+  'GC=F':     { type:'commodity', yf:'GC=F',     label:'Gold',        sym:'XAU/USD',  cat:'Commodity',    priceId:'GCF',    chgId:'GCF' },
+  'NG=F':     { type:'commodity', yf:'NG=F',     label:'Nat Gas',     sym:'NG/USD',   cat:'Commodity',    priceId:'NGF',    chgId:'NGF' },
+  'SI=F':     { type:'commodity', yf:'SI=F',     label:'Silver',      sym:'XAG/USD',  cat:'Commodity',    priceId:'SIF',    chgId:'SIF' },
+  'CL=F':     { type:'commodity', yf:'CL=F',     label:'WTI Oil',     sym:'CL/USD',   cat:'Commodity',    priceId:'CLF',    chgId:'CLF' },
+  // Forex (alphabetical by name)
+  'AUDUSD=X': { type:'forex',     yf:'AUDUSD=X', label:'Aussie',      sym:'AUD/USD',  cat:'Forex',        priceId:'AUDUSD', chgId:'AUDUSD' },
+  'EURUSD=X': { type:'forex',     yf:'EURUSD=X', label:'Euro',        sym:'EUR/USD',  cat:'Forex',        priceId:'EURUSD', chgId:'EURUSD' },
+  'GBPUSD=X': { type:'forex',     yf:'GBPUSD=X', label:'Pound',       sym:'GBP/USD',  cat:'Forex',        priceId:'GBPUSD', chgId:'GBPUSD' },
+  'USDJPY=X': { type:'forex',     yf:'USDJPY=X', label:'Yen',         sym:'USD/JPY',  cat:'Forex',        priceId:'USDJPY', chgId:'USDJPY' },
+};
+
+// sidebar price element IDs — crypto use id=p-SYM, others use custom priceId
+function _priceElemId(id) {
+  const a = ASSETS[id];
+  return a.priceId ? 'p-' + a.priceId : 'p-' + id;
+}
+function _chgElemId(id) {
+  const a = ASSETS[id];
+  return a.priceId ? 'c-' + a.priceId : 'c-' + id;
+}
+
+function _fmt(price, type) {
+  if (price === null || price === undefined) return '—';
+  if (type === 'crypto' && price >= 1000) return '$' + price.toLocaleString('en-US', {maximumFractionDigits: 0});
+  if (type === 'crypto' && price >= 1)    return '$' + price.toFixed(2);
+  if (type === 'crypto')                  return '$' + price.toFixed(5);
+  if (type === 'forex')                   return price.toFixed(4);
+  return '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+let _activeAssetId = 'GC=F';
+
+async function loadWatchlistPrices() {
+  const ids = Object.keys(ASSETS);
+  await Promise.allSettled(ids.map(async id => {
+    const a = ASSETS[id];
+    try {
+      const data = await fetch('/api/market/history/' + encodeURIComponent(a.yf) + '?period=2d').then(r => r.ok ? r.json() : null);
+      if (!data) return;
+      const price = data.current;
+      const prev  = data.prev_close || price;
+      const chgPct = prev ? ((price - prev) / prev * 100) : 0;
+      const pEl = document.getElementById(_priceElemId(id));
+      const cEl = document.getElementById(_chgElemId(id));
+      if (pEl) pEl.textContent = _fmt(price, a.type);
+      if (cEl) {
+        const sign = chgPct >= 0 ? '+' : '';
+        cEl.textContent = sign + chgPct.toFixed(2) + '%';
+        cEl.className = 'asset-chg ' + (chgPct >= 0 ? 'up' : 'down');
+      }
+      // Cache current + prev for detail view
+      a._current = price;
+      a._prev    = prev;
+      a._chgPct  = chgPct;
+    } catch(e) {}
+  }));
+}
+
+async function selectAsset(el) {
+  const id = el.dataset.id;
+  if (!id || !ASSETS[id]) return;
+  _activeAssetId = id;
+
+  // Highlight asset-item in sidebar2
+  document.querySelectorAll('.asset-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  // Sync sidebar1 coin highlight (only for crypto)
+  document.querySelectorAll('.s1-coin').forEach(c => c.classList.remove('active'));
+  const s1coin = document.querySelector('.s1-coin[data-id="' + id + '"]');
+  if (s1coin) s1coin.classList.add('active');
+
+  const a = ASSETS[id];
+  document.getElementById('topbarTitle').textContent = a.label;
+
+  // Update headline
+  document.getElementById('assetIcon').textContent = el.querySelector('.asset-icon').textContent;
+  document.getElementById('assetName').textContent = a.label;
+  document.getElementById('assetSym').textContent  = a.sym + ' · ' + a.cat;
+  document.getElementById('assetPrice').textContent = '—';
+  document.getElementById('assetChg').textContent   = '—';
+  document.getElementById('assetUpdated').textContent = 'Loading…';
+  document.getElementById('stat1Val').textContent   = '—';
+  document.getElementById('stat2Val').textContent   = '—';
+
+  // Load 5d, 1mo, 3mo history in parallel
+  try {
+    const enc = encodeURIComponent(a.yf);
+    const [r5d, r1m, r3m] = await Promise.all([
+      fetch('/api/market/history/' + enc + '?period=5d').then(r => r.ok ? r.json() : null),
+      fetch('/api/market/history/' + enc + '?period=1mo').then(r => r.ok ? r.json() : null),
+      fetch('/api/market/history/' + enc + '?period=3mo').then(r => r.ok ? r.json() : null),
+    ]);
+
+    const data = r1m || r5d || r3m;
+    if (!data) { document.getElementById('assetUpdated').textContent = 'Data unavailable'; return; }
+
+    const price   = data.current;
+    const prev    = data.prev_close || price;
+    const openVal = data.open || prev;
+    const chgPct  = prev ? ((price - prev) / prev * 100) : 0;
+    const chgAbs  = price - prev;
+    const sign    = chgPct >= 0 ? '+' : '';
+
+    document.getElementById('assetPrice').textContent = _fmt(price, a.type);
+    const chgEl = document.getElementById('assetChg');
+    chgEl.textContent  = sign + chgPct.toFixed(2) + '% (' + sign + _fmt(Math.abs(chgAbs), a.type).replace('$','') + ')';
+    chgEl.className    = 'asset-headline-chg ' + (chgPct >= 0 ? 'up' : 'down');
+    document.getElementById('assetUpdated').textContent = 'Updated just now · via Yahoo Finance';
+
+    // Stat cards
+    document.getElementById('stat1Val').textContent = _fmt(openVal, a.type);
+    document.getElementById('stat2Val').textContent = _fmt(prev, a.type);
+
+    // Helper: draw a chart + update its badge
+    function _fillChart(d, lineId, areaId, stop1Id, badgeId) {
+      if (!d?.closes || d.closes.length < 2) return;
+      _drawChart(d.closes, lineId, areaId, stop1Id);
+      const chgPct = ((d.closes.at(-1) - d.closes[0]) / d.closes[0] * 100).toFixed(2);
+      const b = document.getElementById(badgeId);
+      if (b) { b.textContent = (chgPct >= 0 ? '+' : '') + chgPct + '%'; b.className = 'badge ' + (chgPct >= 0 ? 'badge-up' : 'badge-down'); }
+    }
+    _fillChart(r5d, 'chartLine5d', 'chartArea5d', 'gradStop1-5d', 'chartBadge5d');
+    _fillChart(r1m, 'chartLine',   'chartArea',   'gradStop1',    'chartBadge');
+    _fillChart(r3m, 'chartLine3m', 'chartArea3m', 'gradStop1-3m', 'chartBadge3m');
+  } catch(e) {
+    document.getElementById('assetUpdated').textContent = 'Error loading data';
+  }
+}
+
+
+// Focus toggle
+function toggleFocus() {
+  const btn = document.getElementById('focusBtn');
+  shell.classList.toggle('focus-mode');
+  btn.classList.toggle('active');
+  btn.textContent = shell.classList.contains('focus-mode') ? 'Exit Focus' : 'Focus';
+}
+
+// ══════════════════════════════════════
+// WALLET MODAL
+// ══════════════════════════════════════
+let walletTab = 'create';
+
+function openWalletModal() {
+  document.getElementById('walletModalOverlay').classList.add('open');
+  document.getElementById('walletName').value = '';
+  document.getElementById('walletPrivKey').value = '';
+  setWalletTab('create');
+}
+
+function closeWalletModal(event) {
+  if (!event || event.target === document.getElementById('walletModalOverlay')) {
+    document.getElementById('walletModalOverlay').classList.remove('open');
+  }
+}
+
+function setWalletTab(tab) {
+  walletTab = tab;
+  document.getElementById('tabCreate').classList.toggle('active', tab === 'create');
+  document.getElementById('tabImport').classList.toggle('active', tab === 'import');
+  document.getElementById('privateKeyGroup').style.display = tab === 'import' ? 'block' : 'none';
+  document.getElementById('walletSubmitBtn').textContent = tab === 'create' ? 'Create Wallet' : 'Import Wallet';
+}
+
+async function submitWallet() {
+  const name = document.getElementById('walletName').value.trim();
+  const chain = document.getElementById('walletChain').value;
+  if (!name) { document.getElementById('walletName').focus(); return; }
+  const btn = document.getElementById('walletSubmitBtn');
+  btn.textContent = 'Working…'; btn.disabled = true;
+  try {
+    let endpoint, body;
+    if (walletTab === 'create') {
+      endpoint = '/api/wallets/create'; body = { name, chain };
+    } else {
+      const pk = document.getElementById('walletPrivKey').value.trim();
+      if (!pk) { document.getElementById('walletPrivKey').focus(); btn.textContent = 'Import Wallet'; btn.disabled = false; return; }
+      endpoint = '/api/wallets/import'; body = { name, chain, private_key: pk };
+    }
+    const resp = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Failed');
+    closeWalletModal();
+    const action = walletTab === 'create' ? 'created' : 'imported';
+    addMsg('Wallet "' + data.name + '" ' + action + '! Address: ' + data.address, 'bot');
+  } catch(e) { addMsg('Error: ' + e.message, 'bot'); }
+  btn.textContent = walletTab === 'create' ? 'Create Wallet' : 'Import Wallet';
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════
+// COPY ADDRESS
+// ══════════════════════════════════════
+function copyAddr(el) {
+  const addr = el.dataset.addr;
+  navigator.clipboard.writeText(addr).then(() => {
+    const ic = el.querySelector('.copy-icon');
+    const prev = ic.textContent;
+    ic.textContent = ' Copied!';
+    ic.style.color = 'var(--green)';
+    el.style.borderColor = 'var(--green)';
+    setTimeout(() => {
+      ic.textContent = prev;
+      ic.style.color = '';
+      el.style.borderColor = '';
+    }, 1800);
+  });
+}
+
+// ══════════════════════════════════════
+// COLUMN 2 PANEL SWITCHER
+// ══════════════════════════════════════
+const SETTING_KEYS = ['GROQ_API_KEY','SARA_MASTER_KEY','COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+let _col2Mode = 'asset';
+
+async function showCol2(mode) {
+  _col2Mode = mode;
+
+  // Show/hide the views
+  document.getElementById('assetView').style.display      = mode === 'asset'     ? '' : 'none';
+  document.getElementById('settingsView').style.display   = mode === 'settings'  ? '' : 'none';
+  document.getElementById('directoryView').style.display  = mode === 'directory' ? '' : 'none';
+
+  // Show the panel nav when not in asset view
+  document.getElementById('col2Nav').style.display = mode !== 'asset' ? 'flex' : 'none';
+
+  // Highlight active nav buttons (panel nav)
+  ['col2BtnAsset','col2BtnDir','col2BtnSettings'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  if (mode === 'asset')     document.getElementById('col2BtnAsset')?.classList.add('active');
+  if (mode === 'directory') document.getElementById('col2BtnDir')?.classList.add('active');
+  if (mode === 'settings')  document.getElementById('col2BtnSettings')?.classList.add('active');
+
+  // Highlight sidebar1 buttons
+  document.getElementById('s1BtnDir')?.classList.toggle('active', mode === 'directory');
+  document.getElementById('s1BtnSettings')?.classList.toggle('active', mode === 'settings');
+
+  if (mode === 'settings') await _loadSettingsView();
+  if (mode === 'directory') await loadDirectory();
+}
+
+async function _loadSettingsView() {
+  try {
+    const data = await fetch('/api/settings').then(r => r.json());
+    for (const [key, info] of Object.entries(data)) {
+      const maskEl = document.getElementById('smask-' + key);
+      if (maskEl) {
+        maskEl.textContent = info.set ? '(' + info.masked + ')' : '(not set)';
+        maskEl.style.color = 'var(--text-muted)';
+      }
+    }
+  } catch(e) {}
+}
+
+async function saveSetting(key) {
+  const inp = document.getElementById('sinput-' + key);
+  const statusEl = document.getElementById('sstatus-' + key);
+  const val = inp.value.trim();
+  if (!val) { statusEl.textContent = 'Enter a value first.'; statusEl.style.color = 'var(--red)'; return; }
+  try {
+    const r = await fetch('/api/settings', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ key, value: val })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    inp.value = '';
+    statusEl.textContent = 'Saved!';
+    statusEl.style.color = 'var(--green)';
+    const maskEl = document.getElementById('smask-' + key);
+    const masked = val.length > 8 ? val.slice(0,4) + '••••' + val.slice(-4) : '••••••••';
+    if (maskEl) maskEl.textContent = '(' + masked + ')';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+// ══════════════════════════════════════
+// ADDRESS BOOK / DIRECTORY
+// ══════════════════════════════════════
+async function loadDirectory() {
+  const list = document.getElementById('dirList');
+  list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Loading…</div>';
+  try {
+    const entries = await fetch('/api/directory').then(r => r.json());
+    if (!entries.length) {
+      list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No entries yet. Add one above.</div>';
+      return;
+    }
+    list.innerHTML = entries.map(e => `
+      <div class="dir-entry">
+        <div class="dir-nick">${e.nickname}</div>
+        <div class="dir-addr" title="${e.address}">${e.address}</div>
+        <div class="dir-chain">${e.chain}</div>
+        <button class="dir-del" onclick="deleteDirectoryEntry('${e.nickname}')" title="Remove">×</button>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading directory.</div>';
+  }
+}
+
+async function addDirectoryEntry() {
+  const nick = document.getElementById('dirNick').value.trim();
+  const addr = document.getElementById('dirAddr').value.trim();
+  const chain = document.getElementById('dirChain').value;
+  const status = document.getElementById('dirStatus');
+  if (!nick || !addr) { status.textContent = 'Nickname and address are required.'; status.style.color = 'var(--red)'; return; }
+  try {
+    const r = await fetch('/api/directory', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nickname: nick, address: addr, chain })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById('dirNick').value = '';
+    document.getElementById('dirAddr').value = '';
+    status.textContent = 'Saved!';
+    status.style.color = 'var(--green)';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+    await loadDirectory();
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = 'var(--red)';
+  }
+}
+
+async function deleteDirectoryEntry(nickname) {
+  try {
+    await fetch('/api/directory/' + encodeURIComponent(nickname), { method: 'DELETE' });
+    await loadDirectory();
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+// SIDEBAR 1 COIN SHORTCUTS
+// ══════════════════════════════════════
+function selectCoinSidebar(id) {
+  const el = document.querySelector('.asset-item[data-id="' + id + '"]');
+  if (el) selectAsset(el);
+}
+
+// ── Boot ──
+(async () => {
+  // Default: select Gold
+  const goldEl = document.querySelector('.asset-item[data-id="GC=F"]');
+  if (goldEl) await selectAsset(goldEl);
+
+  // Load all sidebar prices (staggered to avoid hammering yfinance)
+  await loadWatchlistPrices();
+
+  // Refresh watchlist prices every 90s
+  setInterval(loadWatchlistPrices, 90000);
+})();
+</script>
+</body>
+</html>
