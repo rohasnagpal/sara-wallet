@@ -1304,6 +1304,7 @@ async function sendMessage(text) {
           const safe = addr.replace(/"/g,'&quot;');
           return `<code class="chat-addr" data-addr="${safe}" onclick="copyAddr(this)" title="Click to copy">${addr}<span class="copy-icon"> ⎘</span></code>`;
         })
+        .replace(/\n---\n/g, '<hr style="border:none;border-top:1px solid var(--border-dark);margin:10px 0">')
         .replace(/\n/g,'<br>');
     }
 

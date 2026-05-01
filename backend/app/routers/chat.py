@@ -286,11 +286,41 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         wallets = db.query(Wallet).all()
         if not wallets:
             return "No wallets added yet. Ask me to create one!"
-        lines = []
+        from app.chains import evm as evm_chain, solana as sol_chain
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
+        blocks = []
         for w in wallets:
-            lines.append(f"**{w.name}** · {w.chain.upper()}")
-            lines.append(f"`{w.address}`")
-        return "\n".join(lines)
+            card = []
+            card.append(f"**{w.name}**  ·  {w.chain.upper()}")
+            if w.chain == "evm":
+                def _fetch(net, addr=w.address):
+                    try:
+                        return evm_chain.get_balance(addr, net)
+                    except Exception:
+                        return None
+                balances = []
+                with ThreadPoolExecutor(max_workers=5) as ex:
+                    futures = {ex.submit(_fetch, net): net for net in EVM_NETWORKS}
+                    for fut in as_completed(futures, timeout=8):
+                        result = fut.result()
+                        if result and result["balance"] > 0.000001:
+                            balances.append(result)
+                balances.sort(key=lambda r: r["balance"], reverse=True)
+                if balances:
+                    for b in balances:
+                        card.append(f"{b['balance']:.6f} **{b['unit']}**  ·  {b['network'].capitalize()}")
+                else:
+                    card.append("No funds detected")
+            else:
+                try:
+                    b = sol_chain.get_balance(w.address)
+                    card.append(f"{b['balance']:.6f} **SOL**")
+                except Exception:
+                    card.append("Balance unavailable")
+            card.append(f"`{w.address}`")
+            blocks.append("\n".join(card))
+        return "\n---\n".join(blocks)
 
     if tool_name == "get_balance":
         w = _resolve_wallet(args["wallet_name"], db)
