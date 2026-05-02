@@ -1061,15 +1061,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="sstatus-COINGECKO_API_KEY"></div>
             </div>
 
-            <div class="settings-row" id="srow-CRYPTOPANIC_API_KEY">
-              <div class="settings-label">CryptoPanic API Key <span id="smask-CRYPTOPANIC_API_KEY"></span></div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-CRYPTOPANIC_API_KEY" type="password" placeholder="(optional, news & sentiment)" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('CRYPTOPANIC_API_KEY')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-CRYPTOPANIC_API_KEY"></div>
-            </div>
-
             <div class="settings-row" id="srow-ALCHEMY_API_KEY">
               <div class="settings-label">Alchemy API Key <span id="smask-ALCHEMY_API_KEY"></span></div>
               <div class="settings-input-row">
@@ -1148,7 +1139,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
           <div class="chat-chip" onclick="sendChip(this)">Gold price</div>
           <div class="chat-chip" onclick="sendChip(this)">Will Bitcoin hit $200k?</div>
-          <div class="chat-chip" onclick="sendChip(this)">Long ETH $500 2x</div>
+          <div class="chat-chip" onclick="sendChip(this)">Top DeFi yields</div>
           <div class="chat-chip" onclick="sendChip(this)">Swap 1 SOL for USDC</div>
           <div class="chat-chip" onclick="sendChip(this)">ETH sentiment</div>
           <div class="chat-chip" onclick="sendChip(this)">Show my portfolio</div>
@@ -1628,7 +1619,7 @@ function copyAddr(el) {
 // ══════════════════════════════════════
 // COLUMN 2 PANEL SWITCHER
 // ══════════════════════════════════════
-const SETTING_KEYS = ['SARA_MASTER_KEY','COINGECKO_API_KEY','CRYPTOPANIC_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+const SETTING_KEYS = ['SARA_MASTER_KEY','COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
 const AI_KEY_MAP = { groq:'GROQ_API_KEY', openai:'OPENAI_API_KEY', anthropic:'ANTHROPIC_API_KEY', xai:'XAI_API_KEY', gemini:'GOOGLE_API_KEY', ollama:'' };
 let _activeProvider = 'groq';
 let _col2Mode = 'asset';

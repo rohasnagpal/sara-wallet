@@ -78,11 +78,14 @@ def search_markets(query: str, limit: int = 5) -> list[dict]:
 
     items = data if isinstance(data, list) else data.get("markets", [])
 
-    # Score each market by how many query words appear in the question
-    keywords = [w for w in query.lower().split() if w not in _STOP and len(w) > 2]
+    # Clean query: strip $/, symbols and skip pure-numeric tokens
+    import re as _re
+    clean_query = _re.sub(r'[^\w\s]', ' ', query.lower())
+    keywords = [w for w in clean_query.split()
+                if w not in _STOP and len(w) > 2 and not w.isdigit()]
     scored = []
     for m in items:
-        q = m.get("question", "").lower()
+        q = _re.sub(r'[^\w\s]', ' ', m.get("question", "").lower())
         score = sum(1 for kw in keywords if kw in q)
         if score > 0:
             scored.append((score, m))

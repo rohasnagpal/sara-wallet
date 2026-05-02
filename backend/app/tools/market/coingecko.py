@@ -4,7 +4,7 @@ BASE = "https://api.coingecko.com/api/v3"
 
 SYMBOL_TO_ID = {
     "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana",
-    "AVAX": "avalanche-2", "MATIC": "matic-network", "POL": "matic-network",
+    "AVAX": "avalanche-2", "MATIC": "matic-network", "POL": "polygon-ecosystem-token",
     "DOT": "polkadot", "ADA": "cardano", "DOGE": "dogecoin",
     "LINK": "chainlink", "BNB": "binancecoin", "XRP": "ripple",
     "UNI": "uniswap", "AAVE": "aave", "ARB": "arbitrum",
@@ -52,7 +52,32 @@ def get_price(coin: str, vs: str = "usd") -> dict | None:
     if cached is not None:
         return cached
 
-    # Primary: yfinance (no rate limits)
+    # Primary: /coins/markets — rich data in one call
+    data = _get("/coins/markets", {
+        "vs_currency": vs, "ids": cid,
+        "price_change_percentage": "7d,30d",
+        "sparkline": "false",
+    })
+    if data and isinstance(data, list) and len(data) > 0:
+        m = data[0]
+        result = {
+            "coin_id":        cid,
+            "symbol":         coin.upper(),
+            "price":          m.get("current_price") or 0,
+            "change_24h":     round(m.get("price_change_percentage_24h") or 0, 2),
+            "change_7d":      round(m.get("price_change_percentage_7d_in_currency") or 0, 2),
+            "change_30d":     round(m.get("price_change_percentage_30d_in_currency") or 0, 2),
+            "market_cap":     m.get("market_cap") or 0,
+            "market_cap_rank": m.get("market_cap_rank"),
+            "volume_24h":     m.get("total_volume") or 0,
+            "high_24h":       m.get("high_24h") or 0,
+            "low_24h":        m.get("low_24h") or 0,
+            "ath":            m.get("ath") or 0,
+            "ath_change_pct": round(m.get("ath_change_percentage") or 0, 1),
+        }
+        return _store(key, result)
+
+    # Fallback: yfinance (if CoinGecko rate-limited)
     try:
         from app.tools.market.yfinance_tool import get_crypto_price
         yf_data = get_crypto_price(coin)
@@ -61,42 +86,17 @@ def get_price(coin: str, vs: str = "usd") -> dict | None:
                 "coin_id": cid, "symbol": coin.upper(),
                 "price": yf_data["price"],
                 "change_24h": yf_data["change_24h"],
-                "market_cap": 0,
-                "volume_24h": 0,
+                "change_7d": None, "change_30d": None,
+                "market_cap": 0, "volume_24h": 0,
+                "high_24h": 0, "low_24h": 0,
+                "ath": 0, "ath_change_pct": None,
+                "market_cap_rank": None,
             }
-            _store(key, result)
-            # Try to enrich with CoinGecko market cap in background (best-effort)
-            data = _get("/simple/price", {
-                "ids": cid, "vs_currencies": vs,
-                "include_market_cap": "true", "include_24hr_vol": "true",
-            })
-            if data and cid in data:
-                d = data[cid]
-                result["market_cap"] = d.get(f"{vs}_market_cap", 0)
-                result["volume_24h"] = d.get(f"{vs}_24h_vol", 0)
-                _store(key, result)
-            return result
+            return _store(key, result)
     except Exception:
         pass
 
-    # Fallback: CoinGecko only
-    data = _get("/simple/price", {
-        "ids": cid, "vs_currencies": vs,
-        "include_24hr_change": "true",
-        "include_market_cap": "true",
-        "include_24hr_vol": "true",
-    })
-    if not data or cid not in data:
-        return None
-    d = data[cid]
-    result = {
-        "coin_id": cid, "symbol": coin.upper(),
-        "price": d.get(vs, 0),
-        "change_24h": round(d.get(f"{vs}_24h_change", 0), 2),
-        "market_cap": d.get(f"{vs}_market_cap", 0),
-        "volume_24h": d.get(f"{vs}_24h_vol", 0),
-    }
-    return _store(key, result)
+    return None
 
 def get_trending() -> list:
     key = "trending"
@@ -147,10 +147,12 @@ def get_multi_price(coins: list[str], vs: str = "usd") -> dict:
     cached = _cached(key)
     if cached is not None:
         return cached
-    # Use yfinance for each coin (no rate limits)
+
+    out: dict = {}
+
+    # yfinance pass — fast, no rate limits, but may miss some coins
     try:
         from app.tools.market.yfinance_tool import get_crypto_price
-        out = {}
         for coin in coins:
             yf_data = get_crypto_price(coin)
             if yf_data and yf_data.get("price"):
@@ -158,21 +160,21 @@ def get_multi_price(coins: list[str], vs: str = "usd") -> dict:
                     "price": yf_data["price"],
                     "change_24h": yf_data["change_24h"],
                 }
-        if out:
-            return _store(key, out)
     except Exception:
         pass
-    # CoinGecko fallback
-    ids = ",".join(_resolve_id(c) for c in coins)
-    data = _get("/simple/price", {"ids": ids, "vs_currencies": vs, "include_24hr_change": "true"})
-    if not data:
-        return {}
-    out = {}
-    for coin in coins:
-        cid = _resolve_id(coin)
-        if cid in data:
-            out[coin.upper()] = {
-                "price": data[cid].get(vs, 0),
-                "change_24h": round(data[cid].get(f"{vs}_24h_change", 0), 2),
-            }
+
+    # CoinGecko pass for any coins yfinance missed
+    missing = [c for c in coins if c.upper() not in out]
+    if missing:
+        ids = ",".join(_resolve_id(c) for c in missing)
+        data = _get("/simple/price", {"ids": ids, "vs_currencies": vs, "include_24hr_change": "true"})
+        if data:
+            for coin in missing:
+                cid = _resolve_id(coin)
+                if cid in data and data[cid].get(vs):
+                    out[coin.upper()] = {
+                        "price": data[cid].get(vs, 0),
+                        "change_24h": round(data[cid].get(f"{vs}_24h_change", 0), 2),
+                    }
+
     return _store(key, out)

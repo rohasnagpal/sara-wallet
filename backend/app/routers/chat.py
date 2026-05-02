@@ -274,13 +274,32 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         if wallets and len(wallets) == 1:
             return ("get_balance", {"wallet_name": wallets[0].name, "network": None})
 
-    # market: crypto price
+    # market: forex / fiat currency price (e.g. "inr price", "aud price")
+    FIAT_TICKERS = {
+        "inr": "INR=X", "aud": "AUD=X", "gbp": "GBP=X", "cad": "CAD=X",
+        "chf": "CHF=X", "cny": "CNY=X", "jpy": "JPY=X", "krw": "KRW=X",
+        "sgd": "SGD=X", "hkd": "HKD=X", "mxn": "MXN=X", "brl": "BRL=X",
+        "eur": "EURUSD=X", "rub": "RUB=X",
+    }
+    for code, ticker in FIAT_TICKERS.items():
+        # bare "inr price" or "inr" alone
+        if m.strip() in (code, code + " price", "price of " + code):
+            return ("get_forex_rate", {"pair": ticker})
+
+    # market: crypto price — also detect "X price in Y" currency modifier
     CRYPTO_KEYWORDS = ("price", "how much is", "what is", "what's", "whats", "cost", "worth", "at", "doing")
     KNOWN_SYMBOLS = set(coingecko.SYMBOL_TO_ID.keys()) | {"BITCOIN", "ETHEREUM", "SOLANA"}
+    # Check for "in <currency>" modifier first
+    vs_currency = "usd"
+    vs_match = re.search(r'\bin\s+([a-z]{2,4})\b', m)
+    if vs_match:
+        code = vs_match.group(1)
+        if code in FIAT_TICKERS or code in ("usd", "eur", "gbp", "inr", "aud", "cad", "chf", "jpy"):
+            vs_currency = code
     if any(k in m for k in CRYPTO_KEYWORDS):
         for sym in KNOWN_SYMBOLS:
             if sym.lower() in m:
-                return ("get_crypto_price", {"coin": sym})
+                return ("get_crypto_price", {"coin": sym, "vs_currency": vs_currency})
 
     # market: gas
     if "gas" in m and ("fee" in m or "price" in m or "check" in m or "cost" in m or m.strip() in ("gas", "check gas", "gas fees")):
@@ -336,14 +355,30 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         if tickers:
             return ("get_stock_price", {"ticker": tickers[0]})
 
-    # market: commodity
+    # prediction markets (Polymarket) — check BEFORE commodities/forex
+    # so "will gold hit 100k" routes to Polymarket, not gold price
+    if any(p in m for p in ("polymarket", "prediction market", "odds", "bet", "chance", "probability",
+                             "likelihood")) or re.search(r'\bwill\b.{3,}', m):
+        query = msg.strip()
+        for prefix in ("what are", "what's", "polymarket", "odds on", "odds for", "chance of",
+                        "probability of", "will", "prediction market"):
+            query = re.sub(rf'^\s*{re.escape(prefix)}\s*', '', query, flags=re.I).strip()
+        query = re.sub(r'\?$', '', query).strip()
+        return ("get_prediction_markets", {"query": query or msg})
+
+    # market: commodity — require price-context word to avoid catching "will gold hit X"
     COMMODITY_MAP = {
         "gold": "GC=F", "silver": "SI=F", "oil": "CL=F", "crude": "CL=F",
         "brent": "BZ=F", "gas": "NG=F", "natural gas": "NG=F",
         "wheat": "ZW=F", "corn": "ZC=F", "copper": "HG=F", "platinum": "PL=F",
     }
+    PRICE_CONTEXT = ("price", "how much", "what's", "whats", "what is", "cost", "worth", "at", "trading")
     for word, ticker in COMMODITY_MAP.items():
-        if word in m:
+        if word in m and any(ctx in m for ctx in PRICE_CONTEXT):
+            return ("get_commodity_price", {"ticker": ticker})
+    # Also match bare commodity name (e.g. just "gold" or "silver")
+    for word, ticker in COMMODITY_MAP.items():
+        if m.strip() == word or m.strip() == word + " price":
             return ("get_commodity_price", {"ticker": ticker})
 
     # market: forex
@@ -356,16 +391,6 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     # portfolio
     if "portfolio" in m or ("my" in m and "holding" in m) or ("my" in m and "asset" in m):
         return ("get_portfolio", {})
-
-    # prediction markets (Polymarket)
-    if any(p in m for p in ("polymarket", "prediction market", "odds", "bet", "chance", "probability",
-                             "will ", "likelihood")):
-        query = msg.strip()
-        for prefix in ("what are", "what's", "polymarket", "odds on", "odds for", "chance of",
-                        "probability of", "will", "prediction market"):
-            query = re.sub(rf'^\s*{re.escape(prefix)}\s*', '', query, flags=re.I).strip()
-        query = re.sub(r'\?$', '', query).strip()
-        return ("get_prediction_markets", {"query": query or msg})
 
     # news & sentiment
     NEWS_TRIGGERS = ("news", "sentiment", "what are people saying", "bullish", "bearish",
@@ -547,13 +572,64 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return f"__PENDING_SEND__{json.dumps(args)}"
 
     if tool_name == "get_crypto_price":
-        d = coingecko.get_price(args["coin"])
+        vs = args.get("vs_currency", "usd").lower()
+        d = coingecko.get_price(args["coin"], vs=vs)
         if not d:
             return f"No price data for {args['coin']}."
-        sign = "+" if d["change_24h"] >= 0 else ""
-        parts = [f"**{d['symbol']}** — **${d['price']:,.4f}**", f"24h: {sign}{d['change_24h']:.2f}%"]
+        currency_sym = {"usd":"$","eur":"€","gbp":"£","inr":"₹","jpy":"¥",
+                        "aud":"A$","cad":"C$","chf":"Fr","cny":"¥","krw":"₩"}.get(vs, vs.upper()+" ")
+
+        def _fmt_price(p: float) -> str:
+            cs = currency_sym
+            if p == 0:
+                return f"{cs}0.00"
+            if p >= 1:
+                return f"{cs}{p:,.2f}"
+            if p >= 0.01:
+                return f"{cs}{p:.4f}"
+            import math
+            decimals = -math.floor(math.log10(abs(p))) + 2
+            return f"{cs}{p:.{decimals}f}"
+
+        def _sgn(v) -> str:
+            return "+" if (v or 0) >= 0 else ""
+
+        rank = f"  ·  #{d['market_cap_rank']}" if d.get("market_cap_rank") else ""
+        vs_label = f" (in {vs.upper()})" if vs != "usd" else ""
+        parts = [f"**{d['symbol']}**{vs_label} — **{_fmt_price(d['price'])}**{rank}"]
+
+        # Change line: 24h, 7d, 30d
+        chg_parts = [f"24h  {_sgn(d['change_24h'])}{d['change_24h']:.2f}%"]
+        if d.get("change_7d") is not None:
+            chg_parts.append(f"7d  {_sgn(d['change_7d'])}{d['change_7d']:.2f}%")
+        if d.get("change_30d") is not None:
+            chg_parts.append(f"30d  {_sgn(d['change_30d'])}{d['change_30d']:.2f}%")
+        parts.append("   ".join(chg_parts))
+
+        # 24h range
+        if d.get("high_24h") and d.get("low_24h"):
+            parts.append(f"Range  {_fmt_price(d['low_24h'])} – {_fmt_price(d['high_24h'])}")
+
+        # Market cap + volume (always in USD for context)
+        def _fmt_large(v: float) -> str:
+            s = currency_sym
+            if v >= 1e12: return f"{s}{v/1e12:.2f}T"
+            if v >= 1e9:  return f"{s}{v/1e9:.2f}B"
+            if v >= 1e6:  return f"{s}{v/1e6:.1f}M"
+            return f"{s}{v:,.0f}"
+
+        stats = []
         if d.get("market_cap"):
-            parts.append(f"Market cap: ${d['market_cap']/1e9:.2f}B")
+            stats.append(f"Market cap: {_fmt_large(d['market_cap'])}")
+        if d.get("volume_24h"):
+            stats.append(f"Volume: {_fmt_large(d['volume_24h'])}")
+        if stats:
+            parts.append("  ·  ".join(stats))
+
+        # ATH
+        if d.get("ath") and d.get("ath_change_pct") is not None:
+            parts.append(f"ATH: {_fmt_price(d['ath'])}  ({d['ath_change_pct']:.1f}% from ATH)")
+
         return "\n".join(parts)
 
     if tool_name == "get_trending_coins":

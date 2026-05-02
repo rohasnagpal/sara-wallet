@@ -122,8 +122,11 @@ def execute_order(private_key: str, symbol: str, side: str,
         if result.get("status") == "ok":
             statuses = (result.get("response", {})
                         .get("data", {}).get("statuses", [{}]))
-            oid = (statuses[0].get("filled", {}).get("oid")
-                   or statuses[0].get("resting", {}).get("oid")
+            first = statuses[0] if statuses else {}
+            if "error" in first:
+                return {"status": "error", "error": first["error"]}
+            oid = (first.get("filled", {}).get("oid")
+                   or first.get("resting", {}).get("oid")
                    or "placed")
             return {"status": "ok", "order_id": str(oid), "qty": qty, "price": price}
         else:
@@ -172,6 +175,11 @@ def close_position(private_key: str, symbol: str) -> dict:
         exchange = Exchange(account, base_url=_BASE)
         result = exchange.market_close(symbol)
         if result.get("status") == "ok":
+            statuses = (result.get("response", {})
+                        .get("data", {}).get("statuses", [{}]))
+            first = statuses[0] if statuses else {}
+            if "error" in first:
+                return {"status": "error", "error": first["error"]}
             return {"status": "ok", "symbol": symbol}
         return {"status": "error", "error": str(result)}
     except ImportError:
