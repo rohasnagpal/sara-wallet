@@ -240,11 +240,8 @@ body {
 }
 
 .s1-logo {
-  width: 38px; height: 38px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; margin-bottom: 6px; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-size: 22px; margin-bottom: 6px; cursor: pointer;
 }
 
 .s1-coins {
@@ -291,7 +288,7 @@ body {
 
 /* Settings inline view */
 .settings-row { margin-bottom: 12px; }
-.settings-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.settings-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-primary); margin-bottom: 4px; display: flex; justify-content: space-between; }
 .settings-label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
 .settings-input-row { display: flex; gap: 6px; }
 .settings-input {
@@ -308,6 +305,11 @@ body {
 }
 .settings-save-btn:hover { opacity: 0.85; }
 .settings-status { font-size: 11px; color: var(--green); margin-top: 3px; height: 14px; }
+.settings-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-dark); }
+.ai-provider-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.ai-chip { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border-dark); background: var(--pill-bg); color: var(--text-primary); cursor: pointer; transition: all 0.15s; font-family: var(--font-body); }
+.ai-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.ai-chip.active { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 600; }
 
 /* Directory inline view */
 .dir-add-form { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
@@ -598,10 +600,9 @@ svg.gas-chart { width: 100%; height: 56px; overflow: visible; margin-top: 4px; }
   flex-shrink: 0;
 }
 .chat-bot-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; flex-shrink: 0;
+  font-size: 22px; flex-shrink: 0;
 }
 .chat-title { font-family: var(--font-display); font-size: 15px; font-weight: 500; color: var(--text-primary); }
 .chat-status { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; }
@@ -622,7 +623,7 @@ svg.gas-chart { width: 100%; height: 56px; overflow: visible; margin-top: 4px; }
 .msg { display: flex; gap: 9px; align-items: flex-start; max-width: 100%; }
 .msg.user { flex-direction: row-reverse; }
 .msg-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.msg-avatar.bot { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+.msg-avatar.bot { background: transparent; }
 .msg-avatar.user-av { background: var(--bg-card2); border: 1px solid var(--border-dark); font-size: 13px; }
 
 .msg-bubble {
@@ -822,18 +823,19 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
-    <div class="s1-logo">💎</div>
+    <div class="s1-logo">🎯</div>
     <div class="s1-coins">
       <div class="s1-coin" data-id="BNB"  title="BNB"         onclick="selectCoinSidebar('BNB')"><img src="/images/cryptos/BNB.png"  alt="BNB"></div>
       <div class="s1-coin" data-id="BTC"  title="Bitcoin"     onclick="selectCoinSidebar('BTC')"><img src="/images/cryptos/BTC.png"  alt="BTC"></div>
       <div class="s1-coin" data-id="DOGE" title="Dogecoin"    onclick="selectCoinSidebar('DOGE')"><img src="/images/cryptos/DOGE.png" alt="DOGE"></div>
       <div class="s1-coin" data-id="ETH"  title="Ethereum"    onclick="selectCoinSidebar('ETH')"><img src="/images/cryptos/ETH.png"  alt="ETH"></div>
-      <div class="s1-coin" data-id="HYPE" title="Hyperliquid" onclick="selectCoinSidebar('HYPE')">⚡</div>
       <div class="s1-coin" data-id="LINK" title="Chainlink"   onclick="selectCoinSidebar('LINK')"><img src="/images/cryptos/LINK.png" alt="LINK"></div>
+      <div class="s1-coin" data-id="LTC"  title="Litecoin"    onclick="selectCoinSidebar('LTC')"><img src="/images/cryptos/LTC.png"  alt="LTC"></div>
       <div class="s1-coin" data-id="SOL"  title="Solana"      onclick="selectCoinSidebar('SOL')"><img src="/images/cryptos/SOL.png"  alt="SOL"></div>
       <div class="s1-coin" data-id="TRX"  title="Tron"        onclick="selectCoinSidebar('TRX')"><img src="/images/cryptos/TRX.png"  alt="TRX"></div>
       <div class="s1-coin" data-id="XMR"  title="Monero"      onclick="selectCoinSidebar('XMR')"><img src="/images/cryptos/XMR.png"  alt="XMR"></div>
       <div class="s1-coin" data-id="XRP"  title="XRP"         onclick="selectCoinSidebar('XRP')"><img src="/images/cryptos/XRP.png"  alt="XRP"></div>
+      <div class="s1-coin" data-id="ZEC"  title="Zcash"       onclick="selectCoinSidebar('ZEC')"><img src="/images/cryptos/ZEC.png"  alt="ZEC"></div>
     </div>
     <div class="s1-add" onclick="openWalletModal()" title="Add wallet">+</div>
     <div class="s1-btn" id="s1BtnDir" onclick="showCol2('directory')" title="Address Book">📖</div>
@@ -858,12 +860,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <div class="asset-item" data-id="BTC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">₿</div><div class="asset-info"><div class="asset-name">Bitcoin</div><div class="asset-sym">BTC</div></div><div class="asset-right"><div class="asset-price" id="p-BTC">—</div><div class="asset-chg" id="c-BTC">—</div></div></div>
       <div class="asset-item" data-id="DOGE"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ð</div><div class="asset-info"><div class="asset-name">Dogecoin</div><div class="asset-sym">DOGE</div></div><div class="asset-right"><div class="asset-price" id="p-DOGE">—</div><div class="asset-chg" id="c-DOGE">—</div></div></div>
       <div class="asset-item" data-id="ETH"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ξ</div><div class="asset-info"><div class="asset-name">Ethereum</div><div class="asset-sym">ETH</div></div><div class="asset-right"><div class="asset-price" id="p-ETH">—</div><div class="asset-chg" id="c-ETH">—</div></div></div>
-      <div class="asset-item" data-id="HYPE"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">⚡</div><div class="asset-info"><div class="asset-name">Hyperliquid</div><div class="asset-sym">HYPE</div></div><div class="asset-right"><div class="asset-price" id="p-HYPE">—</div><div class="asset-chg" id="c-HYPE">—</div></div></div>
       <div class="asset-item" data-id="LINK"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">🔗</div><div class="asset-info"><div class="asset-name">Chainlink</div><div class="asset-sym">LINK</div></div><div class="asset-right"><div class="asset-price" id="p-LINK">—</div><div class="asset-chg" id="c-LINK">—</div></div></div>
+      <div class="asset-item" data-id="LTC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ł</div><div class="asset-info"><div class="asset-name">Litecoin</div><div class="asset-sym">LTC</div></div><div class="asset-right"><div class="asset-price" id="p-LTC">—</div><div class="asset-chg" id="c-LTC">—</div></div></div>
       <div class="asset-item" data-id="SOL"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◎</div><div class="asset-info"><div class="asset-name">Solana</div><div class="asset-sym">SOL</div></div><div class="asset-right"><div class="asset-price" id="p-SOL">—</div><div class="asset-chg" id="c-SOL">—</div></div></div>
       <div class="asset-item" data-id="TRX"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◈</div><div class="asset-info"><div class="asset-name">Tron</div><div class="asset-sym">TRX</div></div><div class="asset-right"><div class="asset-price" id="p-TRX">—</div><div class="asset-chg" id="c-TRX">—</div></div></div>
       <div class="asset-item" data-id="XMR"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">ɱ</div><div class="asset-info"><div class="asset-name">Monero</div><div class="asset-sym">XMR</div></div><div class="asset-right"><div class="asset-price" id="p-XMR">—</div><div class="asset-chg" id="c-XMR">—</div></div></div>
       <div class="asset-item" data-id="XRP"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">✕</div><div class="asset-info"><div class="asset-name">XRP</div><div class="asset-sym">XRP</div></div><div class="asset-right"><div class="asset-price" id="p-XRP">—</div><div class="asset-chg" id="c-XRP">—</div></div></div>
+      <div class="asset-item" data-id="ZEC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">ⓩ</div><div class="asset-info"><div class="asset-name">Zcash</div><div class="asset-sym">ZEC</div></div><div class="asset-right"><div class="asset-price" id="p-ZEC">—</div><div class="asset-chg" id="c-ZEC">—</div></div></div>
     </div>
 
     <div class="watchlist-section-label">Commodities</div>
@@ -909,7 +912,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <div class="dashboard-left">
 
         <!-- Col2 panel nav (hidden on asset view) -->
-        <div class="col2-panel-nav" id="col2Nav" style="display:none">
+        <div class="col2-panel-nav" id="col2Nav">
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Charts</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
@@ -1013,26 +1016,41 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Settings View ── -->
         <div id="settingsView" style="display:none">
           <div class="card">
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">API Keys & Settings</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Stored locally in the database. Changes take effect immediately.</div>
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">Settings</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Stored locally. Changes take effect immediately.</div>
 
-            <div class="settings-row" id="srow-GROQ_API_KEY">
-              <div class="settings-label">Groq API Key <span id="smask-GROQ_API_KEY"></span></div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-GROQ_API_KEY" type="password" placeholder="gsk_…" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('GROQ_API_KEY')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-GROQ_API_KEY"></div>
+            <!-- AI Provider -->
+            <div class="settings-section-title">AI Provider</div>
+            <div class="ai-provider-chips" id="aiProviderChips">
+              <button class="ai-chip" data-provider="groq"      data-model="llama3-8b-8192"              data-key="GROQ_API_KEY"      data-ph="gsk_…">Groq</button>
+              <button class="ai-chip" data-provider="openai"    data-model="gpt-4o"                      data-key="OPENAI_API_KEY"    data-ph="sk-…">ChatGPT</button>
+              <button class="ai-chip" data-provider="anthropic" data-model="claude-opus-4-5-20251101"    data-key="ANTHROPIC_API_KEY" data-ph="sk-ant-…">Claude</button>
+              <button class="ai-chip" data-provider="xai"       data-model="grok-beta"                   data-key="XAI_API_KEY"       data-ph="xai-…">Grok</button>
+              <button class="ai-chip" data-provider="gemini"    data-model="gemini-1.5-pro"              data-key="GOOGLE_API_KEY"    data-ph="AI…">Gemini</button>
+              <button class="ai-chip" data-provider="ollama"    data-model="llama3"                      data-key=""                  data-ph="">Ollama</button>
             </div>
+            <div id="aiProviderFields" style="display:none">
+              <div class="settings-row">
+                <div class="settings-label">Model <span id="aiModelNote"></span></div>
+                <div class="settings-input-row">
+                  <input class="settings-input" id="sinput-LLM_MODEL" type="text" placeholder="model name" autocomplete="off" style="font-family:var(--font-mono)">
+                  <button class="settings-save-btn" onclick="saveAIProvider()">Apply</button>
+                </div>
+              </div>
+              <div class="settings-row" id="aiKeyRow">
+                <div class="settings-label" id="aiKeyLabel">API Key <span id="smask-AI_KEY"></span></div>
+                <div class="settings-input-row">
+                  <input class="settings-input" id="sinput-AI_KEY" type="password" placeholder="" autocomplete="off">
+                  <button class="settings-save-btn" onclick="saveAIKey()">Save</button>
+                </div>
+                <div class="settings-status" id="sstatus-AI_KEY"></div>
+              </div>
+            </div>
+            <div id="aiOllamaNote" style="display:none;font-size:11px;color:var(--text-muted);margin-bottom:10px">Ollama runs locally — no API key needed. Make sure Ollama is running on port 11434.</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px" id="aiActiveLabel"></div>
 
-            <div class="settings-row" id="srow-SARA_MASTER_KEY">
-              <div class="settings-label">Encryption Key <span id="smask-SARA_MASTER_KEY"></span></div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-SARA_MASTER_KEY" type="password" placeholder="32+ char secret key" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('SARA_MASTER_KEY')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-SARA_MASTER_KEY"></div>
-            </div>
+            <!-- Data APIs -->
+            <div class="settings-section-title">Data APIs</div>
 
             <div class="settings-row" id="srow-COINGECKO_API_KEY">
               <div class="settings-label">CoinGecko API Key <span id="smask-COINGECKO_API_KEY"></span></div>
@@ -1041,6 +1059,15 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="saveSetting('COINGECKO_API_KEY')">Save</button>
               </div>
               <div class="settings-status" id="sstatus-COINGECKO_API_KEY"></div>
+            </div>
+
+            <div class="settings-row" id="srow-CRYPTOPANIC_API_KEY">
+              <div class="settings-label">CryptoPanic API Key <span id="smask-CRYPTOPANIC_API_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-CRYPTOPANIC_API_KEY" type="password" placeholder="(optional, news & sentiment)" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('CRYPTOPANIC_API_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-CRYPTOPANIC_API_KEY"></div>
             </div>
 
             <div class="settings-row" id="srow-ALCHEMY_API_KEY">
@@ -1060,6 +1087,19 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               </div>
               <div class="settings-status" id="sstatus-HELIUS_RPC"></div>
             </div>
+
+            <!-- Security -->
+            <div class="settings-section-title">Security</div>
+
+            <div class="settings-row" id="srow-SARA_MASTER_KEY">
+              <div class="settings-label">Encryption Key <span id="smask-SARA_MASTER_KEY"></span></div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-SARA_MASTER_KEY" type="password" placeholder="32+ char secret key" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('SARA_MASTER_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-SARA_MASTER_KEY"></div>
+            </div>
+
           </div>
         </div><!-- /settingsView -->
 
@@ -1096,19 +1136,22 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-messages" id="chatMessages">
           <div class="msg bot">
-            <div class="msg-avatar bot">🌐</div>
+            <div class="msg-avatar bot">🎯</div>
             <div>
-              <div class="msg-bubble">Hi! I'm SARA — your AI financial terminal.<br><br>Add a wallet using the <strong>+</strong> button in the sidebar, then ask me to check balances, fetch prices, or send crypto. Type <strong>CONFIRM</strong> to approve any transaction I propose.</div>
+              <div class="msg-bubble">Hi! I'm SARA, your wallet for everything — cryptos, commodities &amp; forex.</div>
             </div>
           </div>
         </div>
 
         <div class="chat-suggestions" id="chatSuggestions">
           <div class="chat-chip" onclick="sendChip(this)">List my wallets</div>
-          <div class="chat-chip" onclick="sendChip(this)">Check gas fees</div>
           <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
-          <div class="chat-chip" onclick="sendChip(this)">ETH price</div>
-          <div class="chat-chip" onclick="sendChip(this)">SOL price</div>
+          <div class="chat-chip" onclick="sendChip(this)">Gold price</div>
+          <div class="chat-chip" onclick="sendChip(this)">Will Bitcoin hit $200k?</div>
+          <div class="chat-chip" onclick="sendChip(this)">Long ETH $500 2x</div>
+          <div class="chat-chip" onclick="sendChip(this)">Swap 1 SOL for USDC</div>
+          <div class="chat-chip" onclick="sendChip(this)">ETH sentiment</div>
+          <div class="chat-chip" onclick="sendChip(this)">Show my portfolio</div>
           <div class="chat-chip" onclick="sendChip(this)">What can you do?</div>
         </div>
 
@@ -1246,7 +1289,7 @@ function addMsg(text, role) {
   div.className = `msg ${role}`;
   const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   if (role === 'bot') {
-    div.innerHTML = `<div class="msg-avatar bot">🤖</div><div><div class="msg-bubble">${text}</div></div>`;
+    div.innerHTML = `<div class="msg-avatar bot">🎯</div><div><div class="msg-bubble">${text}</div></div>`;
   } else {
     div.innerHTML = `<div class="msg-avatar user-av">👤</div><div><div class="msg-bubble">${text}</div><div class="msg-time">${time}</div></div>`;
   }
@@ -1257,7 +1300,7 @@ function addMsg(text, role) {
 function showTyping() {
   const div = document.createElement('div');
   div.className = 'msg bot';
-  div.innerHTML = `<div class="msg-avatar bot">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  div.innerHTML = `<div class="msg-avatar bot">🎯</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
   return div;
@@ -1286,7 +1329,7 @@ async function sendMessage(text) {
 
     const botDiv = document.createElement('div');
     botDiv.className = 'msg bot';
-    botDiv.innerHTML = `<div class="msg-avatar bot">🤖</div><div><div class="msg-bubble" id="sara-stream"></div></div>`;
+    botDiv.innerHTML = `<div class="msg-avatar bot">🎯</div><div><div class="msg-bubble" id="sara-stream"></div></div>`;
     chatMessages.appendChild(botDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -1363,12 +1406,13 @@ const ASSETS = {
   'BTC':      { type:'crypto',    yf:'BTC-USD',  label:'Bitcoin',     sym:'BTC',      cat:'Cryptocurrency' },
   'DOGE':     { type:'crypto',    yf:'DOGE-USD', label:'Dogecoin',    sym:'DOGE',     cat:'Cryptocurrency' },
   'ETH':      { type:'crypto',    yf:'ETH-USD',  label:'Ethereum',    sym:'ETH',      cat:'Cryptocurrency' },
-  'HYPE':     { type:'crypto',    yf:'HYPE-USD', label:'Hyperliquid', sym:'HYPE',     cat:'Cryptocurrency' },
   'LINK':     { type:'crypto',    yf:'LINK-USD', label:'Chainlink',   sym:'LINK',     cat:'Cryptocurrency' },
+  'LTC':      { type:'crypto',    yf:'LTC-USD',  label:'Litecoin',    sym:'LTC',      cat:'Cryptocurrency' },
   'SOL':      { type:'crypto',    yf:'SOL-USD',  label:'Solana',      sym:'SOL',      cat:'Cryptocurrency' },
   'TRX':      { type:'crypto',    yf:'TRX-USD',  label:'Tron',        sym:'TRX',      cat:'Cryptocurrency' },
   'XMR':      { type:'crypto',    yf:'XMR-USD',  label:'Monero',      sym:'XMR',      cat:'Cryptocurrency' },
   'XRP':      { type:'crypto',    yf:'XRP-USD',  label:'XRP',         sym:'XRP',      cat:'Cryptocurrency' },
+  'ZEC':      { type:'crypto',    yf:'ZEC-USD',  label:'Zcash',       sym:'ZEC',      cat:'Cryptocurrency' },
   // Commodities (alphabetical by name)
   'BZ=F':     { type:'commodity', yf:'BZ=F',     label:'Brent',       sym:'BZ/USD',   cat:'Commodity',    priceId:'BZF',    chgId:'BZF' },
   'HG=F':     { type:'commodity', yf:'HG=F',     label:'Copper',      sym:'HG/USD',   cat:'Commodity',    priceId:'HGF',    chgId:'HGF' },
@@ -1584,7 +1628,9 @@ function copyAddr(el) {
 // ══════════════════════════════════════
 // COLUMN 2 PANEL SWITCHER
 // ══════════════════════════════════════
-const SETTING_KEYS = ['GROQ_API_KEY','SARA_MASTER_KEY','COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+const SETTING_KEYS = ['SARA_MASTER_KEY','COINGECKO_API_KEY','CRYPTOPANIC_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+const AI_KEY_MAP = { groq:'GROQ_API_KEY', openai:'OPENAI_API_KEY', anthropic:'ANTHROPIC_API_KEY', xai:'XAI_API_KEY', gemini:'GOOGLE_API_KEY', ollama:'' };
+let _activeProvider = 'groq';
 let _col2Mode = 'asset';
 
 async function showCol2(mode) {
@@ -1594,9 +1640,6 @@ async function showCol2(mode) {
   document.getElementById('assetView').style.display      = mode === 'asset'     ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'  ? '' : 'none';
   document.getElementById('directoryView').style.display  = mode === 'directory' ? '' : 'none';
-
-  // Show the panel nav when not in asset view
-  document.getElementById('col2Nav').style.display = mode !== 'asset' ? 'flex' : 'none';
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnDir','col2BtnSettings'].forEach(id => {
@@ -1617,6 +1660,7 @@ async function showCol2(mode) {
 async function _loadSettingsView() {
   try {
     const data = await fetch('/api/settings').then(r => r.json());
+    // Update mask spans for data/security rows
     for (const [key, info] of Object.entries(data)) {
       const maskEl = document.getElementById('smask-' + key);
       if (maskEl) {
@@ -1624,7 +1668,89 @@ async function _loadSettingsView() {
         maskEl.style.color = 'var(--text-muted)';
       }
     }
+    // Restore active AI provider
+    const providerInfo = data['LLM_PROVIDER'];
+    const modelInfo    = data['LLM_MODEL'];
+    const savedProvider = (providerInfo && providerInfo.raw) ? providerInfo.raw : 'groq';
+    _selectAIChip(savedProvider, false);
+    if (modelInfo && modelInfo.raw) {
+      document.getElementById('sinput-LLM_MODEL').value = modelInfo.raw;
+    }
+    // Show active label
+    _updateAIActiveLabel(savedProvider, modelInfo && modelInfo.raw ? modelInfo.raw : '');
   } catch(e) {}
+}
+
+function _selectAIChip(provider, showFields = true) {
+  _activeProvider = provider;
+  document.querySelectorAll('.ai-chip').forEach(c => c.classList.remove('active'));
+  const chip = document.querySelector(`.ai-chip[data-provider="${provider}"]`);
+  if (!chip) return;
+  chip.classList.add('active');
+  const isOllama = provider === 'ollama';
+  document.getElementById('aiProviderFields').style.display = showFields || true ? '' : 'none';
+  document.getElementById('aiKeyRow').style.display = isOllama ? 'none' : '';
+  document.getElementById('aiOllamaNote').style.display = isOllama ? '' : 'none';
+  // Fill model placeholder
+  document.getElementById('sinput-LLM_MODEL').placeholder = chip.dataset.model;
+  // Set API key label & placeholder
+  if (!isOllama) {
+    document.getElementById('aiKeyLabel').childNodes[0].textContent = chip.dataset.key.replace(/_/g,' ').replace('API KEY','API Key') + ' ';
+    document.getElementById('sinput-AI_KEY').placeholder = chip.dataset.ph;
+    document.getElementById('sinput-AI_KEY').dataset.settingKey = chip.dataset.key;
+  }
+  document.getElementById('aiProviderFields').style.display = '';
+}
+
+function _updateAIActiveLabel(provider, model) {
+  const names = {groq:'Groq',openai:'ChatGPT (OpenAI)',anthropic:'Claude (Anthropic)',xai:'Grok (xAI)',gemini:'Gemini (Google)',ollama:'Ollama (local)'};
+  const lbl = document.getElementById('aiActiveLabel');
+  if (lbl) lbl.textContent = 'Active: ' + (names[provider] || provider) + (model ? '  ·  ' + model : '');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.ai-chip').forEach(chip => {
+    chip.addEventListener('click', () => _selectAIChip(chip.dataset.provider));
+  });
+});
+
+async function saveAIProvider() {
+  const provider = _activeProvider;
+  const modelEl = document.getElementById('sinput-LLM_MODEL');
+  const chip = document.querySelector(`.ai-chip[data-provider="${provider}"]`);
+  const model = modelEl.value.trim() || (chip ? chip.dataset.model : '');
+  try {
+    await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_PROVIDER', value: provider}) });
+    await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_MODEL', value: model}) });
+    modelEl.value = model;
+    _updateAIActiveLabel(provider, model);
+    const statusEl = document.getElementById('sstatus-AI_KEY');
+    statusEl.textContent = 'Provider set to ' + provider + '!';
+    statusEl.style.color = 'var(--green)';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  } catch(e) {}
+}
+
+async function saveAIKey() {
+  const inp = document.getElementById('sinput-AI_KEY');
+  const statusEl = document.getElementById('sstatus-AI_KEY');
+  const key = inp.dataset.settingKey;
+  const val = inp.value.trim();
+  if (!key) { statusEl.textContent = 'No key slot for this provider.'; statusEl.style.color='var(--red)'; return; }
+  if (!val) { statusEl.textContent = 'Enter a value first.'; statusEl.style.color='var(--red)'; return; }
+  try {
+    const r = await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key, value: val}) });
+    if (!r.ok) throw new Error(await r.text());
+    inp.value = '';
+    statusEl.textContent = 'Saved!';
+    statusEl.style.color = 'var(--green)';
+    const masked = val.length > 8 ? val.slice(0,4)+'••••'+val.slice(-4) : '••••••••';
+    document.getElementById('smask-AI_KEY').textContent = '(' + masked + ')';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+  }
 }
 
 async function saveSetting(key) {

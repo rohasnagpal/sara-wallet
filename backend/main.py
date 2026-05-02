@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.db.session import init_db, SessionLocal
 from app.db.models import Config
-from app.routers import chat, wallets, market, portfolio, settings, address_book
+from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence
 import os
 
 def _load_db_config():
@@ -38,6 +38,7 @@ app.include_router(market.router, prefix="/api")
 app.include_router(portfolio.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(address_book.router, prefix="/api")
+app.include_router(intelligence.router, prefix="/api")
 
 @app.get("/health")
 async def health():

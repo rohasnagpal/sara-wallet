@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.db.session import get_db
 from app.db.models import Wallet
-from app.tools.wallet.balance import get_wallet_balance
-from app.tools.market.coingecko import get_multi_price, get_price, SYMBOL_TO_ID
+from app.chains import evm as evm_chain, solana as sol_chain
+from app.tools.wallet.tokens import get_erc20_balances
+from app.tools.market.coingecko import get_multi_price, SYMBOL_TO_ID
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
-CHAIN_NATIVE = {
-    "ethereum": ("ETH", "#6366f1"),
-    "arbitrum": ("ETH", "#6366f1"),
-    "base":     ("ETH", "#6366f1"),
-    "optimism": ("ETH", "#6366f1"),
-    "polygon":  ("POL", "#8b5cf6"),
-    "solana":   ("SOL", "#9945ff"),
+EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
+
+NATIVE_SYMBOLS = {
+    "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
+    "polygon": "POL",
 }
 
 COLORS = ["#f59e0b","#6366f1","#10b981","#8b5cf6","#94a3b8","#ef4444","#14b8a6"]
@@ -27,19 +27,36 @@ def get_portfolio(db: Session = Depends(get_db)):
             "assets": [], "by_chain": {}, "allocation": [],
         }
 
-    # Gather native balances
+    # Gather native balances across all EVM networks + Solana
     holdings: list[dict] = []
     for w in wallets:
-        try:
-            b = get_wallet_balance(w)
-            net = "solana" if w.chain == "solana" else "ethereum"
-            sym, color = CHAIN_NATIVE.get(net, ("ETH", "#6366f1"))
-            holdings.append({
-                "wallet": w.name, "chain": net, "symbol": sym,
-                "balance": b["balance"],
-            })
-        except Exception:
-            pass
+        if w.chain == "solana":
+            try:
+                b = sol_chain.get_balance(w.address)
+                if b["balance"] > 0:
+                    holdings.append({"wallet": w.name, "chain": "solana", "symbol": "SOL", "balance": b["balance"]})
+            except Exception:
+                pass
+        else:
+            def _fetch(net, addr=w.address, wname=w.name):
+                try:
+                    b = evm_chain.get_balance(addr, net)
+                    if b["balance"] > 0.000001:
+                        sym = NATIVE_SYMBOLS.get(net, "ETH")
+                        return {"wallet": wname, "chain": net, "symbol": sym, "balance": b["balance"]}
+                except Exception:
+                    pass
+                return None
+            with ThreadPoolExecutor(max_workers=5) as ex:
+                for result in as_completed({ex.submit(_fetch, net): net for net in EVM_NETWORKS}, timeout=10):
+                    r = result.result()
+                    if r:
+                        holdings.append(r)
+            # ERC-20 tokens via Alchemy (for any network that has a native balance)
+            funded_nets = {h["chain"] for h in holdings if h["wallet"] == w.name}
+            for net in (funded_nets or ["ethereum"]):
+                for tok in get_erc20_balances(w.address, net):
+                    holdings.append({"wallet": w.name, "chain": net, "symbol": tok["symbol"], "balance": tok["balance"]})
 
     # Fetch live prices for all unique symbols
     symbols = list({h["symbol"] for h in holdings})

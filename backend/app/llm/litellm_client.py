@@ -1,3 +1,4 @@
+import os
 from typing import AsyncGenerator
 from app.core.config import settings
 from app.llm.prompts import SARA_SYSTEM_PROMPT
@@ -5,23 +6,36 @@ import litellm
 
 litellm.drop_params = True
 
+PROVIDER_DEFAULTS = {
+    "groq":      "llama3-8b-8192",
+    "openai":    "gpt-4o",
+    "anthropic": "claude-opus-4-5-20251101",
+    "xai":       "grok-beta",
+    "gemini":    "gemini-1.5-pro",
+    "ollama":    "llama3",
+}
+
 class SaraLLM:
     def _build_kwargs(self) -> dict:
-        provider = settings.LLM_PROVIDER.lower()
-        model = settings.LLM_MODEL
+        provider = os.environ.get("LLM_PROVIDER", settings.LLM_PROVIDER).lower()
+        model = os.environ.get("LLM_MODEL", settings.LLM_MODEL) or PROVIDER_DEFAULTS.get(provider, "")
 
         if provider == "openai":
-            return {"model": model, "api_key": settings.OPENAI_API_KEY}
+            return {"model": model, "api_key": os.environ.get("OPENAI_API_KEY", settings.OPENAI_API_KEY)}
         elif provider == "anthropic":
-            return {"model": f"anthropic/{model}", "api_key": settings.ANTHROPIC_API_KEY}
+            return {"model": f"anthropic/{model}", "api_key": os.environ.get("ANTHROPIC_API_KEY", settings.ANTHROPIC_API_KEY)}
         elif provider == "groq":
-            return {"model": f"groq/{model}", "api_key": settings.GROQ_API_KEY}
+            return {"model": f"groq/{model}", "api_key": os.environ.get("GROQ_API_KEY", settings.GROQ_API_KEY)}
+        elif provider == "xai":
+            return {"model": f"xai/{model}", "api_key": os.environ.get("XAI_API_KEY", settings.XAI_API_KEY)}
+        elif provider == "gemini":
+            return {"model": f"gemini/{model}", "api_key": os.environ.get("GOOGLE_API_KEY", settings.GOOGLE_API_KEY)}
         elif provider == "ollama":
-            return {"model": f"ollama/{model}", "api_base": settings.OLLAMA_BASE_URL}
+            return {"model": f"ollama/{model}", "api_base": os.environ.get("OLLAMA_BASE_URL", settings.OLLAMA_BASE_URL)}
         elif provider == "cloudflare":
             return {"model": f"cloudflare/{model}",
-                    "api_key": settings.CLOUDFLARE_API_KEY,
-                    "api_base": f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/ai/v1"}
+                    "api_key": os.environ.get("CLOUDFLARE_API_KEY", settings.CLOUDFLARE_API_KEY),
+                    "api_base": f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', settings.CLOUDFLARE_ACCOUNT_ID)}/ai/v1"}
         else:
             raise ValueError(f"Unknown LLM_PROVIDER: {provider}")
 
