@@ -43,5 +43,5 @@ class Transaction(Base):
     to_address = Column(String)
     amount     = Column(Float)
     token      = Column(String, default="native")
-    status     = Column(String, default="pending")   # pending | confirmed | failed
+    status     = Column(String, default="pending")   # pending | submitted | confirmed | failed
     timestamp  = Column(DateTime, default=datetime.utcnow)
