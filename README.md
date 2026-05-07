@@ -43,6 +43,8 @@ Sara:  ✓ Sent 100 POL to zara.eth — tx hash: 0xab3f...
 
 No dashboards to navigate. No buttons to click. Just talk.
 
+<img width="1501" height="981" alt="sara-1" src="https://github.com/user-attachments/assets/47e4e5d2-1160-4608-acbe-ec01812d22c4" />
+
 ---
 
 ## ⚡ Features
