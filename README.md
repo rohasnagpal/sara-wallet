@@ -32,9 +32,7 @@
 
 ## ✦ What is Sara Wallet?
 
-Sara Wallet is an **open-source, AI-native crypto wallet** that lives entirely on your machine. No cloud. No middlemen. No black boxes.
-
-You bring your favourite AI — just drop in your API key — and Sara becomes a conversational interface for your entire crypto life. Send tokens, check prices, scan news, manage wallets, and build on top of it however you like.
+Sara Wallet is an **open-source, AI-native crypto wallet** that lives entirely on your laptop. Drop in your AI API key and Sara becomes a conversational interface for your entire crypto life. Send tokens with a message like: "send 100 pol to zara". 
 
 ```
 You:   send 100 pol to zara
@@ -42,6 +40,8 @@ Sara:  ✓ Sent 100 POL to zara.eth — tx hash: 0xab3f...
 ```
 
 No dashboards to navigate. No buttons to click. Just talk.
+
+<img width="1501" height="981" alt="sara-1" src="https://github.com/user-attachments/assets/47e4e5d2-1160-4608-acbe-ec01812d22c4" />
 
 ---
 
