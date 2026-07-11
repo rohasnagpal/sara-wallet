@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sara Wallet</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════
    DEFAULT — Pearl (light pastel)
@@ -39,7 +39,7 @@
   --upgrade-bg: linear-gradient(135deg, rgba(61,90,74,0.12), rgba(124,111,160,0.12));
   --scrollbar: rgba(26,24,20,0.08);
   --is-light: 1;
-  --font-display: 'Playfair Display', Georgia, serif;
+  --accent-text: #ffffff;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --topbar-bg: rgba(255,255,255,0.4);
@@ -190,6 +190,44 @@
 }
 
 /* ══════════════════════════════════════
+   LIME (dark + single accent)
+══════════════════════════════════════ */
+.theme-lime {
+  --bg-app-start: #060606;
+  --bg-app-end: #0a0a0a;
+  --bg-sidebar1: #000000;
+  --bg-sidebar2: #080808;
+  --bg-card: #101010;
+  --bg-card2: #161616;
+  --bg-chat: #080808;
+  --bg-input: #111111;
+  --bg-msg-user: #d7ff3f;
+  --bg-msg-bot: #141414;
+  --text-primary: #f2f2f0;
+  --text-secondary: #9a9a94;
+  --text-muted: #5c5c57;
+  --accent: #d7ff3f;
+  --accent2: #a8c93c;
+  --green: #8fd13f;
+  --red: #f4495a;
+  --border: rgba(255,255,255,0.08);
+  --border-dark: rgba(255,255,255,0.06);
+  --card-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 4px 28px rgba(0,0,0,0.55);
+  --sidebar-nav-active: rgba(215,255,63,0.14);
+  --sidebar-nav-hover: rgba(255,255,255,0.04);
+  --pill-bg: rgba(215,255,63,0.12);
+  --chart-line: #d7ff3f;
+  --chart-bg1: rgba(215,255,63,0.2);
+  --chart-bg2: rgba(215,255,63,0);
+  --upgrade-bg: linear-gradient(135deg, rgba(215,255,63,0.16), rgba(215,255,63,0.03));
+  --scrollbar: rgba(255,255,255,0.08);
+  --is-light: 0;
+  --accent-text: #0a0a0a;
+  --topbar-bg: #050505;
+}
+.theme-lime .msg.user .msg-bubble { color: var(--accent-text); font-weight: 500; }
+
+/* ══════════════════════════════════════
    BASE STYLES
 ══════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -219,6 +257,7 @@ body {
 .app-bg.theme-darkpro { background: linear-gradient(135deg, #050507, #0e0914); }
 .app-bg.theme-sunset { background: linear-gradient(135deg, #1a0a00, #2d1200); }
 .app-bg.theme-forest { background: linear-gradient(135deg, #071410, #0a1f18); }
+.app-bg.theme-lime { background: linear-gradient(135deg, #060606, #0a0a0a); }
 
 .app-shell {
   position: relative; z-index: 1;
@@ -284,7 +323,7 @@ body {
   transition: all 0.15s;
 }
 .col2-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
-.col2-nav-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.col2-nav-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 
 /* Settings inline view */
 .settings-row { margin-bottom: 12px; }
@@ -292,24 +331,21 @@ body {
 .settings-label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
 .settings-input-row { display: flex; gap: 6px; }
 .settings-input {
-  flex: 1; padding: 8px 11px; border-radius: 8px;
+  flex: 1; min-width: 0; padding: 8px 11px; border-radius: 8px;
   border: 1.5px solid var(--border-dark); background: var(--bg-input);
   color: var(--text-primary); font-size: 12.5px; font-family: var(--font-mono);
   outline: none; box-sizing: border-box;
 }
+select.settings-input { text-overflow: ellipsis; }
 .settings-input:focus { border-color: var(--accent); }
 .settings-save-btn {
   padding: 8px 14px; border-radius: 8px; border: none;
-  background: var(--accent); color: #fff; font-size: 12px; font-weight: 500;
+  background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 500;
   cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
 }
 .settings-save-btn:hover { opacity: 0.85; }
 .settings-status { font-size: 11px; color: var(--green); margin-top: 3px; height: 14px; }
 .settings-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-dark); }
-.ai-provider-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-.ai-chip { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border-dark); background: var(--pill-bg); color: var(--text-primary); cursor: pointer; transition: all 0.15s; font-family: var(--font-body); }
-.ai-chip:hover { border-color: var(--accent); color: var(--text-primary); }
-.ai-chip.active { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 600; }
 
 /* Directory inline view */
 .dir-add-form { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
@@ -323,7 +359,7 @@ body {
 .dir-input:focus { border-color: var(--accent); }
 .dir-add-btn {
   padding: 8px 14px; border-radius: 8px; border: none;
-  background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+  background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 600;
   cursor: pointer; white-space: nowrap;
 }
 .dir-list { display: flex; flex-direction: column; gap: 6px; }
@@ -373,8 +409,8 @@ body {
   border-bottom: 1px solid var(--border-dark);
 }
 .s2-title {
-  font-family: var(--font-display);
-  font-size: 15px; font-weight: 600; color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
   letter-spacing: -0.2px;
 }
 .s2-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
@@ -407,7 +443,7 @@ body {
 .upgrade-desc { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px; }
 .upgrade-btn {
   display: block; text-align: center; padding: 8px;
-  background: var(--accent); color: white; border-radius: 8px;
+  background: var(--accent); color: var(--accent-text); border-radius: 8px;
   font-size: 11.5px; font-weight: 600; cursor: pointer;
   border: none; width: 100%; font-family: var(--font-body);
   transition: opacity 0.2s;
@@ -431,8 +467,8 @@ body {
   transition: background 0.4s, border-color 0.4s;
 }
 .topbar-title {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 500; letter-spacing: -0.5px;
+  font-family: var(--font-body);
+  font-size: 20px; font-weight: 600; letter-spacing: -0.3px;
   color: var(--text-primary);
 }
 
@@ -456,6 +492,7 @@ body {
 .theme-dot[data-theme="darkpro"] { background: linear-gradient(135deg, #7c3aed, #ec4899); }
 .theme-dot[data-theme="sunset"] { background: linear-gradient(135deg, #f59e0b, #ef4444); }
 .theme-dot[data-theme="forest"] { background: linear-gradient(135deg, #10b981, #34d399); }
+.theme-dot[data-theme="lime"] { background: linear-gradient(135deg, #0a0a0a, #d7ff3f); }
 .theme-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-body); }
 
 .focus-btn {
@@ -467,7 +504,7 @@ body {
 }
 .focus-btn:hover { border-color: var(--accent); color: var(--accent); }
 .focus-btn.active {
-  background: var(--accent); color: white; border-color: var(--accent);
+  background: var(--accent); color: var(--accent-text); border-color: var(--accent);
 }
 
 /* Focus mode — hide everything except the chat column */
@@ -604,7 +641,7 @@ svg.gas-chart { width: 100%; height: 56px; overflow: visible; margin-top: 4px; }
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; flex-shrink: 0;
 }
-.chat-title { font-family: var(--font-display); font-size: 15px; font-weight: 500; color: var(--text-primary); }
+.chat-title { font-family: var(--font-body); font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .chat-status { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; }
 .chat-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
 .chat-close {
@@ -702,7 +739,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 }
 .chat-send:hover { opacity: 0.85; }
 .chat-send:active { transform: scale(0.92); }
-.chat-send svg { width: 14px; height: 14px; fill: white; }
+.chat-send svg { width: 14px; height: 14px; fill: var(--accent-text); }
 
 /* Stats bottom card */
 .stats-card {
@@ -732,7 +769,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 .watchlist-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
 .wallet-add-btn {
   width: 22px; height: 22px; border-radius: 6px; border: none;
-  background: var(--accent); color: #fff; font-size: 15px; line-height: 1;
+  background: var(--accent); color: var(--accent-text); font-size: 15px; line-height: 1;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .wallet-add-btn:hover { opacity: 0.85; }
@@ -768,7 +805,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 .asset-headline {
   display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px;
 }
-.asset-headline-price { font-family: var(--font-display); font-size: 28px; font-weight: 500; color: var(--text-primary); }
+.asset-headline-price { font-family: var(--font-body); font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-primary); }
 .asset-headline-chg   { font-size: 13px; font-weight: 500; }
 .asset-headline-chg.up   { color: var(--green); }
 .asset-headline-chg.down { color: var(--red); }
@@ -786,7 +823,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   border-radius: 16px; padding: 24px; width: 340px; max-width: 90vw;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
 }
-.wallet-modal-title { font-family: var(--font-display); font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 16px; }
+.wallet-modal-title { font-family: var(--font-body); font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
 .wallet-form-group { margin-bottom: 12px; }
 .wallet-form-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; }
 .wallet-form-input, .wallet-form-select {
@@ -802,7 +839,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   background: transparent; color: var(--text-secondary); font-size: 12px;
   cursor: pointer; font-family: var(--font-body); transition: all 0.15s;
 }
-.wallet-form-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.wallet-form-tab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .wallet-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 .wallet-btn-cancel {
   flex: 1; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border-dark);
@@ -810,16 +847,16 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 }
 .wallet-btn-create {
   flex: 2; padding: 9px; border-radius: 8px; border: none;
-  background: var(--accent); color: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
+  background: var(--accent); color: var(--accent-text); cursor: pointer; font-size: 13px; font-weight: 500;
 }
 .wallet-btn-create:hover { opacity: 0.88; }
 </style>
 </head>
 <body>
 
-<div class="app-bg" id="appBg"></div>
+<div class="app-bg theme-lime" id="appBg"></div>
 
-<div class="app-shell" id="appShell">
+<div class="app-shell theme-lime" id="appShell">
 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
@@ -898,7 +935,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <button class="focus-btn" id="focusBtn" onclick="toggleFocus()">Focus</button>
         <span class="theme-label">Theme</span>
         <div class="theme-switcher">
-          <div class="theme-dot active" data-theme="default" title="Pearl (Default)"></div>
+          <div class="theme-dot active" data-theme="lime" title="Lime"></div>
+          <div class="theme-dot" data-theme="default" title="Pearl (Default)"></div>
           <div class="theme-dot" data-theme="glassy" title="Glassy"></div>
           <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
           <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
@@ -1016,37 +1054,29 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Settings View ── -->
         <div id="settingsView" style="display:none">
           <div class="card">
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">Settings</div>
+            <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Settings</div>
             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px">Stored locally. Changes take effect immediately.</div>
 
             <!-- AI Provider -->
             <div class="settings-section-title">AI Provider</div>
-            <div class="ai-provider-chips" id="aiProviderChips">
-              <button class="ai-chip" data-provider="groq"      data-model="llama3-8b-8192"              data-key="GROQ_API_KEY"      data-ph="gsk_…">Groq</button>
-              <button class="ai-chip" data-provider="openai"    data-model="gpt-4o"                      data-key="OPENAI_API_KEY"    data-ph="sk-…">ChatGPT</button>
-              <button class="ai-chip" data-provider="anthropic" data-model="claude-opus-4-5-20251101"    data-key="ANTHROPIC_API_KEY" data-ph="sk-ant-…">Claude</button>
-              <button class="ai-chip" data-provider="xai"       data-model="grok-beta"                   data-key="XAI_API_KEY"       data-ph="xai-…">Grok</button>
-              <button class="ai-chip" data-provider="gemini"    data-model="gemini-1.5-pro"              data-key="GOOGLE_API_KEY"    data-ph="AI…">Gemini</button>
-              <button class="ai-chip" data-provider="ollama"    data-model="llama3"                      data-key=""                  data-ph="">Ollama</button>
-            </div>
-            <div id="aiProviderFields" style="display:none">
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Sara uses <strong>OpenRouter</strong> to access any AI model through one API key.</div>
+            <div id="aiProviderFields">
               <div class="settings-row">
                 <div class="settings-label">Model <span id="aiModelNote"></span></div>
                 <div class="settings-input-row">
-                  <input class="settings-input" id="sinput-LLM_MODEL" type="text" placeholder="model name" autocomplete="off" style="font-family:var(--font-mono)">
+                  <select class="settings-input" id="sinput-LLM_MODEL" style="font-family:var(--font-mono)"></select>
                   <button class="settings-save-btn" onclick="saveAIProvider()">Apply</button>
                 </div>
               </div>
               <div class="settings-row" id="aiKeyRow">
-                <div class="settings-label" id="aiKeyLabel">API Key <span id="smask-AI_KEY"></span></div>
+                <div class="settings-label" id="aiKeyLabel">OpenRouter API Key <span id="smask-AI_KEY"></span></div>
                 <div class="settings-input-row">
-                  <input class="settings-input" id="sinput-AI_KEY" type="password" placeholder="" autocomplete="off">
+                  <input class="settings-input" id="sinput-AI_KEY" type="password" placeholder="sk-or-…" autocomplete="off">
                   <button class="settings-save-btn" onclick="saveAIKey()">Save</button>
                 </div>
                 <div class="settings-status" id="sstatus-AI_KEY"></div>
               </div>
             </div>
-            <div id="aiOllamaNote" style="display:none;font-size:11px;color:var(--text-muted);margin-bottom:10px">Ollama runs locally — no API key needed. Make sure Ollama is running on port 11434.</div>
             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px" id="aiActiveLabel"></div>
 
             <!-- Data APIs -->
@@ -1097,7 +1127,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Directory View ── -->
         <div id="directoryView" style="display:none">
           <div class="card">
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px">Address Book</div>
+            <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Address Book</div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Save nicknames so you can say "send 1 POL from test to <strong>rohas</strong>".</div>
 
             <div class="dir-add-form">
@@ -1203,7 +1233,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 // ══════════════════════════════════════
 // THEME SWITCHER
 // ══════════════════════════════════════
-const themes = ['default','glassy','darkpro','sunset','forest'];
+const themes = ['default','glassy','darkpro','sunset','forest','lime'];
 const shell = document.getElementById('appShell');
 const appBg = document.getElementById('appBg');
 
@@ -1620,8 +1650,7 @@ function copyAddr(el) {
 // COLUMN 2 PANEL SWITCHER
 // ══════════════════════════════════════
 const SETTING_KEYS = ['SARA_MASTER_KEY','COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
-const AI_KEY_MAP = { groq:'GROQ_API_KEY', openai:'OPENAI_API_KEY', anthropic:'ANTHROPIC_API_KEY', xai:'XAI_API_KEY', gemini:'GOOGLE_API_KEY', ollama:'' };
-let _activeProvider = 'groq';
+let _openrouterModels = [];
 let _col2Mode = 'asset';
 
 async function showCol2(mode) {
@@ -1659,64 +1688,42 @@ async function _loadSettingsView() {
         maskEl.style.color = 'var(--text-muted)';
       }
     }
-    // Restore active AI provider
-    const providerInfo = data['LLM_PROVIDER'];
-    const modelInfo    = data['LLM_MODEL'];
-    const savedProvider = (providerInfo && providerInfo.raw) ? providerInfo.raw : 'groq';
-    _selectAIChip(savedProvider, false);
-    if (modelInfo && modelInfo.raw) {
-      document.getElementById('sinput-LLM_MODEL').value = modelInfo.raw;
-    }
-    // Show active label
-    _updateAIActiveLabel(savedProvider, modelInfo && modelInfo.raw ? modelInfo.raw : '');
+    document.getElementById('sinput-AI_KEY').dataset.settingKey = 'OPENROUTER_API_KEY';
+    const keyInfo = data['OPENROUTER_API_KEY'];
+    document.getElementById('smask-AI_KEY').textContent = keyInfo && keyInfo.set ? '(' + keyInfo.masked + ')' : '(not set)';
+    await _loadOpenrouterModels();
+    const modelInfo = data['LLM_MODEL'];
+    const savedModel = (modelInfo && modelInfo.raw) ? modelInfo.raw : '';
+    if (savedModel) document.getElementById('sinput-LLM_MODEL').value = savedModel;
+    _updateAIActiveLabel(savedModel);
   } catch(e) {}
 }
 
-function _selectAIChip(provider, showFields = true) {
-  _activeProvider = provider;
-  document.querySelectorAll('.ai-chip').forEach(c => c.classList.remove('active'));
-  const chip = document.querySelector(`.ai-chip[data-provider="${provider}"]`);
-  if (!chip) return;
-  chip.classList.add('active');
-  const isOllama = provider === 'ollama';
-  document.getElementById('aiProviderFields').style.display = showFields || true ? '' : 'none';
-  document.getElementById('aiKeyRow').style.display = isOllama ? 'none' : '';
-  document.getElementById('aiOllamaNote').style.display = isOllama ? '' : 'none';
-  // Fill model placeholder
-  document.getElementById('sinput-LLM_MODEL').placeholder = chip.dataset.model;
-  // Set API key label & placeholder
-  if (!isOllama) {
-    document.getElementById('aiKeyLabel').childNodes[0].textContent = chip.dataset.key.replace(/_/g,' ').replace('API KEY','API Key') + ' ';
-    document.getElementById('sinput-AI_KEY').placeholder = chip.dataset.ph;
-    document.getElementById('sinput-AI_KEY').dataset.settingKey = chip.dataset.key;
+async function _loadOpenrouterModels() {
+  const select = document.getElementById('sinput-LLM_MODEL');
+  if (_openrouterModels.length) return;
+  try {
+    _openrouterModels = await fetch('/api/settings/openrouter-models').then(r => r.json());
+    select.innerHTML = _openrouterModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  } catch(e) {
+    select.innerHTML = `<option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>`;
   }
-  document.getElementById('aiProviderFields').style.display = '';
 }
 
-function _updateAIActiveLabel(provider, model) {
-  const names = {groq:'Groq',openai:'ChatGPT (OpenAI)',anthropic:'Claude (Anthropic)',xai:'Grok (xAI)',gemini:'Gemini (Google)',ollama:'Ollama (local)'};
+function _updateAIActiveLabel(model) {
   const lbl = document.getElementById('aiActiveLabel');
-  if (lbl) lbl.textContent = 'Active: ' + (names[provider] || provider) + (model ? '  ·  ' + model : '');
+  if (lbl) lbl.textContent = 'Active: OpenRouter' + (model ? '  ·  ' + model : '');
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.ai-chip').forEach(chip => {
-    chip.addEventListener('click', () => _selectAIChip(chip.dataset.provider));
-  });
-});
 
 async function saveAIProvider() {
-  const provider = _activeProvider;
   const modelEl = document.getElementById('sinput-LLM_MODEL');
-  const chip = document.querySelector(`.ai-chip[data-provider="${provider}"]`);
-  const model = modelEl.value.trim() || (chip ? chip.dataset.model : '');
+  const model = modelEl.value;
   try {
-    await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_PROVIDER', value: provider}) });
+    await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_PROVIDER', value: 'openrouter'}) });
     await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_MODEL', value: model}) });
-    modelEl.value = model;
-    _updateAIActiveLabel(provider, model);
+    _updateAIActiveLabel(model);
     const statusEl = document.getElementById('sstatus-AI_KEY');
-    statusEl.textContent = 'Provider set to ' + provider + '!';
+    statusEl.textContent = 'Model set!';
     statusEl.style.color = 'var(--green)';
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {}
@@ -1727,7 +1734,6 @@ async function saveAIKey() {
   const statusEl = document.getElementById('sstatus-AI_KEY');
   const key = inp.dataset.settingKey;
   const val = inp.value.trim();
-  if (!key) { statusEl.textContent = 'No key slot for this provider.'; statusEl.style.color='var(--red)'; return; }
   if (!val) { statusEl.textContent = 'Enter a value first.'; statusEl.style.color='var(--red)'; return; }
   try {
     const r = await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key, value: val}) });

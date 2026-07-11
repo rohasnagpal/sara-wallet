@@ -1,8 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    LLM_PROVIDER: str = "groq"
-    LLM_MODEL: str = "llama3-8b-8192"
+    LLM_PROVIDER: str = "openrouter"
+    LLM_MODEL: str = "openai/gpt-4o-mini"
+    OPENROUTER_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""

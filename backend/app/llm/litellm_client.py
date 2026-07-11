@@ -7,6 +7,7 @@ import litellm
 litellm.drop_params = True
 
 PROVIDER_DEFAULTS = {
+    "openrouter": "openai/gpt-4o-mini",
     "groq":      "llama3-8b-8192",
     "openai":    "gpt-4o",
     "anthropic": "claude-opus-4-5-20251101",
@@ -20,7 +21,9 @@ class SaraLLM:
         provider = os.environ.get("LLM_PROVIDER", settings.LLM_PROVIDER).lower()
         model = os.environ.get("LLM_MODEL", settings.LLM_MODEL) or PROVIDER_DEFAULTS.get(provider, "")
 
-        if provider == "openai":
+        if provider == "openrouter":
+            return {"model": f"openrouter/{model}", "api_key": os.environ.get("OPENROUTER_API_KEY", settings.OPENROUTER_API_KEY)}
+        elif provider == "openai":
             return {"model": model, "api_key": os.environ.get("OPENAI_API_KEY", settings.OPENAI_API_KEY)}
         elif provider == "anthropic":
             return {"model": f"anthropic/{model}", "api_key": os.environ.get("ANTHROPIC_API_KEY", settings.ANTHROPIC_API_KEY)}

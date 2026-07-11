@@ -85,6 +85,41 @@ eth news
 
 View real-time gas estimates before every transaction. No surprises.
 
+### 🔄 Token Swaps
+
+```
+swap 1000 pol for usdc
+swap 1 sol for usdc
+```
+
+EVM swaps route through Paraswap, Solana swaps through Jupiter. Always previewed with a **CONFIRM** step before anything executes.
+
+### 📉 Perps Trading
+
+Open and close leveraged crypto perpetuals on Hyperliquid, straight from chat — with a preview and **CONFIRM** step before any order is placed.
+
+```
+long btc $500 5x
+close my eth position
+```
+
+### 🌾 DeFi & Prediction Markets
+
+```
+top defi yields on ethereum
+tvl on aave
+will bitcoin hit 100k?
+what's trending
+```
+
+### 🌐 ENS & SNS Resolution
+
+Send to `alice.eth` or `bob.sol` directly — Sara resolves the name to an address before asking you to confirm.
+
+### 💼 Portfolio
+
+`show my portfolio` aggregates native balances across Ethereum, Arbitrum, Base, Polygon, Optimism, and Solana in one view. ERC-20 token balances require an Alchemy API key (Settings → Data APIs).
+
 ### 🔧 Extend It Your Way
 
 - Integrate any external API or service
@@ -99,15 +134,8 @@ Here's what's coming to Sara:
 
 | Feature | Description |
 |---|---|
-| 🔄 **Token Swaps** | `swap 1000 pol for usdc` |
-| 📊 **Balance Monitoring** | Automate routine balance checks |
-| 🎲 **Polymarket** | `Will Bitcoin hit 100k?` |
-| 🌾 **DeFi Yields** | `top DeFi yields on Ethereum` |
-| 🔥 **Trending Coins** | `what's trending` |
-| 📉 **Perps Trading** | Trade crypto, commodities & stock perps on Hyperliquid |
-| 🌐 **ENS & SNS Resolution** | Human-readable addresses, resolved |
-| 💼 **Live Balances** | All tokens and chains, in one view |
-| 📋 **Unified Portfolio** | Crypto + stocks + commodities, together |
+| 📊 **Balance Monitoring** | Automate routine balance checks and alerts |
+| 📋 **Unified Portfolio** | Bring stock & commodity holdings into the portfolio view, alongside crypto |
 | 🛡️ **Send Limits** | Set max send limits as a safety guardrail |
 
 ---

@@ -5,17 +5,15 @@ from app.db.session import get_db
 from app.db.models import Config
 from app.tools.wallet.encrypt import save_master_key
 import os
+import time
+import requests
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 ALLOWED_KEYS = {
     "LLM_PROVIDER":       "Active AI Provider",
     "LLM_MODEL":          "Model Name",
-    "GROQ_API_KEY":       "Groq API Key",
-    "OPENAI_API_KEY":     "OpenAI API Key (ChatGPT)",
-    "ANTHROPIC_API_KEY":  "Anthropic API Key (Claude)",
-    "XAI_API_KEY":        "xAI API Key (Grok)",
-    "GOOGLE_API_KEY":     "Google API Key (Gemini)",
+    "OPENROUTER_API_KEY": "OpenRouter API Key",
     "COINGECKO_API_KEY":   "CoinGecko API Key (optional, higher rate limits)",
     "CRYPTOPANIC_API_KEY": "CryptoPanic API Key (news & sentiment)",
     "ALCHEMY_API_KEY":    "Alchemy API Key (token balances + faster RPCs)",
@@ -65,3 +63,27 @@ def save_setting(body: SettingBody, db: Session = Depends(get_db)):
     db.commit()
     os.environ[body.key] = value
     return {"status": "saved", "key": body.key}
+
+
+_models_cache: dict = {"data": None, "fetched_at": 0}
+_MODELS_CACHE_TTL = 3600
+
+
+@router.get("/openrouter-models")
+def get_openrouter_models():
+    now = time.time()
+    if _models_cache["data"] is not None and now - _models_cache["fetched_at"] < _MODELS_CACHE_TTL:
+        return _models_cache["data"]
+    try:
+        resp = requests.get("https://openrouter.ai/api/v1/models", timeout=10)
+        resp.raise_for_status()
+        models = [
+            {"id": m["id"], "name": m.get("name", m["id"])}
+            for m in resp.json().get("data", [])
+        ]
+        models.sort(key=lambda m: m["name"].lower())
+    except Exception as e:
+        raise HTTPException(502, f"Could not fetch OpenRouter models: {e}")
+    _models_cache["data"] = models
+    _models_cache["fetched_at"] = now
+    return models
