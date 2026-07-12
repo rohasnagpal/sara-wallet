@@ -2,7 +2,7 @@
 
 **Sara Wallet** is an open source, AI-powered local crypto wallet that you can talk to and chat with. 
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-f4a261?style=flat-square)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open-Source-e76f51?style=flat-square&logo=github)](https://github.com)
 [![AI Powered](https://img.shields.io/badge/AI-Powered-264653?style=flat-square&logoColor=white)](https://github.com)
 [![Runs Locally](https://img.shields.io/badge/Runs-Locally-2a9d8f?style=flat-square)](https://github.com)
@@ -35,7 +35,7 @@ Some of the things you can do with Sara Wallet:
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
 
-Sara Wallet is not a broker, exchange, custodian, investment adviser, trading platform, or financial services provider. It is a self-custodial wallet and interface that helps users interact with third-party networks, protocols, and services such as Hyperliquid. Sara Wallet does not execute, clear, custody, intermediate, guarantee, or provide advice for any transaction. All actions are initiated by the user and performed through third-party systems at the user’s own risk.
+Sara Wallet is not a broker, exchange, custodian, investment adviser, trading platform, or financial services provider. It is a self-custodial wallet and interface that helps users interact with third-party networks, protocols, and services such as Hyperliquid. Sara Wallet does not execute, clear, custody, intermediate, guarantee, or provide advice for any transaction. All actions are initiated by the user and performed through third-party systems at the user's own risk. See [`DISCLAIMER.md`](DISCLAIMER.md) for the full legal disclaimer.
 
 ---
 
@@ -233,7 +233,9 @@ Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before submitting.
 
 ## 📄 License
 
-MIT © Sara Wallet Contributors
+Apache License 2.0 © 2026 Rohas Nagpal
+
+See [`LICENSE`](LICENSE) for the full text, and [`DISCLAIMER.md`](DISCLAIMER.md) for the legal disclaimer.
 
 ---
 

@@ -123,6 +123,10 @@ Steps:
 2. For a genuinely different chain family (like Solana): create a new file in `backend/app/chains/`, e.g. `my_chain.py`, following the interface `evm.py`/`solana.py` already use (balance, transfer preview, send).
 3. Document the new RPC env var in `.env` (the tracked template) and the README's Supported Chains table.
 
+### Adding a New Token
+
+ERC-20 token support (sends and swaps) is separate from native-chain support above. Tokens are looked up by symbol in the `_TOKENS` dict in `backend/app/tools/market/paraswap.py`, keyed by chain ID — there's no on-chain or dynamic token list. To add a token: add its contract address and decimals under the relevant chain ID's entry in `_TOKENS`. Swaps additionally require the chain to already have an entry in `CHAIN_IDS` in that same file (Paraswap only supports a subset of the chains Sara supports natively — check before assuming a new chain gets swaps for free).
+
 ### Adding a New AI Provider
 
 Sara connects to AI models exclusively through [OpenRouter](https://openrouter.ai) (one API key, hundreds of models — GPT, Claude, Gemini, Llama, and more), using [LiteLLM](https://github.com/BerriAI/litellm) under the hood. The AI layer lives in `backend/app/llm/`.
