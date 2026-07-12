@@ -70,7 +70,7 @@ There's no `SARA_MASTER_KEY` to set — Sara locks/unlocks like a normal wallet 
 Run the server:
 
 ```bash
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8888
 ```
 
 Use `--reload` during development so the server restarts automatically on file changes.
