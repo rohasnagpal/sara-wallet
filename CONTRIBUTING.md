@@ -54,15 +54,16 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Create a `.env` in the repo root with at minimum:
+Copy `.env.example` (repo root) to `.env` and set at minimum:
 
 ```env
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.1-8b-instant
-GROQ_API_KEY=your_key_here
+LLM_PROVIDER=openrouter
+LLM_MODEL=openai/gpt-4o-mini
+OPENROUTER_API_KEY=your_key_here
 DATABASE_URL=sqlite:///./sara.db
-SARA_MASTER_KEY=dev_passphrase
 ```
+
+There's no `SARA_MASTER_KEY` to set — Sara locks/unlocks like a normal wallet now. The first time you run the app and open it in a browser, you'll be prompted to create a passphrase; that's stored automatically, not in `.env`.
 
 Run the server:
 
@@ -84,7 +85,7 @@ sara-wallet/
     ├── requirements.txt
     └── app/
         ├── routers/        # HTTP route handlers (/api/*)
-        ├── tools/          # Tools the AI can call
+        ├── tools/          # Wallet, market, trading, and utility functions, routed to by regex intent matching in chat.py
         ├── chains/         # Chain-specific send/balance/gas logic
         ├── db/             # SQLite models and session
         ├── llm/            # AI provider setup via LiteLLM
@@ -99,35 +100,32 @@ The key principle: **chat handling and wallet actions are separate**. The chat l
 
 ### Adding a New Tool
 
-Tools live in `backend/app/tools/`. Each tool is a function (or set of functions) the AI can invoke when it detects relevant intent in the chat.
+Tools live in `backend/app/tools/`. Important to understand before you start: **there is no LLM function-calling/tool registry in Sara today.** Routing is a hand-written keyword/regex matcher (`_detect_intent()` in `backend/app/routers/chat.py`), not the AI deciding which tool to call — docstrings are not read by anything and won't affect behavior.
 
 Steps:
 
-1. Create a new file in `backend/app/tools/`, e.g. `my_tool.py`
-2. Write your tool function(s) with clear docstrings — the AI uses these to understand when to call the tool
-3. Register the tool in the tools registry (see existing tools for the pattern)
+1. Create a new file in `backend/app/tools/`, e.g. `my_tool.py`, with your function(s)
+2. Add a regex/keyword pattern for your command in `_detect_intent()` that returns `("my_tool_name", {...args})`
+3. Add a matching branch in `_handle_tool_call()` (same file) that imports and calls your function, and formats the result as chat text
 4. Test it by chatting with Sara: try the natural language commands your tool is meant to handle
 
-Keep tools focused. One tool should do one thing well. If you're building something complex, break it into smaller composable tools.
+Keep tools focused. One tool should do one thing well. If your tool moves funds or signs anything, it needs to go through the existing `_pending`/CONFIRM flow (see `send_crypto`/`swap_tokens` for the pattern) — never execute a money-moving action without an explicit typed CONFIRM.
 
 ### Adding a New Chain
 
-Chain modules live in `backend/app/chains/`. Each module handles the specifics of sending transactions, fetching balances, estimating gas, and any chain-specific quirks.
+Chain modules live in `backend/app/chains/`. Each module handles the specifics of sending transactions, fetching balances, estimating gas, and any chain-specific quirks. There's no separate chain registry — EVM-compatible chains are added directly as entries in the `_RPC`, `_CHAIN_IDS`, and `_NATIVE_TOKEN` dicts at the top of `backend/app/chains/evm.py`.
 
 Steps:
 
-1. Create a new file in `backend/app/chains/`, e.g. `my_chain.py`
-2. Implement the standard interface that other chain modules follow (send, balance, gas estimate)
-3. Add the chain to the chain registry in `core/`
-4. Add relevant RPC config keys to `.env` if needed, and document them in the README
-
-For EVM-compatible chains, you can likely extend the existing EVM base rather than writing from scratch.
+1. For an EVM-compatible chain: add its RPC URL, chain ID, and native token symbol to those three dicts in `evm.py` — no new file needed. Also update `_TOKEN_TO_NETWORK` and `_NETWORK_NATIVE_TOKEN` in `chat.py` so chat commands recognize the new chain's native token.
+2. For a genuinely different chain family (like Solana): create a new file in `backend/app/chains/`, e.g. `my_chain.py`, following the interface `evm.py`/`solana.py` already use (balance, transfer preview, send).
+3. Document the new RPC env var in `.env.example` and the README's Supported Chains table.
 
 ### Adding a New AI Provider
 
-Sara uses [LiteLLM](https://github.com/BerriAI/litellm), so adding a provider is usually just a config change rather than new code. The AI layer lives in `backend/app/llm/`.
+Sara connects to AI models exclusively through [OpenRouter](https://openrouter.ai) (one API key, hundreds of models — GPT, Claude, Gemini, Llama, and more), using [LiteLLM](https://github.com/BerriAI/litellm) under the hood. The AI layer lives in `backend/app/llm/`.
 
-If the provider is already supported by LiteLLM, add the relevant `*_API_KEY` to `.env` and document it in the README. If it needs special handling, add it to `backend/app/llm/` and open a PR explaining why LiteLLM alone wasn't sufficient.
+In practice this means you usually don't need to add a new provider — just pick a different model from the OpenRouter dropdown in Settings. If you have a real reason to support a provider outside OpenRouter (e.g. a fully local/offline model), open an issue first to discuss the approach before writing code.
 
 ### Frontend Changes
 
@@ -173,7 +171,6 @@ git checkout -b feature/describe-the-feature
 Sara's backend is Python. Follow these conventions:
 
 - Use clear, descriptive names. Prefer readability over brevity.
-- Add docstrings to tool functions — the AI layer reads them.
 - Don't introduce new dependencies without discussion. Open an issue first if you want to add a package.
 - Keep `requirements.txt` updated if you do add a dependency.
 
@@ -189,7 +186,7 @@ When contributing code that touches wallets, keys, signing, or transaction logic
 
 - Never log private keys or seed phrases anywhere
 - Never transmit key material off the device
-- Keep encryption logic in `backend/app/core/` where it can be reviewed in one place
+- Keep encryption/lock logic in `backend/app/tools/wallet/encrypt.py` and `lock.py` where it can be reviewed in one place — don't scatter key-handling code elsewhere
 - Add a comment explaining what you're doing and why — this code gets audited
 
 ---

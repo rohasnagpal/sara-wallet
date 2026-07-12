@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Config
-from app.tools.wallet.encrypt import save_master_key
 import os
 import time
 import requests
@@ -18,7 +17,6 @@ ALLOWED_KEYS = {
     "CRYPTOPANIC_API_KEY": "CryptoPanic API Key (news & sentiment)",
     "ALCHEMY_API_KEY":    "Alchemy API Key (token balances + faster RPCs)",
     "HELIUS_RPC":         "Helius RPC URL (optional, Solana)",
-    "SARA_MASTER_KEY":    "Encryption Key (protects stored private keys)",
 }
 
 
@@ -50,11 +48,6 @@ def save_setting(body: SettingBody, db: Session = Depends(get_db)):
     if body.key not in ALLOWED_KEYS:
         raise HTTPException(400, f"Unknown key: {body.key}")
     value = body.value
-    if body.key == "SARA_MASTER_KEY":
-        try:
-            value = save_master_key(body.value)
-        except ValueError as e:
-            raise HTTPException(400, str(e))
     row = db.query(Config).filter(Config.key == body.key).first()
     if row:
         row.value = value

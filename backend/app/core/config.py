@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     CLOUDFLARE_API_KEY: str = ""
     DATABASE_URL: str = "sqlite:///./sara.db"
 
+    SARA_NAME_REGISTRAR_ADDRESS: str = ""
+    SARA_NAME_LOG_ADDRESS: str = ""
+    SARA_NAME_REGISTRATION_FEE: float = 10.0
+    SARA_NAME_SERVICE_URL: str = ""
+    POLYGONSCAN_API_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

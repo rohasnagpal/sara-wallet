@@ -1,5 +1,6 @@
 from app.chains import evm, solana as sol_chain
 from app.tools.wallet.encrypt import decrypt_key
+from app.tools.wallet.lock import WalletLockedError
 from app.db.models import Wallet, Transaction
 from app.db.session import SessionLocal
 from datetime import datetime
@@ -59,6 +60,9 @@ def execute_send(wallet: Wallet, to: str, amount: float, network: str = None) ->
         db.add(record)
         db.commit()
         return {"tx_hash": tx_hash, "status": "submitted"}
+    except WalletLockedError:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         return {"error": _exception_message(e), "status": "failed"}

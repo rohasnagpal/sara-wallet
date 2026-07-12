@@ -9,11 +9,11 @@ from app.tools.market.coingecko import get_multi_price, SYMBOL_TO_ID
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
-EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
+EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism", "bsc", "avalanche"]
 
 NATIVE_SYMBOLS = {
     "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
-    "polygon": "POL",
+    "polygon": "POL", "bsc": "BNB", "avalanche": "AVAX",
 }
 
 COLORS = ["#f59e0b","#6366f1","#10b981","#8b5cf6","#94a3b8","#ef4444","#14b8a6"]

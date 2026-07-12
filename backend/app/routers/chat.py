@@ -87,6 +87,7 @@ _TOKEN_TO_NETWORK = {
     "op": "optimism", "optimism": "optimism",
     "sol": "solana", "solana": "solana",
     "bnb": "bsc",
+    "avax": "avalanche", "avalanche": "avalanche",
 }
 
 _NETWORK_NATIVE_TOKEN = {
@@ -96,6 +97,8 @@ _NETWORK_NATIVE_TOKEN = {
     "optimism": "ETH",
     "polygon": "POL",
     "solana": "SOL",
+    "bsc": "BNB",
+    "avalanche": "AVAX",
 }
 
 _ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
@@ -103,6 +106,9 @@ _SEND_LIKE_RE = re.compile(
     r"\b(send|sent|sen|snd|transfer|transferred|confirm|confirmation)\b|^yes$",
     re.I,
 )
+
+from app.tools.names.sara_names import SUFFIXES as _SARA_SUFFIXES
+_SARA_SUFFIX_PATTERN = "|".join(re.escape(s) for s in _SARA_SUFFIXES)
 
 
 def _is_valid_recipient(address: str, network: Optional[str]) -> bool:
@@ -153,7 +159,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     wallets = db.query(Wallet).all()
 
     # help / capabilities
-    if any(p in m for p in ("what can you do", "what do you do", "your capabilities", "what are you capable", "what can sara", "how do you work", "help me understand", "what features")):
+    if any(p in m for p in ("what can you do", "what do you do", "your capabilities", "what are you capable", "what can sara", "how do you work", "help me understand", "what features", "how to use sara", "how do i use sara")):
         return ("show_help", {})
 
     # send / transfer  — parse: (send|transfer) <amount> <token> [from <wallet>] to <address>
@@ -192,6 +198,14 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         elif to_addr.lower().endswith(".sol"):
             from app.tools.names.sns import resolve as sns_resolve
             resolved = sns_resolve(to_addr)
+            if resolved:
+                to_nickname = to_addr
+                to_addr = resolved
+            else:
+                return ("name_not_found", {"name": to_addr})
+        elif to_addr.lower().endswith(_SARA_SUFFIXES):
+            from app.tools.names.sara_names import resolve as sara_resolve
+            resolved = sara_resolve(to_addr)
             if resolved:
                 to_nickname = to_addr
                 to_addr = resolved
@@ -330,6 +344,40 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                 if wallet:
                     return ("close_perp_position", {"wallet_name": wallet.name, "symbol": symbol})
 
+    # sara name registration — "register rohas.sara", "buy rohas.sara from test1"
+    reg_match = re.search(
+        r'(?:register|buy|claim)\s+(?:the\s+name\s+)?([\w-]+(?:' + _SARA_SUFFIX_PATTERN + r'))(?:\s+from\s+(\w[\w\s]*))?',
+        m
+    )
+    if reg_match:
+        from app.tools.names import sara_names
+        name, from_hint = reg_match.groups()
+        error = sara_names.validate_name(name)
+        if error:
+            return ("register_name_invalid", {"name": name, "message": error})
+        name = sara_names.normalize_name(name)
+        evm_wallets = [w for w in wallets if w.chain == "evm"]
+        if sara_names.is_available(name):
+            wallet = _match_wallet(from_hint, evm_wallets) if from_hint else None
+            if not wallet:
+                wallet = _match_wallet(msg, evm_wallets)
+            if not wallet and len(evm_wallets) == 1:
+                wallet = evm_wallets[0]
+            if wallet:
+                return ("register_name", {"wallet_name": wallet.name, "name": name, "price": sara_names.get_price()})
+            elif evm_wallets:
+                return ("register_needs_wallet", {"name": name, "price": sara_names.get_price(), "wallets": [w.name for w in evm_wallets]})
+            else:
+                return ("send_no_wallets", {})
+        else:
+            return ("register_name_taken", {"name": name})
+
+    # sara name registration — guided flow, no name given yet
+    if any(p in m for p in ("buy a name", "buy a bname", "buy a .sara", "register a name",
+                             "register a bname", "register a .sara", "get a .sara name",
+                             "get a name", "get a bname")):
+        return ("register_ask_name", {})
+
     # list wallets
     if any(p in m for p in ("list wallet", "my wallet", "show wallet", "list my wallet")):
         return ("list_wallets", {})
@@ -339,13 +387,26 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         matched = _match_wallet(msg, wallets)
         if matched:
             network = None
-            for net in ("ethereum", "arbitrum", "base", "polygon", "optimism", "solana"):
+            for net in ("ethereum", "arbitrum", "base", "polygon", "optimism", "bsc", "avalanche", "solana"):
                 if net in m:
                     network = net
                     break
             return ("get_balance", {"wallet_name": matched.name, "network": network})
         if wallets and len(wallets) == 1:
             return ("get_balance", {"wallet_name": wallets[0].name, "network": None})
+
+    # prediction markets (Polymarket) — check BEFORE any price/trending/commodity
+    # matching, since words like "polymarket" can substring-match unrelated
+    # token symbols (e.g. "pol" inside "polymarket") and "will X hit Y" should
+    # always route here, not to a commodity/crypto price lookup.
+    if any(p in m for p in ("polymarket", "prediction market", "odds", "bet", "chance", "probability",
+                             "likelihood")) or re.search(r'\bwill\b.{3,}', m):
+        query = msg.strip()
+        for prefix in ("what are", "what's", "polymarket", "odds on", "odds for", "chance of",
+                        "probability of", "will", "prediction market"):
+            query = re.sub(rf'^\s*{re.escape(prefix)}\s*', '', query, flags=re.I).strip()
+        query = re.sub(r'\?$', '', query).strip()
+        return ("get_prediction_markets", {"query": query or msg})
 
     # market: forex / fiat currency price (e.g. "inr price", "aud price")
     FIAT_TICKERS = {
@@ -428,17 +489,6 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         if tickers:
             return ("get_stock_price", {"ticker": tickers[0]})
 
-    # prediction markets (Polymarket) — check BEFORE commodities/forex
-    # so "will gold hit 100k" routes to Polymarket, not gold price
-    if any(p in m for p in ("polymarket", "prediction market", "odds", "bet", "chance", "probability",
-                             "likelihood")) or re.search(r'\bwill\b.{3,}', m):
-        query = msg.strip()
-        for prefix in ("what are", "what's", "polymarket", "odds on", "odds for", "chance of",
-                        "probability of", "will", "prediction market"):
-            query = re.sub(rf'^\s*{re.escape(prefix)}\s*', '', query, flags=re.I).strip()
-        query = re.sub(r'\?$', '', query).strip()
-        return ("get_prediction_markets", {"query": query or msg})
-
     # market: commodity — require price-context word to avoid catching "will gold hit X"
     COMMODITY_MAP = {
         "gold": "GC=F", "silver": "SI=F", "oil": "CL=F", "crude": "CL=F",
@@ -509,7 +559,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         names = ", ".join(f"**{n}**" for n in args["wallets"])
         return (f"Which wallet should I use to swap **{args['amount']} {args['from_token']} → {args['to_token']}**?\n"
                 f"Your wallets: {names}\n"
-                f"Reply with e.g. \"swap {args['amount']} {args['from_token']} for {args['to_token']} from {args['wallets'][0]}\"")
+                f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
 
     if tool_name == "swap_tokens":
         return f"__PENDING_SWAP__{json.dumps(args)}"
@@ -521,7 +571,26 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         names = ", ".join(f"**{n}**" for n in args["wallets"])
         return (f"Which wallet should I use to open a **{args['side'].upper()} {args['symbol']}** "
                 f"position for **${args['size_usd']:,.0f}** at **{args['leverage']}x**?\n"
-                f"Your wallets: {names}")
+                f"Your wallets: {names}\n"
+                f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
+
+    if tool_name == "register_name":
+        return f"__PENDING_REGISTER__{json.dumps(args)}"
+
+    if tool_name == "register_needs_wallet":
+        names = ", ".join(f"**{n}**" for n in args["wallets"])
+        return (f"**{args['name']}** is available for **{args['price']} POL**. Which wallet should pay?\n"
+                f"Your wallets: {names}\n"
+                f"Reply with e.g. \"register {args['name']} from {args['wallets'][0]}\"")
+
+    if tool_name == "register_name_taken":
+        return f"**{args['name']}** is already registered to someone else. Try a different name."
+
+    if tool_name == "register_name_invalid":
+        return args["message"]
+
+    if tool_name == "register_ask_name":
+        return "Sure — which bName would you like? (e.g. `rohas.sara`)"
 
     if tool_name == "get_perp_positions":
         w = _resolve_wallet(args["wallet_name"], db)
@@ -557,34 +626,58 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return f"__PENDING_CLOSE_PERP__{json.dumps({**args, 'pnl_est': pnl_est, 'mark': mark, 'wallet_encrypted_key': w.encrypted_key, 'wallet_id': w.id})}"
 
     if tool_name == "show_help":
+        import os as _os
+        from app.chains.evm import _RPC as _evm_networks
+        from app.tools.wallet import lock as _lock_state
+        from app.core.config import settings as _settings
+
+        _chain_display = {"bsc": "BSC"}
+        chain_list = ", ".join(_chain_display.get(n, n.capitalize()) for n in _evm_networks) + ", Solana"
+        wallet_count = db.query(Wallet).count()
+
+        provider = _os.environ.get("LLM_PROVIDER", _settings.LLM_PROVIDER)
+        model = _os.environ.get("LLM_MODEL", _settings.LLM_MODEL)
+        ai_status = f"{provider} · {model}" if _os.getenv("OPENROUTER_API_KEY") else f"{provider} · {model} (no API key set — add one in Settings)"
+
+        def _flag(key: str) -> str:
+            return "✅ configured" if _os.getenv(key) else "— not set"
+
+        bname_ready = bool(_os.getenv("SARA_NAME_REGISTRAR_ADDRESS") and _os.getenv("SARA_NAME_SERVICE_URL"))
+        lock_status = "🔓 unlocked" if _lock_state.is_unlocked() else "🔒 locked"
+
         return (
-            "Here's what SARA can do:\n\n"
+            "**Here's everything SARA can do:**\n\n"
             "**Wallets**\n"
-            "• Create & import EVM wallets (Ethereum, Arbitrum, Base, Optimism, Polygon) and Solana\n"
+            f"• Create & import wallets — EVM ({chain_list.rsplit(', Solana', 1)[0]}) and Solana\n"
             "• Check balance on any supported network\n"
             "• Send crypto — say \"send 0.1 ETH from Main to 0x...\" and type CONFIRM\n"
-            "• Swap tokens — say \"swap 1 POL for USDC from test1\" and type CONFIRM\n\n"
-            "**Market Data** *(live via Yahoo Finance + CoinGecko)*\n"
-            "• Crypto prices — \"BTC price\", \"what's SOL at?\"\n"
-            "• Commodities — Gold, Silver, Oil, Copper, Nat Gas\n"
-            "• Forex — EUR/USD, GBP/USD, USD/JPY, AUD/USD\n"
-            "• Stocks — Apple, NVIDIA, Tesla, or any ticker symbol\n"
-            "• Gas fees — \"check gas\"\n"
-            "• DeFi TVL — \"Aave TVL\", \"total DeFi locked\"\n"
-            "• Yield opportunities — \"top DeFi yields on Ethereum\"\n"
-            "• Trending coins — \"what's trending?\"\n"
-            "• Global market cap & BTC dominance\n\n"
+            "• Address book — save nicknames, send to them by name\n\n"
             "**Trading**\n"
-            "• Swap tokens on EVM — \"swap 1 POL for USDC from test1\"\n"
-            "• Swap tokens on Solana — \"swap 0.5 SOL for USDC\"\n"
-            "• Hyperliquid perps — \"long ETH $500 2x\" or \"short BTC $1000 3x\"\n"
-            "• Perp positions — \"show my positions\"\n"
-            "• Close position — \"close ETH position\"\n\n"
+            "• Swap tokens on EVM (via Paraswap) — \"swap 1 POL for USDC from test1\"\n"
+            "• Swap tokens on Solana (via Jupiter) — \"swap 0.5 SOL for USDC\"\n"
+            "• Hyperliquid perps — \"long ETH $500 2x\" / \"short BTC $1000 3x\" / \"show my positions\" / \"close ETH position\"\n\n"
+            "**bNames** — a human-readable name for your wallet\n"
+            "• \"buy a bname\" or \"register rohas.sara\" — pay a small fee, get a name like `rohas.sara` linked to your wallet\n"
+            "• Send to a bName directly, same as `alice.eth` or `bob.sol`\n\n"
+            "**Market Data** *(live via Yahoo Finance + CoinGecko)*\n"
+            "• Crypto, stock, commodity & forex prices, gas fees, DeFi TVL/yields, trending coins, global market cap\n\n"
             "**Intelligence**\n"
-            "• News & sentiment — \"BTC sentiment\", \"what's happening with SOL?\"\n"
-            "• Prediction markets — \"polymarket odds on ETH ETF\", \"will Bitcoin hit 100k?\"\n"
-            "• ENS resolution — send to \"vitalik.eth\" and SARA resolves it\n"
-            "• SNS resolution — send to \"wallet.sol\" and SARA resolves it"
+            "• News & sentiment, Polymarket prediction markets, ENS/SNS/bName resolution\n\n"
+            "**Voice mode** — click the mic next to the chat box to speak instead of type (English only for now). "
+            "For your safety, CONFIRM must always be typed, never spoken.\n\n"
+            "**Security**\n"
+            "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 15 minutes of inactivity\n"
+            "• Only money-moving actions (send, swap, perps, bName registration) require unlocking — price checks and general chat work while locked\n\n"
+            "---\n"
+            "**Your current setup**\n"
+            f"• Wallet lock: {lock_status}\n"
+            f"• Wallets added: {wallet_count}\n"
+            f"• AI model: {ai_status}\n"
+            f"• CoinGecko API key: {_flag('COINGECKO_API_KEY')}\n"
+            f"• Alchemy API key (ERC-20 balances): {_flag('ALCHEMY_API_KEY')}\n"
+            f"• Helius RPC (Solana): {_flag('HELIUS_RPC')}\n"
+            f"• bName registration: {'✅ ready' if bname_ready else '— not set up yet (needs a deployed registrar service, see registrar-service/DEPLOYMENT.md)'}\n"
+            f"• EVM networks available: {chain_list.rsplit(', Solana', 1)[0]}"
         )
 
     if tool_name == "list_wallets":
@@ -872,6 +965,156 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     return _stream_text(text, db, session_id)
 
 
+def _preview_pending_register(name: str, wallet: Wallet, db: Session, session_id: str):
+    from app.tools.names import sara_names
+    price = sara_names.get_price()
+    _pending[session_id] = {
+        "type": "register_name",
+        "name": name,
+        "price": price,
+        "wallet_name": wallet.name,
+        "wallet_id": wallet.id,
+        "wallet_chain": wallet.chain,
+        "wallet_address": wallet.address,
+        "wallet_encrypted_key": wallet.encrypted_key,
+    }
+    text = (
+        f"Registering **{name}** → `{wallet.address}`\n"
+        f"Cost: **{price} POL** from **{wallet.name}**\n\n"
+        f"Type **CONFIRM** to pay and register, or **CANCEL** to abort."
+    )
+    return _stream_text(text, db, session_id)
+
+
+def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], str]:
+    """Resolve wallet + fetch a live swap quote. Returns (pending_dict, text).
+    pending_dict is None if resolution/quoting failed — text explains why."""
+    w = _resolve_wallet(swap_args["wallet_name"], db)
+    if not w:
+        return None, f"Wallet '{swap_args['wallet_name']}' not found."
+    network  = swap_args.get("network", "ethereum")
+    src_sym  = swap_args["from_token"]
+    dst_sym  = swap_args["to_token"]
+    amount   = swap_args["amount"]
+
+    if w.chain == "solana" or network == "solana":
+        from app.tools.market.jupiter import (
+            resolve_mint, get_quote as jup_quote,
+            get_decimals as jup_dec,
+        )
+        src_mint = resolve_mint(src_sym)
+        dst_mint = resolve_mint(dst_sym)
+        if not src_mint or not dst_mint:
+            supported = ", ".join(["SOL","USDC","USDT","BONK","JUP","RAY","WIF"])
+            return None, f"**{src_sym}** or **{dst_sym}** not supported on Solana. Supported: {supported}"
+        src_dec = jup_dec(src_sym)
+        dst_dec = jup_dec(dst_sym)
+        amount_raw = int(amount * 10 ** src_dec)
+        quote = jup_quote(src_mint, dst_mint, amount_raw)
+        if not (quote and "outAmount" in quote):
+            err = quote.get("error", "unknown error") if quote else "Jupiter API unavailable"
+            return None, f"Could not get Solana swap quote: {err}"
+        dst_amount = int(quote["outAmount"]) / 10 ** dst_dec
+        pending = {
+            "type": "sol_swap",
+            **swap_args,
+            "src_mint": src_mint,
+            "dst_mint": dst_mint,
+            "src_dec": src_dec,
+            "dst_dec": dst_dec,
+            "amount_raw": amount_raw,
+            "quote": quote,
+            "dst_amount": dst_amount,
+            "wallet_address": w.address,
+            "wallet_id": w.id,
+            "wallet_chain": w.chain,
+            "wallet_encrypted_key": w.encrypted_key,
+        }
+        text = (
+            f"Swap **{amount} {src_sym} → ~{dst_amount:.4f} {dst_sym}**\n"
+            f"Network: **Solana**  ·  Wallet: **{w.name}**\n"
+            f"Slippage: 0.5%\n\n"
+            f"Type **CONFIRM** to execute or **CANCEL** to abort."
+        )
+        return pending, text
+
+    # EVM → Paraswap
+    from app.tools.market.paraswap import resolve_token, get_quote, CHAIN_IDS
+    src_result = resolve_token(src_sym, network)
+    dst_result = resolve_token(dst_sym, network)
+    if not src_result or not dst_result:
+        return None, (f"I don't recognise **{src_sym}** or **{dst_sym}** on "
+                       f"{network.capitalize()}. Supported: USDC, USDT, WETH, DAI, WBTC, LINK.")
+    src_addr, src_dec = src_result
+    dst_addr, dst_dec = dst_result
+    amount_wei = int(amount * 10 ** src_dec)
+    quote = get_quote(src_addr, src_dec, dst_addr, dst_dec, amount_wei, network)
+    if not (quote and "priceRoute" in quote):
+        err = quote.get("error", "unknown error") if quote else "Paraswap API unavailable"
+        return None, f"Could not get swap quote: {err}"
+    price_route = quote["priceRoute"]
+    dst_amount = int(price_route.get("destAmount", 0)) / (10 ** dst_dec)
+    pending = {
+        "type": "swap",
+        **swap_args,
+        "src_addr": src_addr,
+        "dst_addr": dst_addr,
+        "src_dec": src_dec,
+        "dst_dec": dst_dec,
+        "amount_wei": amount_wei,
+        "src_amount": str(amount_wei),
+        "dest_amount": price_route.get("destAmount", "0"),
+        "price_route": price_route,
+        "wallet_id": w.id,
+        "wallet_chain": w.chain,
+        "wallet_encrypted_key": w.encrypted_key,
+    }
+    text = (
+        f"Swap **{amount} {src_sym} → ~{dst_amount:.4f} {dst_sym}**\n"
+        f"Network: **{network.capitalize()}**  ·  Wallet: **{w.name}**\n"
+        f"Slippage: 1%\n\n"
+        f"Type **CONFIRM** to execute or **CANCEL** to abort."
+    )
+    return pending, text
+
+
+def _build_perp_pending(perp_args: dict, db: Session) -> tuple[Optional[dict], str]:
+    """Resolve wallet + fetch a live Hyperliquid preview. Returns (pending_dict, text)."""
+    w = _resolve_wallet(perp_args["wallet_name"], db)
+    if not w:
+        return None, f"Wallet '{perp_args['wallet_name']}' not found."
+    from app.tools.trading.hyperliquid import preview_order
+    symbol   = perp_args["symbol"]
+    side     = perp_args["side"]
+    size_usd = perp_args["size_usd"]
+    leverage = perp_args["leverage"]
+    preview  = preview_order(symbol, side, size_usd, leverage)
+    if not preview:
+        return None, f"**{symbol}** not found on Hyperliquid. Try BTC, ETH, SOL, or another supported perp."
+    pending = {
+        "type": "perp",
+        **perp_args,
+        "entry_price": preview["entry_price"],
+        "quantity": preview["quantity"],
+        "wallet_id": w.id,
+        "wallet_chain": w.chain,
+        "wallet_encrypted_key": w.encrypted_key,
+        "wallet_address": w.address,
+    }
+    liq = preview["liquidation_price"]
+    text = (
+        f"**{side.upper()} {symbol}** perpetual\n"
+        f"Size: **${size_usd:,.0f}**  ·  Leverage: **{leverage:.0f}x**\n"
+        f"Entry: **${preview['entry_price']:,.2f}**  ·  "
+        f"Margin: **${preview['margin_required']:,.2f}**\n"
+        f"Liq. price: **${liq:,.2f}**  ·  Fee: ~${preview['fee_usd']:.2f}\n\n"
+        f"⚠ Leveraged position — losses can exceed your deposit. "
+        f"Liquidation at ${liq:,.2f}.\n\n"
+        f"Type **CONFIRM** to open or **CANCEL** to abort."
+    )
+    return pending, text
+
+
 @router.post("/chat")
 async def chat(req: ChatRequest, db: Session = Depends(get_db)):
     msg = req.message.strip()
@@ -902,6 +1145,74 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 }
                 return _preview_pending_send(_pending[req.session_id], db, req.session_id)
             return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_swap_wallet":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Swap cancelled.", db, req.session_id)
+            selected_wallet = _wallet_named(msg, db)
+            if selected_wallet and selected_wallet.name in pending["wallets"]:
+                del _pending[req.session_id]
+                swap_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
+                swap_args["wallet_name"] = selected_wallet.name
+                new_pending, text = _build_swap_pending(swap_args, db)
+                if new_pending:
+                    _pending[req.session_id] = new_pending
+                return _stream_text(text, db, req.session_id)
+            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_perp_wallet":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Order cancelled.", db, req.session_id)
+            selected_wallet = _wallet_named(msg, db)
+            if selected_wallet and selected_wallet.name in pending["wallets"]:
+                del _pending[req.session_id]
+                perp_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
+                perp_args["wallet_name"] = selected_wallet.name
+                new_pending, text = _build_perp_pending(perp_args, db)
+                if new_pending:
+                    _pending[req.session_id] = new_pending
+                return _stream_text(text, db, req.session_id)
+            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "awaiting_name":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Cancelled.", db, req.session_id)
+            del _pending[req.session_id]
+            from app.tools.names import sara_names
+            error = sara_names.validate_name(msg)
+            if error:
+                return _stream_text(error, db, req.session_id)
+            name = sara_names.normalize_name(msg)
+            if not sara_names.is_available(name):
+                return _stream_text(f"**{name}** is already registered to someone else. Try a different name.", db, req.session_id)
+            evm_wallets = [w for w in db.query(Wallet).all() if w.chain == "evm"]
+            if not evm_wallets:
+                return _stream_text("You need an EVM wallet (Polygon-compatible) to register a name — add one first.", db, req.session_id)
+            if len(evm_wallets) > 1:
+                names = ", ".join(f"**{w.name}**" for w in evm_wallets)
+                return _stream_text(
+                    f"**{name}** is available for **{sara_names.get_price()} POL**. "
+                    f"Which wallet should pay? Your wallets: {names}\n"
+                    f"Reply with e.g. \"register {name} from {evm_wallets[0].name}\"",
+                    db, req.session_id,
+                )
+            return _preview_pending_register(name, evm_wallets[0], db, req.session_id)
+        if pending.get("type") == "awaiting_register_payment":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Cancelled.", db, req.session_id)
+            from app.tools.names import sara_names
+            result = sara_names.submit_registration(pending["name"], pending["wallet_address"], pending["payment_tx_hash"])
+            if result.get("status") == "registered":
+                del _pending[req.session_id]
+                tx = result.get("registry_tx_hash")
+                extra = f"\nRegistry tx: `{tx}`" if tx else ""
+                return _stream_text(f"**{pending['name']}** is now registered to your wallet.{extra}", db, req.session_id)
+            return _stream_text(
+                f"Still waiting on payment confirmation for **{pending['name']}** "
+                f"({result.get('detail', 'not yet confirmed')}). Send any message shortly to check again, or CANCEL to give up.",
+                db, req.session_id,
+            )
         if msg.upper() == "CONFIRM":
             del _pending[req.session_id]
             ptype = pending.get("type")
@@ -913,6 +1224,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 return _stream_perp(pending, db, req.session_id)
             if ptype == "close_perp":
                 return _stream_close_perp(pending, db, req.session_id)
+            if ptype == "register_name":
+                return _stream_register_name(pending, db, req.session_id)
             return _stream_send(pending, db, req.session_id)
         elif msg.upper().startswith("CANCEL"):
             del _pending[req.session_id]
@@ -1005,136 +1318,15 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         )
                 elif result.startswith("__PENDING_SWAP__"):
                     swap_args = json.loads(result[len("__PENDING_SWAP__"):])
-                    w = _resolve_wallet(swap_args["wallet_name"], db)
-                    if not w:
-                        text = f"Wallet '{swap_args['wallet_name']}' not found."
-                    else:
-                        network  = swap_args.get("network", "ethereum")
-                        src_sym  = swap_args["from_token"]
-                        dst_sym  = swap_args["to_token"]
-                        amount   = swap_args["amount"]
-
-                        # Route to Jupiter for Solana wallets or SOL token swaps
-                        if w.chain == "solana" or network == "solana":
-                            from app.tools.market.jupiter import (
-                                resolve_mint, get_quote as jup_quote,
-                                get_decimals as jup_dec,
-                            )
-                            src_mint = resolve_mint(src_sym)
-                            dst_mint = resolve_mint(dst_sym)
-                            if not src_mint or not dst_mint:
-                                supported = ", ".join(["SOL","USDC","USDT","BONK","JUP","RAY","WIF"])
-                                text = (f"**{src_sym}** or **{dst_sym}** not supported on Solana. "
-                                        f"Supported: {supported}")
-                            else:
-                                src_dec = jup_dec(src_sym)
-                                dst_dec = jup_dec(dst_sym)
-                                amount_raw = int(amount * 10 ** src_dec)
-                                quote = jup_quote(src_mint, dst_mint, amount_raw)
-                                if quote and "outAmount" in quote:
-                                    dst_amount = int(quote["outAmount"]) / 10 ** dst_dec
-                                    _pending[req.session_id] = {
-                                        "type": "sol_swap",
-                                        **swap_args,
-                                        "src_mint": src_mint,
-                                        "dst_mint": dst_mint,
-                                        "src_dec": src_dec,
-                                        "dst_dec": dst_dec,
-                                        "amount_raw": amount_raw,
-                                        "quote": quote,
-                                        "dst_amount": dst_amount,
-                                        "wallet_address": w.address,
-                                        "wallet_id": w.id,
-                                        "wallet_chain": w.chain,
-                                        "wallet_encrypted_key": w.encrypted_key,
-                                    }
-                                    text = (
-                                        f"Swap **{amount} {src_sym} → ~{dst_amount:.4f} {dst_sym}**\n"
-                                        f"Network: **Solana**  ·  Wallet: **{w.name}**\n"
-                                        f"Slippage: 0.5%\n\n"
-                                        f"Type **CONFIRM** to execute or **CANCEL** to abort."
-                                    )
-                                else:
-                                    err = quote.get("error", "unknown error") if quote else "Jupiter API unavailable"
-                                    text = f"Could not get Solana swap quote: {err}"
-                        else:
-                            # EVM → Paraswap
-                            from app.tools.market.paraswap import resolve_token, get_quote, CHAIN_IDS
-                            src_result = resolve_token(src_sym, network)
-                            dst_result = resolve_token(dst_sym, network)
-                            if not src_result or not dst_result:
-                                text = (f"I don't recognise **{src_sym}** or **{dst_sym}** on "
-                                        f"{network.capitalize()}. Supported: USDC, USDT, WETH, DAI, WBTC, LINK.")
-                            else:
-                                src_addr, src_dec = src_result
-                                dst_addr, dst_dec = dst_result
-                                amount_wei = int(amount * 10 ** src_dec)
-                                quote = get_quote(src_addr, src_dec, dst_addr, dst_dec, amount_wei, network)
-                                if quote and "priceRoute" in quote:
-                                    price_route = quote["priceRoute"]
-                                    dst_amount = int(price_route.get("destAmount", 0)) / (10 ** dst_dec)
-                                    _pending[req.session_id] = {
-                                        "type": "swap",
-                                        **swap_args,
-                                        "src_addr": src_addr,
-                                        "dst_addr": dst_addr,
-                                        "src_dec": src_dec,
-                                        "dst_dec": dst_dec,
-                                        "amount_wei": amount_wei,
-                                        "src_amount": str(amount_wei),
-                                        "dest_amount": price_route.get("destAmount", "0"),
-                                        "price_route": price_route,
-                                        "wallet_id": w.id,
-                                        "wallet_chain": w.chain,
-                                        "wallet_encrypted_key": w.encrypted_key,
-                                    }
-                                    text = (
-                                        f"Swap **{amount} {src_sym} → ~{dst_amount:.4f} {dst_sym}**\n"
-                                        f"Network: **{network.capitalize()}**  ·  Wallet: **{w.name}**\n"
-                                        f"Slippage: 1%\n\n"
-                                        f"Type **CONFIRM** to execute or **CANCEL** to abort."
-                                    )
-                                else:
-                                    err = quote.get("error", "unknown error") if quote else "Paraswap API unavailable"
-                                    text = f"Could not get swap quote: {err}"
+                    pending, text = _build_swap_pending(swap_args, db)
+                    if pending:
+                        _pending[req.session_id] = pending
 
                 elif result.startswith("__PENDING_PERP__"):
                     perp_args = json.loads(result[len("__PENDING_PERP__"):])
-                    w = _resolve_wallet(perp_args["wallet_name"], db)
-                    if not w:
-                        text = f"Wallet '{perp_args['wallet_name']}' not found."
-                    else:
-                        from app.tools.trading.hyperliquid import preview_order
-                        symbol   = perp_args["symbol"]
-                        side     = perp_args["side"]
-                        size_usd = perp_args["size_usd"]
-                        leverage = perp_args["leverage"]
-                        preview  = preview_order(symbol, side, size_usd, leverage)
-                        if not preview:
-                            text = (f"**{symbol}** not found on Hyperliquid. "
-                                    f"Try BTC, ETH, SOL, or another supported perp.")
-                        else:
-                            _pending[req.session_id] = {
-                                "type": "perp",
-                                **perp_args,
-                                "entry_price": preview["entry_price"],
-                                "quantity": preview["quantity"],
-                                "wallet_id": w.id,
-                                "wallet_chain": w.chain,
-                                "wallet_encrypted_key": w.encrypted_key,
-                                "wallet_address": w.address,
-                            }
-                            liq = preview["liquidation_price"]
-                            text = (
-                                f"**{side.upper()} {symbol}** perpetual\n"
-                                f"Size: **${size_usd:,.0f}**  ·  Leverage: **{leverage:.0f}x**\n"
-                                f"Entry: **${preview['entry_price']:,.2f}**  ·  "
-                                f"Margin: **${preview['margin_required']:,.2f}**\n"
-                                f"Liq. price: **${liq:,.2f}**  ·  Fee: ~${preview['fee_usd']:.2f}\n\n"
-                                f"⚠ Leveraged position — losses can exceed your deposit. "
-                                f"Liquidation at ${liq:,.2f}.\n\n"
-                                f"Type **CONFIRM** to open or **CANCEL** to abort."
-                            )
+                    pending, text = _build_perp_pending(perp_args, db)
+                    if pending:
+                        _pending[req.session_id] = pending
 
                 elif result.startswith("__PENDING_CLOSE_PERP__"):
                     close_args = json.loads(result[len("__PENDING_CLOSE_PERP__"):])
@@ -1157,9 +1349,36 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                             f"Est. PnL: **{pnl_sign}${pnl:.2f}**\n\n"
                             f"Type **CONFIRM** to close or **CANCEL** to abort."
                         )
+                elif result.startswith("__PENDING_REGISTER__"):
+                    reg_args = json.loads(result[len("__PENDING_REGISTER__"):])
+                    w = _resolve_wallet(reg_args["wallet_name"], db)
+                    if not w:
+                        text = f"Wallet '{reg_args['wallet_name']}' not found."
+                    else:
+                        _pending[req.session_id] = {
+                            "type": "register_name",
+                            "name": reg_args["name"],
+                            "price": reg_args["price"],
+                            "wallet_name": w.name,
+                            "wallet_id": w.id,
+                            "wallet_chain": w.chain,
+                            "wallet_address": w.address,
+                            "wallet_encrypted_key": w.encrypted_key,
+                        }
+                        text = (
+                            f"Registering **{reg_args['name']}** → `{w.address}`\n"
+                            f"Cost: **{reg_args['price']} POL** from **{w.name}**\n\n"
+                            f"Type **CONFIRM** to pay and register, or **CANCEL** to abort."
+                        )
                 else:
                     if tool_name == "send_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_send_wallet", **args}
+                    elif tool_name == "swap_needs_wallet":
+                        _pending[req.session_id] = {"type": "choose_swap_wallet", **args}
+                    elif tool_name == "perp_needs_wallet":
+                        _pending[req.session_id] = {"type": "choose_perp_wallet", **args}
+                    elif tool_name == "register_ask_name":
+                        _pending[req.session_id] = {"type": "awaiting_name"}
                     text = result
                 full_response = text
                 for chunk in _chunk(text):
@@ -1381,6 +1600,58 @@ def _stream_close_perp(pending: dict, db: Session, session_id: str):
                 text = f"Close failed: {result.get('error', 'unknown error')}"
         except Exception as e:
             text = f"Close failed: {e}"
+        for chunk in _chunk(text):
+            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.commit()
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _stream_register_name(pending: dict, db: Session, session_id: str):
+    async def generate():
+        import os
+        from app.tools.wallet.encrypt import decrypt_key
+        from app.tools.names import sara_names
+        from app.chains import evm as evm_chain
+        from app.db.models import Transaction
+        from datetime import datetime
+        try:
+            registrar_address = os.getenv("SARA_NAME_REGISTRAR_ADDRESS", "")
+            if not registrar_address:
+                raise ValueError("Name registration is not configured (SARA_NAME_REGISTRAR_ADDRESS is not set).")
+            plain_key = decrypt_key(pending["wallet_encrypted_key"])
+            price = pending["price"]
+            balance = evm_chain.get_balance(pending["wallet_address"], "polygon")
+            if balance["balance"] < price:
+                raise ValueError(f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available, {price} POL required")
+            payment_tx_hash = evm_chain.send_tx(plain_key, registrar_address, price, "polygon")
+            db.add(Transaction(
+                wallet_id=pending["wallet_id"], chain="evm", tx_hash=payment_tx_hash,
+                to_address=registrar_address, amount=price, status="submitted",
+                timestamp=datetime.utcnow(),
+            ))
+            db.commit()
+
+            result = sara_names.submit_registration(pending["name"], pending["wallet_address"], payment_tx_hash)
+            if result.get("status") == "registered":
+                tx = result.get("registry_tx_hash")
+                extra = f"\nRegistry tx: `{tx}`" if tx else ""
+                text = f"Payment sent (`{payment_tx_hash}`). **{pending['name']}** is now registered to your wallet.{extra}"
+            else:
+                _pending[session_id] = {
+                    "type": "awaiting_register_payment",
+                    "name": pending["name"],
+                    "wallet_address": pending["wallet_address"],
+                    "payment_tx_hash": payment_tx_hash,
+                }
+                text = (
+                    f"Payment sent (`{payment_tx_hash}`). I'll finish registering **{pending['name']}** "
+                    f"once it confirms — send any message in a bit and I'll check."
+                )
+        except Exception as e:
+            text = f"Registration failed: {_exception_message(e)}"
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"

@@ -684,12 +684,12 @@ svg.gas-chart { width: 100%; height: 56px; overflow: visible; margin-top: 4px; }
   max-width: 92%;
 }
 code.chat-addr {
-  display: block; font-family: var(--font-mono); font-size: 11.5px;
-  background: var(--bg-card2); padding: 8px 12px; border-radius: 8px;
+  display: inline-block; font-family: var(--font-mono); font-size: 11.5px;
+  background: var(--bg-card2); padding: 2px 7px; border-radius: 6px;
   border: 1px solid var(--border-dark); cursor: pointer;
-  color: var(--text-secondary); word-break: break-all; width: 100%;
+  color: var(--text-secondary); word-break: break-all; max-width: 100%;
   box-sizing: border-box; transition: border-color 0.15s, color 0.15s;
-  margin-top: 5px; position: relative;
+  position: relative; vertical-align: middle;
 }
 code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); }
 .copy-icon { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
@@ -713,6 +713,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 .chat-chip:hover { background: var(--sidebar-nav-active); color: var(--accent); border-color: var(--accent); }
+.chat-chip-pinned { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.chat-chip-pinned:hover { opacity: 0.85; background: var(--accent); color: var(--accent-text); }
 
 .chat-input-wrap {
   padding: 10px 18px 14px;
@@ -740,6 +742,20 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 .chat-send:hover { opacity: 0.85; }
 .chat-send:active { transform: scale(0.92); }
 .chat-send svg { width: 14px; height: 14px; fill: var(--accent-text); }
+
+.chat-mic {
+  width: 38px; height: 38px; border-radius: 12px;
+  border: 1px solid var(--border-dark); background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+}
+.chat-mic:hover { border-color: var(--accent); }
+.chat-mic svg { width: 15px; height: 15px; stroke: var(--text-secondary); fill: none; stroke-width: 2; }
+.chat-mic:hover svg { stroke: var(--accent); }
+.chat-mic.listening { background: var(--red); border-color: var(--red); animation: micPulse 1.2s infinite; }
+.chat-mic.listening svg { stroke: #fff; }
+.chat-mic.unsupported { display: none; }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
 
 /* Stats bottom card */
 .stats-card {
@@ -850,9 +866,51 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   background: var(--accent); color: var(--accent-text); cursor: pointer; font-size: 13px; font-weight: 500;
 }
 .wallet-btn-create:hover { opacity: 0.88; }
+
+/* ── Lock Overlay ── */
+.lock-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: var(--bg-app-start, #060606); background: #060606;
+  align-items: center; justify-content: center;
+}
+.lock-overlay.open { display: flex; }
+.lock-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px; width: 340px; max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center;
+}
+.lock-icon { font-size: 32px; margin-bottom: 10px; }
+.lock-title { font-family: var(--font-body); font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.lock-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.4; }
+.lock-input {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  border: 1.5px solid var(--border-dark); background: var(--bg-input);
+  color: var(--text-primary); font-size: 13px; font-family: var(--font-body);
+  box-sizing: border-box; outline: none; margin-bottom: 10px; text-align: center;
+}
+.lock-input:focus { border-color: var(--accent); }
+.lock-btn {
+  width: 100%; padding: 10px; border-radius: 8px; border: none;
+  background: var(--accent); color: var(--accent-text); cursor: pointer;
+  font-size: 13px; font-weight: 600;
+}
+.lock-btn:hover { opacity: 0.88; }
+.lock-status { font-size: 11.5px; color: var(--red); margin-top: 10px; min-height: 14px; }
 </style>
 </head>
 <body>
+
+<div class="lock-overlay open" id="lockOverlay">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title" id="lockTitle">Unlock Sara</div>
+    <div class="lock-sub" id="lockSub">Enter your passphrase to unlock your wallets.</div>
+    <input class="lock-input" id="lockInput" type="password" placeholder="Passphrase" autocomplete="off">
+    <input class="lock-input" id="lockConfirmInput" type="password" placeholder="Confirm passphrase" autocomplete="off" style="display:none">
+    <button class="lock-btn" id="lockSubmitBtn" onclick="submitLock()">Unlock</button>
+    <div class="lock-status" id="lockStatus"></div>
+  </div>
+</div>
 
 <div class="app-bg theme-lime" id="appBg"></div>
 
@@ -1112,13 +1170,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <!-- Security -->
             <div class="settings-section-title">Security</div>
 
-            <div class="settings-row" id="srow-SARA_MASTER_KEY">
-              <div class="settings-label">Encryption Key <span id="smask-SARA_MASTER_KEY"></span></div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-SARA_MASTER_KEY" type="password" placeholder="passphrase, e.g. rohasnagpal" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('SARA_MASTER_KEY')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-SARA_MASTER_KEY"></div>
+            <div class="settings-row">
+              <div class="settings-label">Wallet Lock <span style="font-weight:400;text-transform:none;letter-spacing:0">Auto-locks after 15 min of inactivity</span></div>
+              <button class="settings-save-btn" onclick="lockWalletNow()">Lock Now</button>
             </div>
 
           </div>
@@ -1165,19 +1219,22 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         </div>
 
         <div class="chat-suggestions" id="chatSuggestions">
+          <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
           <div class="chat-chip" onclick="sendChip(this)">List my wallets</div>
           <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
-          <div class="chat-chip" onclick="sendChip(this)">Gold price</div>
-          <div class="chat-chip" onclick="sendChip(this)">Will Bitcoin hit $200k?</div>
+          <div class="chat-chip" onclick="sendChip(this)">Buy a bName</div>
+          <div class="chat-chip" onclick="sendChip(this)">What's trending on Polymarket</div>
           <div class="chat-chip" onclick="sendChip(this)">Top DeFi yields</div>
           <div class="chat-chip" onclick="sendChip(this)">Swap 1 SOL for USDC</div>
           <div class="chat-chip" onclick="sendChip(this)">ETH sentiment</div>
           <div class="chat-chip" onclick="sendChip(this)">Show my portfolio</div>
-          <div class="chat-chip" onclick="sendChip(this)">What can you do?</div>
         </div>
 
         <div class="chat-input-wrap">
           <textarea class="chat-input" id="chatInput" placeholder="Ask Sara anything…" rows="1"></textarea>
+          <button class="chat-mic" id="chatMic" title="Speak (English only)">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
           <button class="chat-send" id="chatSend">
             <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
           </button>
@@ -1205,17 +1262,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     <div class="wallet-form-group">
       <div class="wallet-form-label">Chain</div>
       <select class="wallet-form-select" id="walletChain">
-        <optgroup label="EVM Networks">
-          <option value="evm">Ethereum / Arbitrum / Base / Optimism</option>
-          <option value="evm">Polygon (MATIC)</option>
-          <option value="evm">BNB Smart Chain</option>
-          <option value="evm">Avalanche C-Chain</option>
-          <option value="evm">Tron (TRC-20, same key format)</option>
-        </optgroup>
-        <optgroup label="Other">
-          <option value="solana">Solana</option>
-          <option value="evm" disabled>Bitcoin (BTC) — coming in Phase 4</option>
-        </optgroup>
+        <option value="evm">EVM (Ethereum, Arbitrum, Base, Polygon, Optimism, BSC, Avalanche)</option>
+        <option value="solana">Solana</option>
+        <option value="bitcoin" disabled>Bitcoin (BTC) — Coming soon</option>
       </select>
     </div>
     <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
@@ -1230,6 +1279,85 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 </div>
 
 <script>
+// ══════════════════════════════════════
+// LOCK / UNLOCK
+// ══════════════════════════════════════
+let _lockMode = 'unlock'; // 'unlock' | 'setup'
+
+const _origFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const res = await _origFetch(...args);
+  if (res.status === 423 && !String(args[0]).includes('/api/lock/')) {
+    showLockOverlay('unlock', 'Session expired. Enter your passphrase to continue.');
+  }
+  return res;
+};
+
+function showLockOverlay(mode, subMessage) {
+  _lockMode = mode;
+  document.getElementById('lockOverlay').classList.add('open');
+  document.getElementById('lockInput').value = '';
+  document.getElementById('lockConfirmInput').value = '';
+  document.getElementById('lockStatus').textContent = '';
+  if (mode === 'setup') {
+    document.getElementById('lockTitle').textContent = 'Set up Sara';
+    document.getElementById('lockSub').textContent = subMessage || 'Create a passphrase to protect your wallets. You\'ll need it every time you unlock Sara.';
+    document.getElementById('lockConfirmInput').style.display = '';
+    document.getElementById('lockSubmitBtn').textContent = 'Create';
+  } else {
+    document.getElementById('lockTitle').textContent = 'Unlock Sara';
+    document.getElementById('lockSub').textContent = subMessage || 'Enter your passphrase to unlock your wallets.';
+    document.getElementById('lockConfirmInput').style.display = 'none';
+    document.getElementById('lockSubmitBtn').textContent = 'Unlock';
+  }
+  document.getElementById('lockInput').focus();
+}
+
+async function submitLock() {
+  const pass = document.getElementById('lockInput').value;
+  const statusEl = document.getElementById('lockStatus');
+  if (!pass) { statusEl.textContent = 'Enter a passphrase.'; return; }
+  if (_lockMode === 'setup') {
+    const confirmPass = document.getElementById('lockConfirmInput').value;
+    if (pass !== confirmPass) { statusEl.textContent = 'Passphrases do not match.'; return; }
+  }
+  const endpoint = _lockMode === 'setup' ? '/api/lock/setup' : '/api/lock/unlock';
+  try {
+    const r = await _origFetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({passphrase: pass}) });
+    if (r.ok) {
+      document.getElementById('lockOverlay').classList.remove('open');
+    } else {
+      const body = await r.json().catch(() => ({}));
+      statusEl.textContent = body.detail || 'Incorrect passphrase.';
+    }
+  } catch(e) {
+    statusEl.textContent = 'Could not reach Sara. Is the server running?';
+  }
+}
+
+document.getElementById('lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitLock(); });
+document.getElementById('lockConfirmInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitLock(); });
+
+async function lockWalletNow() {
+  await _origFetch('/api/lock/lock', { method: 'POST' });
+  showLockOverlay('unlock', 'Session expired. Enter your passphrase to continue.');
+}
+
+(async () => {
+  try {
+    const status = await _origFetch('/api/lock/status').then(r => r.json());
+    if (!status.configured) {
+      showLockOverlay('setup');
+    } else if (!status.unlocked) {
+      showLockOverlay('unlock');
+    } else {
+      document.getElementById('lockOverlay').classList.remove('open');
+    }
+  } catch(e) {
+    // Backend unreachable — leave the lock overlay showing rather than expose the app.
+  }
+})();
+
 // ══════════════════════════════════════
 // THEME SWITCHER
 // ══════════════════════════════════════
@@ -1412,6 +1540,45 @@ chatInput.addEventListener('input', () => {
   chatInput.style.height = 'auto';
   chatInput.style.height = Math.min(chatInput.scrollHeight, 90) + 'px';
 });
+
+// ══════════════════════════════════════
+// VOICE MODE (English only)
+// ══════════════════════════════════════
+const chatMic = document.getElementById('chatMic');
+const _SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let _recognizer = null;
+let _listening = false;
+
+if (!_SpeechRecognition) {
+  chatMic.classList.add('unsupported');
+} else {
+  _recognizer = new _SpeechRecognition();
+  _recognizer.lang = 'en-US';
+  _recognizer.interimResults = false;
+  _recognizer.maxAlternatives = 1;
+
+  _recognizer.onstart = () => { _listening = true; chatMic.classList.add('listening'); };
+  _recognizer.onend = () => { _listening = false; chatMic.classList.remove('listening'); };
+  _recognizer.onerror = () => { _listening = false; chatMic.classList.remove('listening'); };
+
+  _recognizer.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.trim();
+    const bare = transcript.toLowerCase().replace(/[.!?]+$/, '').trim();
+    // Safety: CONFIRM (and CANCEL) must always be typed, never spoken —
+    // never let a voice transcription authorize a money-moving action.
+    if (bare === 'confirm' || bare === 'cancel') {
+      addMsg(`🎤 "${transcript}"`, 'user');
+      addMsg('For your safety, please type CONFIRM (or CANCEL) manually rather than speaking it.', 'bot');
+      return;
+    }
+    sendMessage(transcript);
+  };
+
+  chatMic.addEventListener('click', () => {
+    if (_listening) { _recognizer.stop(); return; }
+    try { _recognizer.start(); } catch(e) {}
+  });
+}
 
 // ══════════════════════════════════════
 // LIVE MARKET DATA (real API)
@@ -1649,7 +1816,7 @@ function copyAddr(el) {
 // ══════════════════════════════════════
 // COLUMN 2 PANEL SWITCHER
 // ══════════════════════════════════════
-const SETTING_KEYS = ['SARA_MASTER_KEY','COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+const SETTING_KEYS = ['COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
 let _openrouterModels = [];
 let _col2Mode = 'asset';
 
@@ -1792,7 +1959,7 @@ async function loadDirectory() {
         <div class="dir-nick">${e.nickname}</div>
         <div class="dir-addr" title="${e.address}">${e.address}</div>
         <div class="dir-chain">${e.chain}</div>
-        <button class="dir-del" onclick="deleteDirectoryEntry('${e.nickname}')" title="Remove">×</button>
+        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${e.nickname}')" title="Remove">×</button>
       </div>`).join('');
   } catch(err) {
     list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading directory.</div>';
@@ -1822,6 +1989,24 @@ async function addDirectoryEntry() {
     status.textContent = 'Error: ' + e.message;
     status.style.color = 'var(--red)';
   }
+}
+
+function confirmDeleteDirectoryEntry(btn, nickname) {
+  if (btn.dataset.confirming) {
+    deleteDirectoryEntry(nickname);
+    return;
+  }
+  btn.dataset.confirming = '1';
+  const prevText = btn.textContent;
+  btn.textContent = '✓';
+  btn.title = 'Click again to confirm delete';
+  btn.style.color = 'var(--red)';
+  btn._revert = setTimeout(() => {
+    delete btn.dataset.confirming;
+    btn.textContent = prevText;
+    btn.title = 'Remove';
+    btn.style.color = '';
+  }, 3000);
 }
 
 async function deleteDirectoryEntry(nickname) {

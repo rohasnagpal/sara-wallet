@@ -6,6 +6,7 @@ from app.db.session import SessionLocal
 from app.db.models import Wallet
 from app.tools.wallet.keygen import generate_evm_wallet, generate_solana_wallet
 from app.tools.wallet.encrypt import encrypt_key, decrypt_key
+from app.tools.wallet.lock import WalletLockedError
 from app.tools.wallet.balance import get_wallet_balance
 from app.tools.wallet.send import execute_send
 
@@ -37,16 +38,19 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
     if db.query(Wallet).filter(Wallet.name == req.name).first():
         raise HTTPException(400, "Wallet name already exists")
     chain = req.chain.lower()
-    if chain == "evm":
-        w = generate_evm_wallet()
-        encrypted = encrypt_key(w["private_key"])
-        address = w["address"]
-    elif chain == "solana":
-        w = generate_solana_wallet()
-        encrypted = encrypt_key(w["private_key_bytes"].hex())
-        address = w["address"]
-    else:
-        raise HTTPException(400, "chain must be 'evm' or 'solana'")
+    try:
+        if chain == "evm":
+            w = generate_evm_wallet()
+            encrypted = encrypt_key(w["private_key"])
+            address = w["address"]
+        elif chain == "solana":
+            w = generate_solana_wallet()
+            encrypted = encrypt_key(w["private_key_bytes"].hex())
+            address = w["address"]
+        else:
+            raise HTTPException(400, "chain must be 'evm' or 'solana'")
+    except WalletLockedError as e:
+        raise HTTPException(423, str(e))
 
     wallet = Wallet(name=req.name, chain=chain, address=address, encrypted_key=encrypted)
     db.add(wallet)
@@ -76,7 +80,10 @@ def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
     else:
         raise HTTPException(400, "chain must be 'evm' or 'solana'")
 
-    encrypted = encrypt_key(req.private_key)
+    try:
+        encrypted = encrypt_key(req.private_key)
+    except WalletLockedError as e:
+        raise HTTPException(423, str(e))
     wallet = Wallet(name=req.name, chain=chain, address=address, encrypted_key=encrypted)
     db.add(wallet)
     db.commit()
@@ -112,7 +119,10 @@ def wallet_send(wallet_id: int, req: SendRequest, db: Session = Depends(get_db))
     w = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not w:
         raise HTTPException(404, "Wallet not found")
-    result = execute_send(w, req.to, req.amount, req.network)
+    try:
+        result = execute_send(w, req.to, req.amount, req.network)
+    except WalletLockedError as e:
+        raise HTTPException(423, str(e))
     if result.get("status") == "failed":
         raise HTTPException(502, result.get("error", "send failed"))
     return result

@@ -7,20 +7,24 @@ _RPC = {
     "base":      os.getenv("BASE_RPC") or "https://mainnet.base.org",
     "polygon":   os.getenv("POLY_RPC") or "https://polygon-bor-rpc.publicnode.com",
     "optimism":  os.getenv("OP_RPC")   or "https://mainnet.optimism.io",
+    "bsc":       os.getenv("BSC_RPC")  or "https://bsc-dataseed.binance.org",
+    "avalanche": os.getenv("AVAX_RPC") or "https://api.avax.network/ext/bc/C/rpc",
 }
 
 _CHAIN_IDS = {
     "ethereum": 1, "arbitrum": 42161, "base": 8453,
     "polygon": 137, "optimism": 10,
+    "bsc": 56, "avalanche": 43114,
 }
 
 _NATIVE_TOKEN = {
-    "ethereum": "ETH",
-    "arbitrum": "ETH",
-    "base":     "ETH",
-    "optimism": "ETH",
-    "polygon":  "POL",
-    "bsc":      "BNB",
+    "ethereum":  "ETH",
+    "arbitrum":  "ETH",
+    "base":      "ETH",
+    "optimism":  "ETH",
+    "polygon":   "POL",
+    "bsc":       "BNB",
+    "avalanche": "AVAX",
 }
 
 def get_web3(network: str = "ethereum") -> Web3:

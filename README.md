@@ -45,6 +45,25 @@ No dashboards to navigate. No buttons to click. Just talk.
 
 ---
 
+## ⛓️ Supported Chains
+
+| Chain | Native sends | Swaps | Perps |
+|---|---|---|---|
+| Ethereum | ✅ | ✅ (Paraswap) | — |
+| Polygon | ✅ | ✅ (Paraswap) | — |
+| Arbitrum | ✅ | ✅ (Paraswap) | — |
+| Base | ✅ | ✅ (Paraswap) | — |
+| Optimism | ✅ | ✅ (Paraswap) | — |
+| BNB Smart Chain | ✅ | — | — |
+| Avalanche C-Chain | ✅ | — | — |
+| Solana | ✅ | ✅ (Jupiter) | — |
+| Hyperliquid | — | — | ✅ |
+| Bitcoin | Coming soon | — | — |
+
+ERC-20 token balances (beyond native tokens) require an Alchemy API key. Token *sends* are native-asset only for now — ERC-20/SPL token transfers aren't wired up yet. Swaps currently route through Paraswap (EVM) and Jupiter (Solana) only — BSC and Avalanche support native sends and balance checks, swaps aren't wired up for them yet.
+
+---
+
 ## ⚡ Features
 
 ### 🔁 Send Crypto Naturally
@@ -116,9 +135,32 @@ what's trending
 
 Send to `alice.eth` or `bob.sol` directly — Sara resolves the name to an address before asking you to confirm.
 
+### 🔖 bNames — buy a human-readable name for your wallet
+
+```
+buy a bname
+register rohas.sara
+```
+
+Pay a small fee to link a name like `rohas.sara` or `rohas.bname` to your wallet, then send/receive using it just like `alice.eth` or `bob.sol`. No smart contract — names live as plain, publicly verifiable Polygon transactions, resolved by reading the chain directly (see [`registrar-service/DEPLOYMENT.md`](registrar-service/DEPLOYMENT.md) for the technical design).
+
+**This requires a separately deployed registrar service** — the wallet-side code is fully built, but registration won't complete until you (or whoever runs your instance) deploys `registrar-service/` per that guide and set the `SARA_NAME_*` variables in `.env`. Without it, Sara will show you a price quote but registration will fail at the payment-confirmation step.
+
+### 🎙️ Voice Mode
+
+Click the mic icon next to the chat box to speak instead of type. English only for now. For safety, **CONFIRM must always be typed**, never spoken — Sara won't act on a spoken "confirm," even by accident.
+
+### 🔒 Wallet Security
+
+Sara locks like a normal wallet. The first time you open it, you'll create a passphrase; after that, you unlock with it each session, and Sara auto-locks after 15 minutes of inactivity (or immediately via a manual "Lock Now" in Settings). Only money-moving actions — send, swap, perps, bName registration, wallet create/import — require being unlocked. Price checks, news, portfolio views, and general chat all work while locked.
+
 ### 💼 Portfolio
 
-`show my portfolio` aggregates native balances across Ethereum, Arbitrum, Base, Polygon, Optimism, and Solana in one view. ERC-20 token balances require an Alchemy API key (Settings → Data APIs).
+`show my portfolio` aggregates native balances across Ethereum, Arbitrum, Base, Polygon, Optimism, BNB Smart Chain, Avalanche, and Solana in one view. ERC-20 token balances require an Alchemy API key (Settings → Data APIs).
+
+### 🤖 Any AI Model, One API Key
+
+Sara connects through **OpenRouter**, so you can pick from hundreds of models (GPT, Claude, Gemini, Llama, and more) with a single API key — no juggling separate provider accounts. Change your model anytime in Settings.
 
 ### 🔧 Extend It Your Way
 
@@ -134,9 +176,12 @@ Here's what's coming to Sara:
 
 | Feature | Description |
 |---|---|
+| 💸 **x402 payments** | Let Sara pay for x402-gated resources/APIs on your behalf — researched, not yet built |
 | 📊 **Balance Monitoring** | Automate routine balance checks and alerts |
 | 📋 **Unified Portfolio** | Bring stock & commodity holdings into the portfolio view, alongside crypto |
 | 🛡️ **Send Limits** | Set max send limits as a safety guardrail |
+| 🌍 **Multi-language commands & voice** | Chat commands and voice mode are English-only for now — this is a deliberate v1 scope choice, not an oversight |
+| ₿ **Bitcoin support** | Native BTC holding/sending — a real, separate integration (UTXO model, not account-based like EVM/Solana) |
 
 ---
 
@@ -167,27 +212,22 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure your environment
 
-Create a `.env` file in the repo root:
+Copy the example env file and fill in what you need:
 
 ```bash
 cd ..
-touch .env
+cp .env.example .env
 ```
 
-Example `.env`:
+At minimum, set your [OpenRouter](https://openrouter.ai) API key:
 
 ```env
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.1-8b-instant
-GROQ_API_KEY=your_api_key_here
-
-DATABASE_URL=sqlite:///./sara.db
-
-SARA_MASTER_KEY=your_wallet_passphrase_or_derived_key
+LLM_PROVIDER=openrouter
+LLM_MODEL=openai/gpt-4o-mini
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
-> **`SARA_MASTER_KEY`** protects your locally stored private keys. You can use a normal passphrase in Settings — Sara derives the actual encryption key from it.  
-> ⚠️ If you reset this key, existing encrypted wallets cannot be decrypted unless you restore the original key or re-import the wallets.
+> Note there's no `SARA_MASTER_KEY` to set here. Sara locks/unlocks like a normal wallet now — the first time you open the app, you'll create a passphrase directly in the UI, and it's stored automatically. See step 6.
 
 ### 5. Run the app
 
@@ -203,21 +243,13 @@ Then open your browser at:
 http://127.0.0.1:8000
 ```
 
-### 6. Add your API keys
+### 6. First-run setup
 
-Open Sara in your browser, go to **Settings**, and add your preferred AI provider key.
+The first time you open Sara, you'll be asked to **create a passphrase** — this protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
 
-**AI providers:**
+Then go to **Settings** and add your OpenRouter API key, and pick any model from the dropdown.
 
-```env
-GROQ_API_KEY
-OPENAI_API_KEY
-ANTHROPIC_API_KEY
-XAI_API_KEY
-GOOGLE_API_KEY
-```
-
-**Optional — market data & RPC endpoints:**
+**Optional — market data, extra EVM chains & RPC endpoints:**
 
 ```env
 COINGECKO_API_KEY
@@ -228,7 +260,22 @@ ARB_RPC
 BASE_RPC
 POLY_RPC
 OP_RPC
+BSC_RPC
+AVAX_RPC
 ```
+
+**Optional — bName (blockchain name) registration:**
+
+```env
+SARA_NAME_REGISTRAR_ADDRESS
+SARA_NAME_LOG_ADDRESS
+SARA_NAME_SERVICE_URL
+SARA_NAME_REGISTRATION_FEE
+POLYGONSCAN_API_KEY
+```
+Requires a separately deployed registrar service — see [`registrar-service/DEPLOYMENT.md`](registrar-service/DEPLOYMENT.md).
+
+At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a full feature list plus your current configuration status — which keys are set, whether bNames are ready, your AI model, and more.
 
 ---
 
@@ -272,21 +319,19 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 
 Sara uses SQLite by default at `backend/sara.db`. The main tables are `wallets`, `address_book`, `transactions`, `chat_messages`, and `config`.
 
-### Wallet Encryption
+### Wallet Encryption & Locking
 
-Private keys are encrypted before being stored in SQLite. The encryption key is derived from `SARA_MASTER_KEY`, stored locally in `.env` or configured through Settings. **Private keys never leave your laptop.**
+Private keys are encrypted (AES-256-GCM) before being stored in SQLite. The encryption key is derived from a passphrase you set on first run — Sara holds it in memory only for an unlocked session (auto-expiring after 15 minutes of inactivity), not sitting loaded at all times the way early versions did. `.env` no longer holds this key. **Private keys never leave your laptop.**
 
 ### AI Layer
 
-Sara uses [LiteLLM](https://github.com/BerriAI/litellm) to connect to different AI providers through one interface. The AI layer lives in `backend/app/llm/`.
-
-Supported providers: **Groq, OpenAI, Anthropic, xAI, Gemini, Ollama**, and Cloudflare-compatible models.
+Sara connects to AI models through [OpenRouter](https://openrouter.ai), giving access to hundreds of models (GPT, Claude, Gemini, Llama, and more) via one API key. The AI layer lives in `backend/app/llm/`.
 
 ### Chain Layer
 
 Chain-specific logic lives in `backend/app/chains/`. Current modules cover:
 
-- EVM chains — Ethereum, Polygon, Arbitrum, Base, Optimism
+- EVM chains — Ethereum, Polygon, Arbitrum, Base, Optimism, BNB Smart Chain, Avalanche C-Chain
 - Solana
 
 Transaction tools are kept separate from chat handling so wallet actions can be validated before execution.
@@ -312,9 +357,23 @@ Sara is built on a simple principle:
 > **Your keys never leave your machine.**
 
 - Private keys are encrypted and stored locally
+- Sara locks like a normal wallet — passphrase required to unlock, auto-locks after 15 minutes of inactivity
 - No telemetry, no cloud sync, no external key custody
 - Open source — read every line, audit everything
 - You own your wallet code
+
+**What's gated behind unlocking, and what isn't:**
+
+| Requires unlock | Works while locked |
+|---|---|
+| Send crypto | Price checks (crypto/stock/commodity/forex) |
+| Swap tokens | News & sentiment |
+| Hyperliquid perps (open/close) | Portfolio view |
+| bName registration | Gas fees, DeFi TVL/yields |
+| Create/import a wallet | Polymarket search |
+| | General chat |
+
+Only actions that move money or touch a private key require your passphrase — everything else works whether Sara is locked or not.
 
 ---
 
