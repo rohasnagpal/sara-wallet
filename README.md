@@ -233,7 +233,7 @@ http://127.0.0.1:8888
 
 ### 6. First-run setup
 
-The first time you open Sara, you'll be asked to **create a passphrase** — this protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
+The first time you open Sara, you'll be asked to **create a passphrase**.This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
 
 Then go to **Settings** and add your OpenRouter API key, and pick any model from the dropdown.
 
@@ -243,25 +243,7 @@ Then go to **Settings** and add your OpenRouter API key, and pick any model from
 COINGECKO_API_KEY
 ALCHEMY_API_KEY
 HELIUS_RPC
-ETH_RPC
-ARB_RPC
-BASE_RPC
-POLY_RPC
-OP_RPC
-BSC_RPC
-AVAX_RPC
 ```
-
-**Optional — bName (blockchain name) registration:**
-
-```env
-SARA_NAME_REGISTRAR_ADDRESS
-SARA_NAME_LOG_ADDRESS
-SARA_NAME_SERVICE_URL
-SARA_NAME_REGISTRATION_FEE
-POLYGONSCAN_API_KEY
-```
-Requires a separately deployed registrar service — see [`registrar-service/DEPLOYMENT.md`](registrar-service/DEPLOYMENT.md).
 
 At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a full feature list plus your current configuration status — which keys are set, whether bNames are ready, your AI model, and more.
 
