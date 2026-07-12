@@ -212,37 +212,23 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure your environment
 
-Copy the tracked template and fill in what you need. `.env` in the repo is a
-placeholder-only template safe to commit; your real config goes in
-`.env.local`, which is gitignored:
-
 ```bash
 cd ..
 cp .env .env.local
 ```
-
-At minimum, set your [OpenRouter](https://openrouter.ai) API key:
-
-```env
-LLM_PROVIDER=openrouter
-LLM_MODEL=openai/gpt-4o-mini
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-```
-
-> Note there's no `SARA_MASTER_KEY` to set here. Sara locks/unlocks like a normal wallet now — the first time you open the app, you'll create a passphrase directly in the UI, and it's stored automatically. See step 6.
 
 ### 5. Run the app
 
 ```bash
 cd backend
 source .venv/bin/activate
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8888
 ```
 
 Then open your browser at:
 
 ```
-http://127.0.0.1:8000
+http://127.0.0.1:8888
 ```
 
 ### 6. First-run setup
