@@ -162,19 +162,37 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     if any(p in m for p in ("what can you do", "what do you do", "your capabilities", "what are you capable", "what can sara", "how do you work", "help me understand", "what features", "how to use sara", "how do i use sara")):
         return ("show_help", {})
 
-    # send / transfer  — parse: (send|transfer) <amount> <token> [from <wallet>] to <address>
+    # send / transfer  — parse: (send|transfer) <amount> <token> [from <wallet>] to <address> [on <network>]
     send_match = re.search(
-        r'(?:send|transfer)\s+([\d.]+)\s+(\w+)(?:\s+from\s+(\w[\w\s]*?))?\s+to\s+(\S+)',
+        r'(?:send|transfer)\s+([\d.]+)\s+(\w+)(?:\s+from\s+(\w[\w\s]*?))?\s+to\s+(\S+)(?:\s+on\s+(\w+))?$',
         m
     )
     if send_match:
-        amount_str, token, from_hint, to_addr = send_match.groups()
+        amount_str, token, from_hint, to_addr, net_hint = send_match.groups()
         try:
             amount = float(amount_str)
         except ValueError:
             amount = 0
         network = _TOKEN_TO_NETWORK.get(token.lower())
-        native_error = _native_send_error(token, network)
+        token_address = None
+        token_decimals = None
+        if network is None:
+            # Not a native chain symbol — check if it's a recognized ERC-20
+            # token instead. Network defaults to Ethereum unless the user
+            # named one, same convention swaps already use.
+            from app.tools.market.paraswap import resolve_token
+            resolve_network = (net_hint or "ethereum").lower()
+            token_result = resolve_token(token, resolve_network)
+            if token_result:
+                token_address, token_decimals = token_result
+                network = resolve_network
+        if network is None:
+            return ("send_rejected", {
+                "message": f"I don't recognize **{token.upper()}** as a token I can send. "
+                           f"Native chain tokens (ETH, POL, SOL, BNB, AVAX...) or these tokens on "
+                           f"Ethereum/Arbitrum/Base/Polygon/Optimism: USDC, USDT, WETH, DAI, WBTC, LINK."
+            })
+        native_error = None if token_address else _native_send_error(token, network)
         if native_error:
             return ("send_rejected", {"message": native_error})
         # Resolve to_addr: nickname → real address, or ENS/SNS → on-chain address
@@ -236,6 +254,8 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     "amount": amount,
                     "token": token.upper(),
                     "network": network,
+                    "token_address": token_address,
+                    "token_decimals": token_decimals,
                 })
             elif compatible_wallets:
                 return ("send_needs_wallet", {
@@ -244,6 +264,8 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     "to": to_addr,
                     "to_nickname": to_nickname,
                     "network": network,
+                    "token_address": token_address,
+                    "token_decimals": token_decimals,
                     "wallets": [w.name for w in compatible_wallets],
                 })
             else:
@@ -924,33 +946,59 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     token_sym = pending.get("token") or (pending.get("network") or "native").upper()
     net_display = (pending.get("network") or "ethereum").capitalize()
     try:
-        from app.tools.wallet.balance import get_wallet_balance
-        if w.chain == "evm":
+        if pending.get("token_address"):
             from app.chains import evm as evm_chain
-            bal = evm_chain.get_native_transfer_preview(w.address, pending["amount"], pending.get("network"))
-            balance_line = (
-                f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                f"Estimated gas: **{bal['fee']:.6f} {bal['unit']}**\n"
+            preview = evm_chain.get_erc20_transfer_preview(
+                pending["token_address"], pending["token_decimals"], w.address,
+                pending["amount"], pending["to"], pending.get("network"),
             )
-            if not bal["has_funds"]:
+            if not preview["has_token_funds"]:
                 return _stream_text(
                     f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
-                    f"**{bal['total']:.6f} {bal['unit']}** including gas.",
+                    f"**{preview['token_balance']:.6f} {token_sym}**, but you asked to send "
+                    f"**{pending['amount']} {token_sym}**.",
+                    db, session_id,
+                )
+            if not preview["has_gas_funds"]:
+                return _stream_text(
+                    f"Insufficient **{preview['native_unit']}** for gas. **{pending['wallet_name']}** has "
+                    f"**{preview['native_balance']:.6f} {preview['native_unit']}**, but this send needs "
+                    f"~**{preview['gas_fee']:.6f} {preview['native_unit']}** in gas.",
+                    db, session_id,
+                )
+            balance_line = (
+                f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
+                f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
+                f"(from your {preview['native_unit']} balance, not {token_sym})\n"
+            )
+        else:
+            from app.tools.wallet.balance import get_wallet_balance
+            if w.chain == "evm":
+                from app.chains import evm as evm_chain
+                bal = evm_chain.get_native_transfer_preview(w.address, pending["amount"], pending.get("network"))
+                balance_line = (
+                    f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
+                    f"Estimated gas: **{bal['fee']:.6f} {bal['unit']}**\n"
+                )
+                if not bal["has_funds"]:
+                    return _stream_text(
+                        f"Insufficient balance. **{pending['wallet_name']}** has "
+                        f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
+                        f"**{bal['total']:.6f} {bal['unit']}** including gas.",
+                        db,
+                        session_id,
+                    )
+            else:
+                bal = get_wallet_balance(w, pending.get("network"))
+                balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
+            if bal["balance"] < pending["amount"]:
+                return _stream_text(
+                    f"Insufficient balance. **{pending['wallet_name']}** has "
+                    f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
+                    f"**{pending['amount']} {bal['unit']}**.",
                     db,
                     session_id,
                 )
-        else:
-            bal = get_wallet_balance(w, pending.get("network"))
-            balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-        if bal["balance"] < pending["amount"]:
-            return _stream_text(
-                f"Insufficient balance. **{pending['wallet_name']}** has "
-                f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
-                f"**{pending['amount']} {bal['unit']}**.",
-                db,
-                session_id,
-            )
     except Exception as e:
         return _stream_text(f"Could not verify balance, so I will not prepare this send: {_exception_message(e)}", db, session_id)
     nick = pending.get("to_nickname")
@@ -1138,6 +1186,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     "amount": pending["amount"],
                     "token": pending["token"],
                     "network": pending["network"],
+                    "token_address": pending.get("token_address"),
+                    "token_decimals": pending.get("token_decimals"),
                     "wallet_id": selected_wallet.id,
                     "wallet_chain": selected_wallet.chain,
                     "wallet_address": selected_wallet.address,
@@ -1262,7 +1312,38 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         # Fetch current balance
                         try:
                             from app.tools.wallet.balance import get_wallet_balance
-                            if w.chain == "evm":
+                            if send_args.get("token_address"):
+                                from app.chains import evm as evm_chain
+                                preview = evm_chain.get_erc20_transfer_preview(
+                                    send_args["token_address"], send_args["token_decimals"], w.address,
+                                    send_args["amount"], send_args["to"], send_args.get("network"),
+                                )
+                                if not preview["has_token_funds"]:
+                                    text = (
+                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
+                                        f"**{preview['token_balance']:.6f} {token_sym}**, but you asked to send "
+                                        f"**{send_args['amount']} {token_sym}**."
+                                    )
+                                    full_response = text
+                                    for chunk in _chunk(text):
+                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+                                    return
+                                if not preview["has_gas_funds"]:
+                                    text = (
+                                        f"Insufficient **{preview['native_unit']}** for gas. **{send_args['wallet_name']}** has "
+                                        f"**{preview['native_balance']:.6f} {preview['native_unit']}**, but this send needs "
+                                        f"~**{preview['gas_fee']:.6f} {preview['native_unit']}** in gas."
+                                    )
+                                    full_response = text
+                                    for chunk in _chunk(text):
+                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+                                    return
+                                balance_line = (
+                                    f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
+                                    f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
+                                    f"(from your {preview['native_unit']} balance, not {token_sym})\n"
+                                )
+                            elif w.chain == "evm":
                                 from app.chains import evm as evm_chain
                                 bal = evm_chain.get_native_transfer_preview(w.address, send_args["amount"], send_args.get("network"))
                                 balance_line = (
@@ -1279,19 +1360,29 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                                     for chunk in _chunk(text):
                                         yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
                                     return
+                                if bal["balance"] < send_args["amount"]:
+                                    text = (
+                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
+                                        f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
+                                        f"**{send_args['amount']} {bal['unit']}**."
+                                    )
+                                    full_response = text
+                                    for chunk in _chunk(text):
+                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+                                    return
                             else:
                                 bal = get_wallet_balance(w, send_args.get("network"))
                                 balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                            if bal["balance"] < send_args["amount"]:
-                                text = (
-                                    f"Insufficient balance. **{send_args['wallet_name']}** has "
-                                    f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
-                                    f"**{send_args['amount']} {bal['unit']}**."
-                                )
-                                full_response = text
-                                for chunk in _chunk(text):
-                                    yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                return
+                                if bal["balance"] < send_args["amount"]:
+                                    text = (
+                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
+                                        f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
+                                        f"**{send_args['amount']} {bal['unit']}**."
+                                    )
+                                    full_response = text
+                                    for chunk in _chunk(text):
+                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+                                    return
                         except Exception as e:
                             text = f"Could not verify balance, so I will not prepare this send: {_exception_message(e)}"
                             full_response = text
@@ -1443,7 +1534,12 @@ def _stream_send(pending: dict, db: Session, session_id: str):
             if not _is_valid_recipient(to_addr, network):
                 raise ValueError("recipient is not a valid address or resolved directory/ENS/SNS name")
 
-            if chain == "evm":
+            if chain == "evm" and pending.get("token_address"):
+                tx_hash = evm_chain.send_erc20_tx(
+                    plain_key, pending["token_address"], pending["token_decimals"],
+                    to_addr, amount, network,
+                )
+            elif chain == "evm":
                 balance = evm_chain.get_balance(pending["wallet_address"], network)
                 if balance["balance"] < amount:
                     raise ValueError(
