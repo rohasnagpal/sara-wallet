@@ -8,9 +8,7 @@
 [![Runs Locally](https://img.shields.io/badge/Runs-Locally-2a9d8f?style=flat-square)](https://github.com)
 
 <br />
-
 <img width="2836" height="1536" alt="image" src="https://github.com/user-attachments/assets/2f704c7e-e1c0-4187-a697-912ea5663f59" />
-
 </div>
 
 ---
@@ -36,6 +34,8 @@ Some of the things you can do with Sara Wallet:
 13. Keep full control of your private keys
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
+
+Sara Wallet is not a broker, exchange, custodian, investment adviser, trading platform, or financial services provider. It is a self-custodial wallet and interface that helps users interact with third-party networks, protocols, and services such as Hyperliquid. Sara Wallet does not execute, clear, custody, intermediate, guarantee, or provide advice for any transaction. All actions are initiated by the user and performed through third-party systems at the user’s own risk.
 
 ---
 
@@ -238,13 +238,7 @@ MIT © Sara Wallet Contributors
 ---
 
 <div align="center">
-
 <br />
-
-*Built for the curious. Owned by you.*
-
-**सारा** — everything.
-
+Sara Wallet is built in 🇮🇳 India for the world.
 <br />
-
 </div>
