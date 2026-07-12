@@ -212,11 +212,13 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure your environment
 
-Copy the example env file and fill in what you need:
+Copy the tracked template and fill in what you need. `.env` in the repo is a
+placeholder-only template safe to commit; your real config goes in
+`.env.local`, which is gitignored:
 
 ```bash
 cd ..
-cp .env.example .env
+cp .env .env.local
 ```
 
 At minimum, set your [OpenRouter](https://openrouter.ai) API key:

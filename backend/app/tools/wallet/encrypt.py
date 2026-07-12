@@ -3,7 +3,7 @@ import os, pathlib
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-_ENV_FILE = pathlib.Path(__file__).parents[4] / ".env"  # sara-wallet/.env
+_ENV_FILE = pathlib.Path(__file__).parents[4] / ".env.local"  # sara-wallet/.env.local (gitignored; .env is the tracked template)
 _HEX_CHARS = set("0123456789abcdefABCDEF")
 
 

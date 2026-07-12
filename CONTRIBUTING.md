@@ -54,7 +54,9 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Copy `.env.example` (repo root) to `.env` and set at minimum:
+Copy `.env` (repo root) to `.env.local` and set at minimum — `.env` is just
+the tracked placeholder template, `.env.local` is where the app actually reads
+config from and it's gitignored:
 
 ```env
 LLM_PROVIDER=openrouter
@@ -63,7 +65,7 @@ OPENROUTER_API_KEY=your_key_here
 DATABASE_URL=sqlite:///./sara.db
 ```
 
-There's no `SARA_MASTER_KEY` to set — Sara locks/unlocks like a normal wallet now. The first time you run the app and open it in a browser, you'll be prompted to create a passphrase; that's stored automatically, not in `.env`.
+There's no `SARA_MASTER_KEY` to set — Sara locks/unlocks like a normal wallet now. The first time you run the app and open it in a browser, you'll be prompted to create a passphrase; that's stored automatically, not in `.env.local`.
 
 Run the server:
 
@@ -119,7 +121,7 @@ Steps:
 
 1. For an EVM-compatible chain: add its RPC URL, chain ID, and native token symbol to those three dicts in `evm.py` — no new file needed. Also update `_TOKEN_TO_NETWORK` and `_NETWORK_NATIVE_TOKEN` in `chat.py` so chat commands recognize the new chain's native token.
 2. For a genuinely different chain family (like Solana): create a new file in `backend/app/chains/`, e.g. `my_chain.py`, following the interface `evm.py`/`solana.py` already use (balance, transfer preview, send).
-3. Document the new RPC env var in `.env.example` and the README's Supported Chains table.
+3. Document the new RPC env var in `.env` (the tracked template) and the README's Supported Chains table.
 
 ### Adding a New AI Provider
 

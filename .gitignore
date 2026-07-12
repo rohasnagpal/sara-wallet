@@ -1,8 +1,10 @@
 # ── Secrets & environment ──
-.env
+# .env is the tracked template (placeholders only, safe to commit).
+# .env.local is where the app actually reads real secrets from — never commit it.
+.env.local
 .env.*
 *.env
-!.env.example
+!.env
 
 # ── Python ──
 __pycache__/
