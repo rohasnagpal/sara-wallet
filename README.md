@@ -1,17 +1,6 @@
 <div align="center">
 
-<br />
-
-```
-███████╗ █████╗ ██████╗  █████╗
-██╔════╝██╔══██╗██╔══██╗██╔══██╗
-███████╗███████║██████╔╝███████║
-╚════██║██╔══██║██╔══██╗██╔══██║
-███████║██║  ██║██║  ██║██║  ██║
-╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
-```
-
-**सारा** · *Everything, in one wallet.*
+**Sara Wallet** is an open source, AI-powered local crypto wallet that you can talk to and chat with. 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-f4a261?style=flat-square)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open-Source-e76f51?style=flat-square&logo=github)](https://github.com)
@@ -20,11 +9,7 @@
 
 <br />
 
-> **Sara** (सारा) is the Hindi word for *everything* — and that's exactly what this wallet aims to be.  
-> An open-source, AI-powered crypto wallet that runs entirely on your laptop.  
-> Your code. Your keys. Your laptop.
-
-<br />
+<img width="2836" height="1536" alt="image" src="https://github.com/user-attachments/assets/2f704c7e-e1c0-4187-a697-912ea5663f59" />
 
 </div>
 
@@ -32,16 +17,25 @@
 
 ## ✦ What is Sara Wallet?
 
-Sara Wallet is an **open-source, AI-native crypto wallet** that lives entirely on your laptop. Drop in your AI API key and Sara becomes a conversational interface for your entire crypto life. Send tokens with a message like: "send 100 pol to zara". 
+**Sara Wallet** is an open source, AI-powered local crypto wallet that you can talk to and chat with. Sara Wallet gets its name from the hindi word सारा that means everything.
 
-```
-You:   send 100 pol to zara
-Sara:  ✓ Sent 100 POL to zara.eth — tx hash: 0xab3f...
-```
+Some of the things you can do with Sara Wallet:
 
-No dashboards to navigate. No buttons to click. Just talk.
+1. Send crypto with natural language, like: `"send 100 POL to zara"`
+2. Trade commodities, crypto, forex, indexes, and stocks through Hyperliquid
+3. Swap tokens with a message like: `"swap 1 ETH for USDC"`
+4. Use DeFi tools to explore positions, yields, liquidity, and on-chain opportunities
+5. Track prediction markets and ask Sara about odds, outcomes, and narratives
+6. Send to ENS and SNS names instead of copying long wallet addresses
+7. Analyze your portfolio across wallets, chains, tokens, and market moves
+8. Choose the AI model that powers your wallet
+9. Get prices, stats, news, and market sentiment across commodities, crypto, forex, indexes, and stocks
+10. Use voice mode when you do not feel like typing
+11. Create and import wallets across multiple chains
+12. Save addresses with easy-to-remember nicknames
+13. Keep full control of your private keys
 
-<img width="2836" height="1536" alt="image" src="https://github.com/user-attachments/assets/2f704c7e-e1c0-4187-a697-912ea5663f59" />
+Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
 
 ---
 
@@ -60,114 +54,6 @@ No dashboards to navigate. No buttons to click. Just talk.
 | Hyperliquid | — | — | ✅ |
 | Bitcoin | Coming soon | — | — |
 
-ERC-20 token balances (beyond native tokens) require an Alchemy API key. Token *sends* are native-asset only for now — ERC-20/SPL token transfers aren't wired up yet. Swaps currently route through Paraswap (EVM) and Jupiter (Solana) only — BSC and Avalanche support native sends and balance checks, swaps aren't wired up for them yet.
-
----
-
-## ⚡ Features
-
-### 🔁 Send Crypto Naturally
-
-Type the way you think. Sara handles the rest.
-
-```
-send 100 pol to zara
-send 0.5 eth to 0x4f3c...
-send 50 usdc to alice
-```
-
-### 📈 Prices — Crypto, Stocks & Commodities
-
-```
-gold price
-btc price
-apple stock
-silver
-```
-
-### 📰 News & Sentiment
-
-```
-btc sentiment
-silver sentiment
-eth news
-```
-
-### 🔐 Wallet Management
-
-- Create and import wallets across **multiple chains**
-- Save addresses with **names and nicknames**
-- Encrypted private keys stored **locally on your laptop**
-- Full control — no custodian, no cloud sync
-
-### ⛽ Live Gas Fees
-
-View real-time gas estimates before every transaction. No surprises.
-
-### 🔄 Token Swaps
-
-```
-swap 1000 pol for usdc
-swap 1 sol for usdc
-```
-
-EVM swaps route through Paraswap, Solana swaps through Jupiter. Always previewed with a **CONFIRM** step before anything executes.
-
-### 📉 Perps Trading
-
-Open and close leveraged crypto perpetuals on Hyperliquid, straight from chat — with a preview and **CONFIRM** step before any order is placed.
-
-```
-long btc $500 5x
-close my eth position
-```
-
-### 🌾 DeFi & Prediction Markets
-
-```
-top defi yields on ethereum
-tvl on aave
-will bitcoin hit 100k?
-what's trending
-```
-
-### 🌐 ENS & SNS Resolution
-
-Send to `alice.eth` or `bob.sol` directly — Sara resolves the name to an address before asking you to confirm.
-
-### 🔖 bNames — buy a human-readable name for your wallet
-
-```
-buy a bname
-register rohas.sara
-```
-
-Pay a small fee to link a name like `rohas.sara` or `rohas.bname` to your wallet, then send/receive using it just like `alice.eth` or `bob.sol`. No smart contract — names live as plain, publicly verifiable Polygon transactions, resolved by reading the chain directly (see [`registrar-service/DEPLOYMENT.md`](registrar-service/DEPLOYMENT.md) for the technical design).
-
-**This requires a separately deployed registrar service** — the wallet-side code is fully built, but registration won't complete until you (or whoever runs your instance) deploys `registrar-service/` per that guide and set the `SARA_NAME_*` variables in `.env`. Without it, Sara will show you a price quote but registration will fail at the payment-confirmation step.
-
-### 🎙️ Voice Mode
-
-Click the mic icon next to the chat box to speak instead of type. English only for now. For safety, **CONFIRM must always be typed**, never spoken — Sara won't act on a spoken "confirm," even by accident.
-
-### 🔒 Wallet Security
-
-Sara locks like a normal wallet. The first time you open it, you'll create a passphrase; after that, you unlock with it each session, and Sara auto-locks after 15 minutes of inactivity (or immediately via a manual "Lock Now" in Settings). Only money-moving actions — send, swap, perps, bName registration, wallet create/import — require being unlocked. Price checks, news, portfolio views, and general chat all work while locked.
-
-### 💼 Portfolio
-
-`show my portfolio` aggregates native balances across Ethereum, Arbitrum, Base, Polygon, Optimism, BNB Smart Chain, Avalanche, and Solana in one view. ERC-20 token balances require an Alchemy API key (Settings → Data APIs).
-
-### 🤖 Any AI Model, One API Key
-
-Sara connects through **OpenRouter**, so you can pick from hundreds of models (GPT, Claude, Gemini, Llama, and more) with a single API key — no juggling separate provider accounts. Change your model anytime in Settings.
-
-### 🔧 Extend It Your Way
-
-- Integrate any external API or service
-- Build DeFi tools, dashboards, and bots on top
-- Modify the code without restrictions — it's yours
-
 ---
 
 ## 🛣️ Roadmap
@@ -177,7 +63,7 @@ Here's what's coming to Sara:
 | Feature | Description |
 |---|---|
 | 💸 **x402 payments** | Let Sara pay for x402-gated resources/APIs on your behalf — researched, not yet built |
-| 📊 **Balance Monitoring** | Automate routine balance checks and alerts |
+| 📊 **Balance Monitoring** | Automate routine balance checks and get alerts on Telegram |
 | 📋 **Unified Portfolio** | Bring stock & commodity holdings into the portfolio view, alongside crypto |
 | 🛡️ **Send Limits** | Set max send limits as a safety guardrail |
 | 🌍 **Multi-language commands & voice** | Chat commands and voice mode are English-only for now — this is a deliberate v1 scope choice, not an oversight |
@@ -299,10 +185,7 @@ Sara connects to AI models through [OpenRouter](https://openrouter.ai), giving a
 
 ### Chain Layer
 
-Chain-specific logic lives in `backend/app/chains/`. Current modules cover:
-
-- EVM chains — Ethereum, Polygon, Arbitrum, Base, Optimism, BNB Smart Chain, Avalanche C-Chain
-- Solana
+Chain-specific logic lives in `backend/app/chains/`. 
 
 Transaction tools are kept separate from chat handling so wallet actions can be validated before execution.
 
@@ -331,19 +214,6 @@ Sara is built on a simple principle:
 - No telemetry, no cloud sync, no external key custody
 - Open source — read every line, audit everything
 - You own your wallet code
-
-**What's gated behind unlocking, and what isn't:**
-
-| Requires unlock | Works while locked |
-|---|---|
-| Send crypto | Price checks (crypto/stock/commodity/forex) |
-| Swap tokens | News & sentiment |
-| Hyperliquid perps (open/close) | Portfolio view |
-| bName registration | Gas fees, DeFi TVL/yields |
-| Create/import a wallet | Polymarket search |
-| | General chat |
-
-Only actions that move money or touch a private key require your passphrase — everything else works whether Sara is locked or not.
 
 ---
 
