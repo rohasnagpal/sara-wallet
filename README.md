@@ -20,14 +20,14 @@
 Some of the things you can do with Sara Wallet:
 
 1. Send crypto with natural language, like: `"send 100 POL to zara"`
-2. Trade commodities, crypto, forex, indexes, and stocks through Hyperliquid
+2. Trade commodities, crypto, forex, and stocks through Hyperliquid
 3. Swap tokens with a message like: `"swap 1 ETH for USDC"`
-4. Use DeFi tools to explore positions, yields, liquidity, and on-chain opportunities
+4. Use DeFi tools to explore, yields, liquidity, and on-chain opportunities
 5. Track prediction markets and ask Sara about odds, outcomes, and narratives
 6. Send to ENS and SNS names instead of copying long wallet addresses
 7. Analyze your portfolio across wallets, chains, tokens, and market moves
 8. Choose the AI model that powers your wallet
-9. Get prices, stats, news, and market sentiment across commodities, crypto, forex, indexes, and stocks
+9. Get prices, stats, news, and market sentiment across commodities, crypto, forex, and stocks
 10. Use voice mode when you do not feel like typing
 11. Create and import wallets across multiple chains
 12. Save addresses with easy-to-remember nicknames
@@ -119,7 +119,7 @@ http://127.0.0.1:8888
 
 ### 6. First-run setup
 
-The first time you open Sara, you'll be asked to **create a passphrase**.This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
+The first time you open Sara, you'll be asked to **create a passphrase**. This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
 
 Then go to **Settings** and add your OpenRouter API key, and pick any model from the dropdown.
 
