@@ -76,7 +76,12 @@ def get_top_protocols(limit: int = 10) -> list:
     ]
 
 def get_yields(chain: str = None, limit: int = 20) -> list:
-    data = _get("/pools")
+    try:
+        r = requests.get("https://yields.llama.fi/pools", timeout=10)
+        r.raise_for_status()
+        data = r.json()
+    except Exception:
+        data = None
     if not data:
         return []
     pools = data.get("data", []) if isinstance(data, dict) else data

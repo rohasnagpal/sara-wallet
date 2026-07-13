@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sara Wallet</title>
+<title>Sara AI Wallet</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════
@@ -940,7 +940,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   <!-- ── Sidebar 2 : Asset Watchlist ── -->
   <div class="sidebar2">
     <div class="s2-header">
-      <div class="s2-title">Sara Wallet</div>
+      <div class="s2-title">Sara AI Wallet</div>
     </div>
     <div class="watchlist-header">
       <div class="watchlist-title">Assets</div>
@@ -1180,6 +1180,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <!-- ── Directory View ── -->
         <div id="directoryView" style="display:none">
+          <div class="card" style="margin-bottom:12px">
+            <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">My Wallets</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Wallets you've created or imported into Sara.</div>
+            <div class="dir-list" id="walletMgmtList"></div>
+          </div>
+
           <div class="card">
             <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Address Book</div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Save nicknames so you can say "send 1 POL from test to <strong>rohas</strong>".</div>
@@ -1213,7 +1219,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="msg bot">
             <div class="msg-avatar bot">🎯</div>
             <div>
-              <div class="msg-bubble">Hi! I'm SARA, your wallet for everything — cryptos, commodities &amp; forex.</div>
+              <div class="msg-bubble">Hi! I'm SARA AI Wallet .</div>
             </div>
           </div>
         </div>
@@ -1222,7 +1228,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
           <div class="chat-chip" onclick="sendChip(this)">List my wallets</div>
           <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
-          <div class="chat-chip" onclick="sendChip(this)">Buy a bName</div>
           <div class="chat-chip" onclick="sendChip(this)">What's trending on Polymarket</div>
           <div class="chat-chip" onclick="sendChip(this)">Top DeFi yields</div>
           <div class="chat-chip" onclick="sendChip(this)">Swap 1 SOL for USDC</div>
@@ -1275,6 +1280,44 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <button class="wallet-btn-cancel" onclick="closeWalletModal()">Cancel</button>
       <button class="wallet-btn-create" id="walletSubmitBtn" onclick="submitWallet()">Create Wallet</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Export / Reveal Private Key Modal ── -->
+<div class="wallet-modal-overlay" id="exportModalOverlay" onclick="closeExportModal(event)">
+  <div class="wallet-modal" onclick="event.stopPropagation()">
+    <div class="wallet-modal-title">Reveal Private Key</div>
+
+    <div id="exportStepPass">
+      <div style="font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:12px;line-height:1.5">
+        ⚠ Anyone with this private key can move every asset in this wallet, on any chain, forever. Never share it, screenshot it, or type it into any website. Sara will never ask you for it.
+      </div>
+      <div class="wallet-form-group">
+        <div class="wallet-form-label">Confirm your Sara passphrase</div>
+        <input class="wallet-form-input" id="exportPassInput" type="password" placeholder="Passphrase" autocomplete="off" />
+      </div>
+      <div style="font-size:11px;color:var(--red);min-height:14px" id="exportStatus"></div>
+      <div class="wallet-modal-actions">
+        <button class="wallet-btn-cancel" onclick="closeExportModal()">Cancel</button>
+        <button class="wallet-btn-create" id="exportSubmitBtn" onclick="submitExportWallet()">Reveal</button>
+      </div>
+    </div>
+
+    <div id="exportStepKey" style="display:none">
+      <div style="font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:12px;line-height:1.5">
+        ⚠ This is the only time Sara will show you this key. Copy it now and store it somewhere safe and offline — do not leave this screen open.
+      </div>
+      <div class="wallet-form-group">
+        <div class="wallet-form-label" id="exportKeyWalletName"></div>
+        <textarea class="wallet-form-input" id="exportKeyOutput" readonly rows="3" style="font-family:var(--font-mono);font-size:11px;resize:none;word-break:break-all"></textarea>
+      </div>
+      <div style="font-size:11px;color:var(--green);min-height:14px" id="exportCopyStatus"></div>
+      <div class="wallet-modal-actions">
+        <button class="wallet-btn-cancel" onclick="copyExportedKey()">Copy</button>
+        <button class="wallet-btn-create" onclick="closeExportModal()">Done</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1737,9 +1780,18 @@ async function selectAsset(el) {
 // Focus toggle
 function toggleFocus() {
   const btn = document.getElementById('focusBtn');
+  const titleEl = document.getElementById('topbarTitle');
+  const entering = !shell.classList.contains('focus-mode');
   shell.classList.toggle('focus-mode');
   btn.classList.toggle('active');
-  btn.textContent = shell.classList.contains('focus-mode') ? 'Exit Focus' : 'Focus';
+  btn.textContent = entering ? 'Exit Focus' : 'Focus';
+  if (entering) {
+    titleEl.dataset.prevHtml = titleEl.innerHTML;
+    titleEl.innerHTML = '<span style="margin-right:7px">🎯</span>Sara AI Wallet';
+  } else if (titleEl.dataset.prevHtml !== undefined) {
+    titleEl.innerHTML = titleEl.dataset.prevHtml;
+    delete titleEl.dataset.prevHtml;
+  }
 }
 
 // ══════════════════════════════════════
@@ -1789,6 +1841,7 @@ async function submitWallet() {
     closeWalletModal();
     const action = walletTab === 'create' ? 'created' : 'imported';
     addMsg('Wallet "' + data.name + '" ' + action + '! Address: ' + data.address, 'bot');
+    loadWalletMgmt();
   } catch(e) { addMsg('Error: ' + e.message, 'bot'); }
   btn.textContent = walletTab === 'create' ? 'Create Wallet' : 'Import Wallet';
   btn.disabled = false;
@@ -1841,7 +1894,7 @@ async function showCol2(mode) {
   document.getElementById('s1BtnSettings')?.classList.toggle('active', mode === 'settings');
 
   if (mode === 'settings') await _loadSettingsView();
-  if (mode === 'directory') await loadDirectory();
+  if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
 }
 
 async function _loadSettingsView() {
@@ -1945,6 +1998,151 @@ async function saveSetting(key) {
 // ══════════════════════════════════════
 // ADDRESS BOOK / DIRECTORY
 // ══════════════════════════════════════
+async function loadWalletMgmt() {
+  const list = document.getElementById('walletMgmtList');
+  if (!list) return;
+  list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Loading…</div>';
+  try {
+    const wallets = await fetch('/api/wallets').then(r => r.json());
+    if (!wallets.length) {
+      list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No wallets yet. Use the + button to add one.</div>';
+      return;
+    }
+    list.innerHTML = wallets.map(w => `
+      <div class="dir-entry" data-wallet-id="${w.id}">
+        <div class="dir-nick" id="walletName-${w.id}">${w.name}</div>
+        <div class="dir-addr" title="${w.address}">${w.address}</div>
+        <div class="dir-chain">${w.chain}</div>
+        <button class="dir-del" onclick="startEditWalletName(this, ${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Rename wallet">✎</button>
+        <button class="dir-del" onclick="openExportModal(${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Reveal private key">🔑</button>
+        <button class="dir-del" onclick="confirmDeleteWallet(this, ${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Delete wallet">×</button>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading wallets.</div>';
+  }
+}
+
+function startEditWalletName(btn, id, currentName) {
+  const nickEl = document.getElementById('walletName-' + id);
+  if (!nickEl || nickEl.querySelector('input')) return;
+  nickEl.innerHTML = `<input class="dir-input" style="width:84px;padding:3px 6px;font-size:11px" id="walletRenameInput-${id}" maxlength="32" />`;
+  const input = document.getElementById('walletRenameInput-' + id);
+  input.value = currentName;
+  input.focus();
+  input.select();
+  let handled = false;
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { handled = true; saveWalletName(id, input.value.trim()); }
+    if (e.key === 'Escape') { handled = true; loadWalletMgmt(); }
+  });
+  input.addEventListener('blur', () => {
+    if (!handled) { handled = true; saveWalletName(id, input.value.trim()); }
+  });
+}
+
+async function saveWalletName(id, newName) {
+  if (!newName) { await loadWalletMgmt(); return; }
+  try {
+    const r = await fetch('/api/wallets/' + id, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: newName })
+    });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      addMsg('Rename failed: ' + (data.detail || 'unknown error'), 'bot');
+    }
+  } catch(e) {}
+  await loadWalletMgmt();
+}
+
+function confirmDeleteWallet(btn, id, name) {
+  if (btn.dataset.confirming) {
+    deleteWalletMgmt(id);
+    return;
+  }
+  btn.dataset.confirming = '1';
+  const prevText = btn.textContent;
+  btn.textContent = '✓';
+  btn.title = 'Click again to permanently delete "' + name + '" from Sara (does not touch on-chain funds)';
+  btn.style.color = 'var(--red)';
+  btn._revert = setTimeout(() => {
+    delete btn.dataset.confirming;
+    btn.textContent = prevText;
+    btn.title = 'Delete wallet';
+    btn.style.color = '';
+  }, 3000);
+}
+
+async function deleteWalletMgmt(id) {
+  try {
+    await fetch('/api/wallets/' + id, { method: 'DELETE' });
+    await loadWalletMgmt();
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+// EXPORT / REVEAL PRIVATE KEY
+// ══════════════════════════════════════
+let _exportWalletId = null;
+
+function openExportModal(id, name) {
+  _exportWalletId = id;
+  document.getElementById('exportKeyWalletName').textContent = name;
+  document.getElementById('exportPassInput').value = '';
+  document.getElementById('exportStatus').textContent = '';
+  document.getElementById('exportKeyOutput').value = '';
+  document.getElementById('exportCopyStatus').textContent = '';
+  document.getElementById('exportStepPass').style.display = '';
+  document.getElementById('exportStepKey').style.display = 'none';
+  document.getElementById('exportModalOverlay').classList.add('open');
+  document.getElementById('exportPassInput').focus();
+}
+
+function closeExportModal(event) {
+  if (event && event.target !== document.getElementById('exportModalOverlay')) return;
+  document.getElementById('exportModalOverlay').classList.remove('open');
+  // Never leave key material sitting in the DOM after the modal closes.
+  document.getElementById('exportPassInput').value = '';
+  document.getElementById('exportKeyOutput').value = '';
+  _exportWalletId = null;
+}
+
+async function submitExportWallet() {
+  const passInput = document.getElementById('exportPassInput');
+  const status = document.getElementById('exportStatus');
+  const passphrase = passInput.value;
+  if (!passphrase) { status.textContent = 'Enter your passphrase.'; return; }
+  const btn = document.getElementById('exportSubmitBtn');
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  status.textContent = '';
+  try {
+    const r = await fetch('/api/wallets/' + _exportWalletId + '/export', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ passphrase })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Failed');
+    passInput.value = '';
+    document.getElementById('exportKeyOutput').value = data.private_key;
+    document.getElementById('exportStepPass').style.display = 'none';
+    document.getElementById('exportStepKey').style.display = '';
+  } catch(e) {
+    status.textContent = e.message === 'Incorrect passphrase' ? 'Incorrect passphrase.' : ('Error: ' + e.message);
+  }
+  btn.textContent = 'Reveal'; btn.disabled = false;
+}
+
+function copyExportedKey() {
+  const output = document.getElementById('exportKeyOutput');
+  navigator.clipboard.writeText(output.value).then(() => {
+    const status = document.getElementById('exportCopyStatus');
+    status.textContent = 'Copied to clipboard.';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  });
+}
+
 async function loadDirectory() {
   const list = document.getElementById('dirList');
   list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Loading…</div>';

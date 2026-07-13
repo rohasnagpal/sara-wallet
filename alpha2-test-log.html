@@ -370,7 +370,7 @@ const SECTIONS = [
   ]},
   { t: "Lock / Security", items: [
     "First-run passphrase setup",
-    ".env gets SARA_MASTER_KEY as a 64-char derived hash, never the raw passphrase",
+    ".env.local gets SARA_MASTER_KEY as a 64-char derived hash, never the raw passphrase",
     "Restart server — wallet shows configured but locked",
     "Wrong passphrase is rejected and stays locked",
     "Correct passphrase unlocks",
@@ -429,7 +429,7 @@ const SECTIONS = [
     "Amount that would leave no gas fails cleanly",
     "Zero or negative amount fails",
     "Invalid recipient address fails",
-    "Sending an ERC-20/SPL token (e.g. USDC) clearly says token sends aren't implemented — not confused with insufficient funds",
+    "Sending a supported ERC-20 token (e.g. USDC) previews and executes correctly; an unsupported token or an SPL token on Solana fails with a clear \"not supported\" message — not confused with insufficient funds",
     "A submitted send creates a transactions row",
     "A failed send does not create a misleading “submitted” record",
     "Ambiguous send with multiple eligible wallets asks which one",
