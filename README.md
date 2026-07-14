@@ -119,7 +119,7 @@ http://127.0.0.1:8888
 
 ### 6. First-run setup
 
-The first time you open Sara, you'll be asked to **create a passphrase**. This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 15 minutes of inactivity.
+The first time you open Sara, you'll be asked to **create a passphrase**. This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 1 hour of inactivity.
 
 Then go to **Settings** and add your OpenRouter API key, and pick any model from the dropdown.
 
@@ -177,7 +177,7 @@ Sara uses SQLite by default at `backend/sara.db`. The main tables are `wallets`,
 
 ### Wallet Encryption & Locking
 
-Private keys are encrypted (AES-256-GCM) before being stored in SQLite. The encryption key is derived from a passphrase you set on first run — Sara holds it in memory only for an unlocked session (auto-expiring after 15 minutes of inactivity), not sitting loaded at all times the way early versions did. `.env` no longer holds this key. **Private keys never leave your laptop.**
+Private keys are encrypted (AES-256-GCM) before being stored in SQLite. The encryption key is derived from a passphrase you set on first run — Sara holds it in memory only for an unlocked session (auto-expiring after 1 hour of inactivity), not sitting loaded at all times the way early versions did. `.env` no longer holds this key. **Private keys never leave your laptop.**
 
 ### AI Layer
 
@@ -210,7 +210,7 @@ Sara is built on a simple principle:
 > **Your keys never leave your machine.**
 
 - Private keys are encrypted and stored locally
-- Sara locks like a normal wallet — passphrase required to unlock, auto-locks after 15 minutes of inactivity
+- Sara locks like a normal wallet — passphrase required to unlock, auto-locks after 1 hour of inactivity
 - No telemetry, no cloud sync, no external key custody
 - Open source — read every line, audit everything
 - You own your wallet code

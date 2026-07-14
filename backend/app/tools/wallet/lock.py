@@ -1,6 +1,6 @@
 import time
 
-SESSION_TIMEOUT_SECONDS = 900  # 15 minutes of inactivity
+SESSION_TIMEOUT_SECONDS = 3600  # 1 hour of inactivity
 
 _session_key: bytes | None = None
 _last_activity: float = 0.0

@@ -106,7 +106,7 @@ def get_quote(src: str, src_dec: int, dst: str, dst_dec: int,
 
 
 def get_swap_tx(price_route: dict, src: str, dst: str,
-                src_amount: str, dest_amount: str,
+                src_amount: str,
                 user_addr: str, network: str, slippage_bps: int = 100) -> dict | None:
     chain_id = CHAIN_IDS.get(network.lower())
     if not chain_id:
@@ -117,7 +117,7 @@ def get_swap_tx(price_route: dict, src: str, dst: str,
             params={"ignoreChecks": "true"},
             json={
                 "srcToken": src, "destToken": dst,
-                "srcAmount": src_amount, "destAmount": dest_amount,
+                "srcAmount": src_amount,
                 "priceRoute": price_route,
                 "userAddress": user_addr,
                 "receiver": user_addr,
@@ -147,7 +147,7 @@ def ensure_allowance(private_key: str, token_addr: str, amount_wei: int,
         "from": account.address,
         "nonce": w3.eth.get_transaction_count(account.address),
         "gas": 60000,
-        "gasPrice": w3.eth.gas_price,
+        "gasPrice": int(w3.eth.gas_price * 1.2),  # margin for L2 base-fee drift between fetch and submit
         "chainId": chain_id,
     })
     signed = w3.eth.account.sign_transaction(tx, private_key)
@@ -166,7 +166,7 @@ def execute_swap(private_key: str, tx_data: dict, network: str) -> str:
         "data":     tx_data["data"],
         "value":    int(tx_data.get("value", 0)),
         "gas":      int(tx_data.get("gas", 300000)),
-        "gasPrice": w3.eth.gas_price,
+        "gasPrice": int(w3.eth.gas_price * 1.2),  # margin for L2 base-fee drift between fetch and submit
         "nonce":    w3.eth.get_transaction_count(account.address),
         "chainId":  _CHAIN_IDS.get(network.lower(), 1),
     }

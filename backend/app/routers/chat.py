@@ -162,6 +162,29 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     if any(p in m for p in ("what can you do", "what do you do", "your capabilities", "what are you capable", "what can sara", "how do you work", "help me understand", "what features", "how to use sara", "how do i use sara")):
         return ("show_help", {})
 
+    # Hyperliquid: fund the xyz dex's isolated margin from the main perp dex —
+    # checked before the generic send/transfer regex below since "to xyz" would
+    # otherwise be parsed as sending to an address-book nickname called "xyz".
+    xyz_fund_match = re.search(r'(?:transfer|move|send|fund)\s+\$?([\d.]+)\s*(?:usdc)?\s+(?:to\s+)?xyz\b', m)
+    if xyz_fund_match:
+        amount = float(xyz_fund_match.group(1))
+        wallet = _match_wallet(msg, wallets) or (wallets[0] if len(wallets) == 1 else None)
+        if wallet:
+            return ("hyperliquid_fund_xyz", {"wallet_name": wallet.name, "amount": amount})
+        elif wallets:
+            return ("hyperliquid_fund_xyz_needs_wallet", {"amount": amount, "wallets": [w.name for w in wallets]})
+
+    # Hyperliquid: deposit USDC from Arbitrum into the main exchange (checked
+    # before the generic send/transfer regex for the same reason as above).
+    hl_deposit_match = re.search(r'deposit\s+\$?([\d.]+)\s*(?:usdc)?\s+(?:to\s+)?hyperliquid\b', m)
+    if hl_deposit_match:
+        amount = float(hl_deposit_match.group(1))
+        wallet = _match_wallet(msg, wallets) or (wallets[0] if len(wallets) == 1 else None)
+        if wallet:
+            return ("hyperliquid_deposit", {"wallet_name": wallet.name, "amount": amount})
+        elif wallets:
+            return ("hyperliquid_deposit_needs_wallet", {"amount": amount, "wallets": [w.name for w in wallets]})
+
     # send / transfer  — parse: (send|transfer) <amount> <token> [from <wallet>] to <address> [on <network>]
     send_match = re.search(
         r'(?:send|transfer)\s+([\d.]+)\s+(\w+)(?:\s+from\s+(\w[\w\s]*?))?\s+to\s+(\S+)(?:\s+on\s+(\w+))?$',
@@ -311,8 +334,60 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             else:
                 return ("send_no_wallets", {})
 
+    # cross-chain bridge — explainer, checked before the actual bridge command
+    # regex below since it has no amount/chain keywords to collide with.
+    if any(p in m for p in ("how to bridge", "how do i bridge", "bridge help", "how does bridging work")):
+        return ("bridge_help", {})
+
+    # cross-chain bridge — check status of a submitted bridge tx. Matches on
+    # a bare 64-hex-char tx hash alone (0x prefix optional) rather than
+    # requiring exact wording like "bridge status" — a 64-char hex string is
+    # unambiguous (nothing else in Sara takes that shape, e.g. addresses are
+    # 40 hex chars), and requiring exact phrasing here previously caused a
+    # real bug: unmatched messages silently fell through to the generic AI,
+    # which fabricated a fake "bridge completed" status instead of erroring.
+    status_match = re.search(r'\b(?:0x)?([a-fA-F0-9]{64})\b', m)
+    if status_match:
+        return ("bridge_status", {"tx_hash": status_match.group(1)})
+
+    # cross-chain bridge — "bridge 1 POL from polygon to arbitrum" or
+    # "bridge 1 POL from polygon to USDC on arbitrum" (different dest token).
+    # Distinct "bridge" keyword — zero overlap with the swap/exchange/trade
+    # regex above, which stays untouched and only ever does same-chain swaps.
+    bridge_match = re.search(
+        r'bridge\s+([\d.]+)\s+(\w+)\s+from\s+(\w+)\s+to\s+(?:(\w+)\s+on\s+)?(\w+)(?:\s+from\s+(\w[\w\s]*?))?$',
+        m
+    )
+    if bridge_match:
+        amount_str, src_tok, src_chain, dst_tok, dst_chain, from_hint = bridge_match.groups()
+        try:
+            amount = float(amount_str)
+        except ValueError:
+            amount = 0
+        wallet = None
+        if from_hint:
+            wallet = _match_wallet(from_hint, wallets)
+        if not wallet:
+            wallet = _match_wallet(msg, wallets)
+        if not wallet and len(wallets) == 1:
+            wallet = wallets[0]
+        if amount > 0 and src_chain and dst_chain and src_chain != dst_chain:
+            bridge_args = {
+                "from_token": src_tok.upper(),
+                "to_token": (dst_tok or src_tok).upper(),
+                "amount": amount,
+                "from_network": src_chain,
+                "to_network": dst_chain,
+            }
+            if wallet:
+                return ("bridge_tokens", {**bridge_args, "wallet_name": wallet.name})
+            elif wallets:
+                return ("bridge_needs_wallet", {**bridge_args, "wallets": [w.name for w in wallets]})
+            else:
+                return ("send_no_wallets", {})
+
     # perp: long/short order
-    if any(w in m.split() for w in ("long", "short")):
+    if re.search(r'\b(long|short)\b', m):
         perp_match = re.search(
             r'(long|short)\s+([\w]+)\s+\$?([\d.]+)\s*(?:usd|dollars?)?\s*'
             r'(?:(?:at\s+|with\s+)?([\d.]+)\s*x(?:\s+leverage)?)?',
@@ -365,6 +440,10 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                 wallet = _match_wallet(msg, wallets) or (wallets[0] if len(wallets) == 1 else None)
                 if wallet:
                     return ("close_perp_position", {"wallet_name": wallet.name, "symbol": symbol})
+
+    # perp: what's tradeable — "hyperliquid assets", "what can I trade on hyperliquid"
+    if "hyperliquid" in m and any(w in m for w in ("asset", "market", "trade", "available", "support", "list")):
+        return ("hyperliquid_assets", {})
 
     # sara name registration — "register rohas.sara", "buy rohas.sara from test1"
     reg_match = re.search(
@@ -586,6 +665,58 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
     if tool_name == "swap_tokens":
         return f"__PENDING_SWAP__{json.dumps(args)}"
 
+    if tool_name == "bridge_needs_wallet":
+        names = ", ".join(f"**{n}**" for n in args["wallets"])
+        return (f"Which wallet should I use to bridge **{args['amount']} {args['from_token']} "
+                f"({args['from_network'].capitalize()}) → {args['to_token']} ({args['to_network'].capitalize()})**?\n"
+                f"Your wallets: {names}\n"
+                f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
+
+    if tool_name == "bridge_tokens":
+        return f"__PENDING_BRIDGE__{json.dumps(args)}"
+
+    if tool_name == "bridge_help":
+        from app.tools.trading import lifi
+        _chain_display = {"bsc": "BSC"}
+        chains = ", ".join(_chain_display.get(n, n.capitalize()) for n in lifi.CHAIN_IDS)
+        return (
+            "**Bridging moves funds between chains** (e.g. Polygon → Arbitrum), via a third-party "
+            "bridge/swap aggregator (LI.FI). Supported chains: " + chains + ". EVM only — no Solana route.\n\n"
+            "There are two ways to phrase it:\n\n"
+            "**1. Same token, different chain** — just move an asset across:\n"
+            "`bridge 1 USDC from polygon to arbitrum`\n\n"
+            "**2. Different token on arrival** — swap during the bridge:\n"
+            "`bridge 1 POL from polygon to USDC on arbitrum`\n\n"
+            "Either way, you'll get a preview (amount, bridge used, estimated time) before anything moves — "
+            "type **CONFIRM** to go ahead. Cross-chain transfers take a few minutes, not instant like a "
+            "same-chain swap."
+        )
+
+    if tool_name == "bridge_status":
+        from app.tools.trading import lifi
+        tx_hash = args["tx_hash"]
+        if not tx_hash.startswith("0x"):
+            tx_hash = "0x" + tx_hash
+        status = lifi.get_status(tx_hash)
+        if not status:
+            return "Couldn't reach LI.FI's status API — try again shortly."
+        state = status.get("status", "UNKNOWN")
+        sending = status.get("sending", {})
+        receiving = status.get("receiving", {})
+        lines = [f"Bridge status: **{state}**"]
+        if sending.get("txLink"):
+            lines.append(f"Source tx: {sending['txLink']}")
+        if state == "FAILED":
+            lines.append("This bridge did not complete — funds did not leave the source chain "
+                          "(only the network gas fee was spent). No further funds are at risk.")
+        elif state == "DONE":
+            if receiving.get("txLink"):
+                lines.append(f"Destination tx: {receiving['txLink']}")
+            lines.append("Funds have arrived.")
+        else:
+            lines.append("Still in progress — check again in a bit.")
+        return "\n".join(lines)
+
     if tool_name == "perp_order":
         return f"__PENDING_PERP__{json.dumps(args)}"
 
@@ -594,6 +725,24 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return (f"Which wallet should I use to open a **{args['side'].upper()} {args['symbol']}** "
                 f"position for **${args['size_usd']:,.0f}** at **{args['leverage']}x**?\n"
                 f"Your wallets: {names}\n"
+                f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
+
+    if tool_name == "hyperliquid_fund_xyz":
+        return f"__PENDING_XYZ_FUND__{json.dumps(args)}"
+
+    if tool_name == "hyperliquid_fund_xyz_needs_wallet":
+        names = ", ".join(f"**{n}**" for n in args["wallets"])
+        return (f"Which wallet should transfer **${args['amount']:,.2f} USDC** to the xyz dex?\n"
+                f"Your wallets: {names}\n"
+                f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
+
+    if tool_name == "hyperliquid_deposit":
+        return f"__PENDING_HL_DEPOSIT__{json.dumps(args)}"
+
+    if tool_name == "hyperliquid_deposit_needs_wallet":
+        names = ", ".join(f"**{n}**" for n in args["wallets"])
+        return (f"Which wallet should deposit **${args['amount']:,.2f} USDC** to Hyperliquid's main exchange "
+                f"(from Arbitrum)?\nYour wallets: {names}\n"
                 f"Just reply with the wallet name, e.g. \"{args['wallets'][0]}\".")
 
     if tool_name == "register_name":
@@ -626,8 +775,10 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         for p in positions:
             side_sym = "▲" if p["side"] == "long" else "▼"
             pnl_sign = "+" if p["pnl"] >= 0 else ""
+            display_symbol = p["symbol"].removeprefix("xyz:")
+            dex_note = " (xyz dex)" if p["symbol"].startswith("xyz:") else ""
             lines.append(
-                f"{side_sym} **{p['symbol']}** {p['side'].upper()}  ·  "
+                f"{side_sym} **{display_symbol}**{dex_note} {p['side'].upper()}  ·  "
                 f"Size: {p['size']:.4f}  ·  Entry: ${p['entry_price']:,.2f}  ·  "
                 f"PnL: {pnl_sign}${p['pnl']:.2f}  ·  Liq: ${p['liquidation_price']:,.2f}"
             )
@@ -640,12 +791,32 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         symbol = args["symbol"]
         from app.tools.trading.hyperliquid import get_positions, get_mark_price
         positions = get_positions(w.address)
-        pos = next((p for p in positions if p["symbol"] == symbol), None)
+        pos = (next((p for p in positions if p["symbol"] == symbol), None)
+               or next((p for p in positions if p["symbol"] == f"xyz:{symbol}"), None))
         if not pos:
             return f"No open {symbol} position found for **{w.name}**."
+        symbol = pos["symbol"]  # use the exact resolved form (may have gained an xyz: prefix)
         mark = get_mark_price(symbol) or pos["entry_price"]
         pnl_est = (mark - pos["entry_price"]) * pos["size"] * (1 if pos["side"] == "long" else -1)
         return f"__PENDING_CLOSE_PERP__{json.dumps({**args, 'pnl_est': pnl_est, 'mark': mark, 'wallet_encrypted_key': w.encrypted_key, 'wallet_id': w.id})}"
+
+    if tool_name == "hyperliquid_assets":
+        from app.tools.trading.hyperliquid import list_supported_assets
+        lines = ["**Tradeable on Hyperliquid:**"]
+        for category, symbols in list_supported_assets():
+            lines.append(f"\n**{category}**: {', '.join(symbols)}")
+        lines.append(
+            "\nCrypto is Hyperliquid's own native market. Equities, commodities, forex, and indexes "
+            "all trade on **\"xyz\"** — a separate, third-party builder-deployed market riding on "
+            "Hyperliquid's infrastructure, with its own isolated margin (depositing USDC to Hyperliquid's "
+            "main exchange doesn't fund it — that needs its own deposit)."
+        )
+        lines.append(
+            "\nThis is a common/friendly-named subset — both dexs list more (232 crypto, 101 on xyz). "
+            "Any exact ticker works too, just type it as-is (e.g. `long PENGU $50`)."
+        )
+        lines.append("\nTry: `long BTC $100` or `short AAPL $50 at 3x`")
+        return "\n".join(lines)
 
     if tool_name == "show_help":
         import os as _os
@@ -688,7 +859,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "**Voice mode** — click the mic next to the chat box to speak instead of type (English only for now). "
             "For your safety, CONFIRM must always be typed, never spoken.\n\n"
             "**Security**\n"
-            "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 15 minutes of inactivity\n"
+            "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
             "• Only money-moving actions (send, swap, perps, bName registration) require unlocking — price checks and general chat work while locked\n\n"
             "---\n"
             "**Your current setup**\n"
@@ -727,16 +898,31 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
                         if result and result["balance"] > 0.000001:
                             balances.append(result)
                 balances.sort(key=lambda r: r["balance"], reverse=True)
-                if balances:
-                    for b in balances:
-                        card.append(f"{b['balance']:.6f} **{b['unit']}**  ·  {b['network'].capitalize()}")
-                    # ERC-20 tokens via Alchemy
-                    from app.tools.wallet.tokens import get_erc20_balances
-                    funded_nets = {b["network"] for b in balances}
-                    for net in funded_nets:
-                        for tok in get_erc20_balances(w.address, net):
-                            card.append(f"{tok['balance']:.6f} **{tok['symbol']}**  ·  {net.capitalize()}")
-                else:
+                for b in balances:
+                    card.append(f"{b['balance']:.6f} **{b['unit']}**  ·  {b['network'].capitalize()}")
+
+                # ERC-20 tokens via Alchemy — checked on every network
+                # regardless of native balance there. A wallet can hold a
+                # bridged/received token on a chain it has zero native gas
+                # on (e.g. right after a cross-chain bridge, before ever
+                # funding gas there), so gating this on native balance made
+                # real token balances invisible.
+                from app.tools.wallet.tokens import get_erc20_balances
+                def _fetch_tokens(net, addr=w.address):
+                    try:
+                        return get_erc20_balances(addr, net)
+                    except Exception:
+                        return []
+                token_lines = []
+                with ThreadPoolExecutor(max_workers=5) as ex:
+                    futures = {ex.submit(_fetch_tokens, net): net for net in EVM_NETWORKS}
+                    for fut in as_completed(futures, timeout=8):
+                        net = futures[fut]
+                        for tok in fut.result():
+                            token_lines.append(f"{tok['balance']:.6f} **{tok['symbol']}**  ·  {net.capitalize()}")
+                card.extend(token_lines)
+
+                if not balances and not token_lines:
                     card.append("No funds detected")
             else:
                 try:
@@ -746,7 +932,12 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
                     card.append("Balance unavailable")
             card.append(f"`{w.address}`")
             blocks.append("\n".join(card))
-        return "\n---\n".join(blocks)
+        result = "\n---\n".join(blocks)
+        import os
+        has_evm = any(w.chain == "evm" for w in wallets)
+        if has_evm and not os.getenv("ALCHEMY_API_KEY", "").strip():
+            result += "\n\n_Note: token balances (USDC, USDT, etc.) won't show until you add an Alchemy API key in Settings — only native balances (ETH, POL, etc.) are shown without it._"
+        return result
 
     if tool_name == "get_balance":
         w = _resolve_wallet(args["wallet_name"], db)
@@ -1126,12 +1317,141 @@ def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], s
     return pending, text
 
 
+def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict], str]:
+    """Resolve wallet + fetch a live LI.FI cross-chain quote. Independent of
+    _build_swap_pending — same-chain swaps are untouched by this."""
+    w = _resolve_wallet(bridge_args["wallet_name"], db)
+    if not w:
+        return None, f"Wallet '{bridge_args['wallet_name']}' not found."
+    if w.chain != "evm":
+        return None, "Cross-chain bridging is EVM-only right now — pick an EVM wallet."
+
+    from app.tools.trading import lifi
+    from_network = bridge_args["from_network"].lower()
+    to_network = bridge_args["to_network"].lower()
+    src_sym = bridge_args["from_token"]
+    dst_sym = bridge_args["to_token"]
+    amount = bridge_args["amount"]
+
+    if from_network not in lifi.CHAIN_IDS or to_network not in lifi.CHAIN_IDS:
+        supported = ", ".join(n.capitalize() for n in lifi.CHAIN_IDS)
+        return None, f"I only support bridging between: {supported}."
+
+    src_result = lifi.resolve_token(src_sym, from_network)
+    dst_result = lifi.resolve_token(dst_sym, to_network)
+    if not src_result or not dst_result:
+        return None, (f"I don't recognise **{src_sym}** on {from_network.capitalize()} or "
+                       f"**{dst_sym}** on {to_network.capitalize()}.")
+    src_addr, src_dec = src_result
+    dst_addr, dst_dec = dst_result
+    amount_wei = int(amount * 10 ** src_dec)
+
+    quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, w.address)
+    if not (quote and quote.get("transactionRequest")):
+        err = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
+        return None, f"Could not get a bridge quote: {err}"
+
+    estimate = quote["estimate"]
+    dst_amount = int(estimate["toAmount"]) / (10 ** dst_dec)
+    duration_min = estimate.get("executionDuration", 0) / 60
+    tool_name = quote.get("toolDetails", {}).get("name", quote.get("tool", "a bridge"))
+
+    pending = {
+        "type": "bridge",
+        **bridge_args,
+        "src_addr": src_addr,
+        "dst_addr": dst_addr,
+        "src_dec": src_dec,
+        "dst_dec": dst_dec,
+        "amount_wei": amount_wei,
+        "approval_address": estimate.get("approvalAddress"),
+        "tx_request": quote["transactionRequest"],
+        "wallet_id": w.id,
+        "wallet_chain": w.chain,
+        "wallet_encrypted_key": w.encrypted_key,
+    }
+    text = (
+        f"Bridge **{amount} {src_sym} ({from_network.capitalize()}) → "
+        f"~{dst_amount:.4f} {dst_sym} ({to_network.capitalize()})**\n"
+        f"Via: **{tool_name}**  ·  Wallet: **{w.name}**\n"
+        f"Est. time: **~{duration_min:.0f} min**  ·  Slippage: 0.5%\n\n"
+        f"⚠ Cross-chain transfers take longer than same-chain swaps and route through a third-party "
+        f"bridge — funds arrive on {to_network.capitalize()} once the bridge finishes, not instantly.\n\n"
+        f"Type **CONFIRM** to execute or **CANCEL** to abort."
+    )
+    return pending, text
+
+
+def _build_xyz_fund_pending(fund_args: dict, db: Session) -> tuple[Optional[dict], str]:
+    """Resolve wallet + check main-dex balance for a Hyperliquid main→xyz dex transfer."""
+    w = _resolve_wallet(fund_args["wallet_name"], db)
+    if not w:
+        return None, f"Wallet '{fund_args['wallet_name']}' not found."
+    from app.tools.trading.hyperliquid import get_withdrawable_balance
+    amount = fund_args["amount"]
+    main_balance = get_withdrawable_balance(w.address)  # "" dex = main
+    balance_note = ""
+    if main_balance is not None:
+        if main_balance < amount:
+            balance_note = (
+                f"⚠ This wallet only shows **${main_balance:,.2f}** available on Hyperliquid's main dex — "
+                f"less than the **${amount:,.2f}** you're trying to move. Deposit USDC to Hyperliquid's main "
+                f"exchange first, or this transfer will fail.\n\n"
+            )
+        else:
+            balance_note = f"Main dex balance: **${main_balance:,.2f}**\n\n"
+    pending = {
+        "type": "xyz_fund",
+        **fund_args,
+        "wallet_id": w.id,
+        "wallet_chain": w.chain,
+        "wallet_encrypted_key": w.encrypted_key,
+    }
+    text = (
+        f"Transfer **${amount:,.2f} USDC** from Hyperliquid's main dex → **xyz** dex's isolated margin\n"
+        f"Wallet: **{w.name}**\n\n"
+        f"{balance_note}"
+        f"Type **CONFIRM** to execute or **CANCEL** to abort."
+    )
+    return pending, text
+
+
+def _build_hl_deposit_pending(deposit_args: dict, db: Session) -> tuple[Optional[dict], str]:
+    """Resolve wallet + check Arbitrum USDC balance for a Hyperliquid deposit."""
+    w = _resolve_wallet(deposit_args["wallet_name"], db)
+    if not w:
+        return None, f"Wallet '{deposit_args['wallet_name']}' not found."
+    if w.chain != "evm":
+        return None, "Hyperliquid deposits are EVM-only — pick an EVM wallet."
+    from app.tools.trading.hyperliquid import get_arbitrum_usdc_balance
+    amount = deposit_args["amount"]
+    balance = get_arbitrum_usdc_balance(w.address)
+    if balance is not None and balance < amount:
+        return None, (f"This wallet only has **${balance:,.2f} USDC** on Arbitrum — less than the "
+                       f"**${amount:,.2f}** you're trying to deposit. Bridge or swap more USDC to Arbitrum first.")
+    pending = {
+        "type": "hl_deposit",
+        **deposit_args,
+        "wallet_id": w.id,
+        "wallet_chain": w.chain,
+        "wallet_encrypted_key": w.encrypted_key,
+    }
+    text = (
+        f"Deposit **${amount:,.2f} USDC** (Arbitrum) → Hyperliquid's main exchange\n"
+        f"Wallet: **{w.name}**\n\n"
+        f"This is a direct on-chain deposit to Hyperliquid's official bridge contract — it usually credits "
+        f"within a few minutes.\n\n"
+        f"Type **CONFIRM** to execute or **CANCEL** to abort."
+    )
+    return pending, text
+
+
 def _build_perp_pending(perp_args: dict, db: Session) -> tuple[Optional[dict], str]:
     """Resolve wallet + fetch a live Hyperliquid preview. Returns (pending_dict, text)."""
     w = _resolve_wallet(perp_args["wallet_name"], db)
     if not w:
         return None, f"Wallet '{perp_args['wallet_name']}' not found."
-    from app.tools.trading.hyperliquid import preview_order
+    from app.tools.trading.hyperliquid import preview_order, get_withdrawable_balance
     symbol   = perp_args["symbol"]
     side     = perp_args["side"]
     size_usd = perp_args["size_usd"]
@@ -1139,9 +1459,20 @@ def _build_perp_pending(perp_args: dict, db: Session) -> tuple[Optional[dict], s
     preview  = preview_order(symbol, side, size_usd, leverage)
     if not preview:
         return None, f"**{symbol}** not found on Hyperliquid. Try BTC, ETH, SOL, or another supported perp."
+    resolved_symbol = preview["symbol"]  # e.g. "xyz:AAPL" — the exact form Hyperliquid needs
+    withdrawable = get_withdrawable_balance(w.address, resolved_symbol)
+    low_balance_warning = ""
+    if withdrawable is not None and withdrawable < preview["margin_required"]:
+        dex_note = " on the xyz dex" if preview["dex"] else ""
+        low_balance_warning = (
+            f"⚠ This wallet shows **${withdrawable:,.2f}** available{dex_note} on Hyperliquid — less than the "
+            f"**${preview['margin_required']:,.2f}** margin this needs. If you haven't deposited USDC there yet, "
+            f"do that first or this order will fail.\n\n"
+        )
     pending = {
         "type": "perp",
         **perp_args,
+        "symbol": resolved_symbol,
         "entry_price": preview["entry_price"],
         "quantity": preview["quantity"],
         "wallet_id": w.id,
@@ -1150,14 +1481,16 @@ def _build_perp_pending(perp_args: dict, db: Session) -> tuple[Optional[dict], s
         "wallet_address": w.address,
     }
     liq = preview["liquidation_price"]
+    display_symbol = resolved_symbol.removeprefix("xyz:")
     text = (
-        f"**{side.upper()} {symbol}** perpetual\n"
+        f"**{side.upper()} {display_symbol}** perpetual{' (xyz dex)' if preview['dex'] else ''}\n"
         f"Size: **${size_usd:,.0f}**  ·  Leverage: **{leverage:.0f}x**\n"
         f"Entry: **${preview['entry_price']:,.2f}**  ·  "
         f"Margin: **${preview['margin_required']:,.2f}**\n"
         f"Liq. price: **${liq:,.2f}**  ·  Fee: ~${preview['fee_usd']:.2f}\n\n"
         f"⚠ Leveraged position — losses can exceed your deposit. "
         f"Liquidation at ${liq:,.2f}.\n\n"
+        f"{low_balance_warning}"
         f"Type **CONFIRM** to open or **CANCEL** to abort."
     )
     return pending, text
@@ -1209,6 +1542,20 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     _pending[req.session_id] = new_pending
                 return _stream_text(text, db, req.session_id)
             return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_bridge_wallet":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Bridge cancelled.", db, req.session_id)
+            selected_wallet = _wallet_named(msg, db)
+            if selected_wallet and selected_wallet.name in pending["wallets"]:
+                del _pending[req.session_id]
+                bridge_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
+                bridge_args["wallet_name"] = selected_wallet.name
+                new_pending, text = _build_bridge_pending(bridge_args, db)
+                if new_pending:
+                    _pending[req.session_id] = new_pending
+                return _stream_text(text, db, req.session_id)
+            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
         if pending.get("type") == "choose_perp_wallet":
             if msg.upper().startswith("CANCEL"):
                 del _pending[req.session_id]
@@ -1219,6 +1566,34 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 perp_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
                 perp_args["wallet_name"] = selected_wallet.name
                 new_pending, text = _build_perp_pending(perp_args, db)
+                if new_pending:
+                    _pending[req.session_id] = new_pending
+                return _stream_text(text, db, req.session_id)
+            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_xyz_fund_wallet":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Transfer cancelled.", db, req.session_id)
+            selected_wallet = _wallet_named(msg, db)
+            if selected_wallet and selected_wallet.name in pending["wallets"]:
+                del _pending[req.session_id]
+                fund_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
+                fund_args["wallet_name"] = selected_wallet.name
+                new_pending, text = _build_xyz_fund_pending(fund_args, db)
+                if new_pending:
+                    _pending[req.session_id] = new_pending
+                return _stream_text(text, db, req.session_id)
+            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_hl_deposit_wallet":
+            if msg.upper().startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Deposit cancelled.", db, req.session_id)
+            selected_wallet = _wallet_named(msg, db)
+            if selected_wallet and selected_wallet.name in pending["wallets"]:
+                del _pending[req.session_id]
+                deposit_args = {k: v for k, v in pending.items() if k not in ("type", "wallets")}
+                deposit_args["wallet_name"] = selected_wallet.name
+                new_pending, text = _build_hl_deposit_pending(deposit_args, db)
                 if new_pending:
                     _pending[req.session_id] = new_pending
                 return _stream_text(text, db, req.session_id)
@@ -1270,10 +1645,16 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 return _stream_swap(pending, db, req.session_id)
             if ptype == "sol_swap":
                 return _stream_sol_swap(pending, db, req.session_id)
+            if ptype == "bridge":
+                return _stream_bridge(pending, db, req.session_id)
             if ptype == "perp":
                 return _stream_perp(pending, db, req.session_id)
             if ptype == "close_perp":
                 return _stream_close_perp(pending, db, req.session_id)
+            if ptype == "xyz_fund":
+                return _stream_xyz_fund(pending, db, req.session_id)
+            if ptype == "hl_deposit":
+                return _stream_hl_deposit(pending, db, req.session_id)
             if ptype == "register_name":
                 return _stream_register_name(pending, db, req.session_id)
             return _stream_send(pending, db, req.session_id)
@@ -1413,9 +1794,27 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     if pending:
                         _pending[req.session_id] = pending
 
+                elif result.startswith("__PENDING_BRIDGE__"):
+                    bridge_args = json.loads(result[len("__PENDING_BRIDGE__"):])
+                    pending, text = _build_bridge_pending(bridge_args, db)
+                    if pending:
+                        _pending[req.session_id] = pending
+
                 elif result.startswith("__PENDING_PERP__"):
                     perp_args = json.loads(result[len("__PENDING_PERP__"):])
                     pending, text = _build_perp_pending(perp_args, db)
+                    if pending:
+                        _pending[req.session_id] = pending
+
+                elif result.startswith("__PENDING_XYZ_FUND__"):
+                    fund_args = json.loads(result[len("__PENDING_XYZ_FUND__"):])
+                    pending, text = _build_xyz_fund_pending(fund_args, db)
+                    if pending:
+                        _pending[req.session_id] = pending
+
+                elif result.startswith("__PENDING_HL_DEPOSIT__"):
+                    deposit_args = json.loads(result[len("__PENDING_HL_DEPOSIT__"):])
+                    pending, text = _build_hl_deposit_pending(deposit_args, db)
                     if pending:
                         _pending[req.session_id] = pending
 
@@ -1466,8 +1865,14 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         _pending[req.session_id] = {"type": "choose_send_wallet", **args}
                     elif tool_name == "swap_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_swap_wallet", **args}
+                    elif tool_name == "bridge_needs_wallet":
+                        _pending[req.session_id] = {"type": "choose_bridge_wallet", **args}
                     elif tool_name == "perp_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_perp_wallet", **args}
+                    elif tool_name == "hyperliquid_fund_xyz_needs_wallet":
+                        _pending[req.session_id] = {"type": "choose_xyz_fund_wallet", **args}
+                    elif tool_name == "hyperliquid_deposit_needs_wallet":
+                        _pending[req.session_id] = {"type": "choose_hl_deposit_wallet", **args}
                     elif tool_name == "register_ask_name":
                         _pending[req.session_id] = {"type": "awaiting_name"}
                     text = result
@@ -1598,9 +2003,9 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
 
             approve_hash = ensure_allowance(plain_key, src_addr, amount_wei, network)
             if approve_hash:
-                yield f"data: {json.dumps({'token': f'Approval tx: `{approve_hash}`\\n', 'done': False})}\n\n"
+                yield f"data: {json.dumps({'token': f'Approval tx: `{approve_hash}`\n', 'done': False})}\n\n"
 
-            swap_data = get_swap_tx(price_route, src_addr, dst_addr, src_amount, dest_amount, wallet_addr, network)
+            swap_data = get_swap_tx(price_route, src_addr, dst_addr, src_amount, wallet_addr, network)
             if not swap_data or "error" in swap_data:
                 err = swap_data.get("error", "no calldata") if swap_data else "Paraswap API error"
                 raise Exception(err)
@@ -1613,6 +2018,65 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
         db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.commit()
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _stream_bridge(pending: dict, db: Session, session_id: str):
+    async def generate():
+        from app.tools.wallet.encrypt import decrypt_key
+        from app.tools.trading import lifi
+        approval_note = ""
+        try:
+            plain_key    = decrypt_key(pending["wallet_encrypted_key"])
+            from_network = pending["from_network"].lower()
+            to_network   = pending["to_network"].lower()
+            src_addr     = pending["src_addr"]
+            dst_addr     = pending["dst_addr"]
+            dst_dec      = pending.get("dst_dec", 18)
+            amount_wei   = pending["amount_wei"]
+            from_tok     = pending["from_token"]
+            to_tok       = pending["to_token"]
+
+            from app.chains.evm import get_web3
+            w3 = get_web3(from_network)
+            wallet_addr = w3.eth.account.from_key(plain_key).address
+
+            # Re-quote right before executing rather than reusing the
+            # preview-time quote: LI.FI's calldata embeds a deadline/minimum-
+            # output check tied to quote freshness, and the human-in-the-loop
+            # gap between seeing the preview and typing CONFIRM is easily long
+            # enough for that to expire and revert on-chain.
+            quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, wallet_addr)
+            if not (quote and quote.get("transactionRequest")):
+                err = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
+                raise Exception(f"could not refresh quote before executing — {err}")
+            estimate = quote["estimate"]
+            approval_addr = estimate.get("approvalAddress")
+            tx_request = quote["transactionRequest"]
+
+            if approval_addr:
+                approve_hash = lifi.ensure_allowance(plain_key, src_addr, approval_addr, amount_wei, from_network)
+                if approve_hash:
+                    approval_note = f"Approval tx: `{approve_hash}`\n"
+                    yield f"data: {json.dumps({'token': approval_note, 'done': False})}\n\n"
+
+            tx_hash = lifi.execute_bridge(plain_key, tx_request, from_network)
+            dst_amount_human = int(estimate["toAmount"]) / (10 ** dst_dec)
+            text = (
+                f"✅ Bridging **{pending['amount']} {from_tok} ({from_network.capitalize()}) → "
+                f"~{dst_amount_human:.4f} {to_tok} ({to_network.capitalize()})** — submitted!\n"
+                f"Tx hash: `{tx_hash}`\n\n"
+                f"Cross-chain transfers take a few minutes to arrive — check the destination wallet's "
+                f"balance shortly. If it doesn't show up, ask me to check the bridge status with this tx hash."
+            )
+        except Exception as e:
+            text = f"Bridge failed: {e}"
+        for chunk in _chunk(text):
+            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=approval_note + text))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -1666,9 +2130,74 @@ def _stream_perp(pending: dict, db: Session, session_id: str):
                         f"Qty: {result['qty']:.4f}  ·  Entry: ~${result['price']:,.2f}\n"
                         f"Order: `{result['order_id']}`")
             else:
-                text = f"Order failed: {result.get('error', 'unknown error')}"
+                err = result.get("error", "unknown error")
+                if "does not exist" in str(err).lower():
+                    text = (
+                        "Order failed: this wallet doesn't have a Hyperliquid account yet. "
+                        "Hyperliquid requires at least one USDC deposit into its exchange before it'll accept orders — "
+                        "deposit USDC to Hyperliquid for this wallet's address first, then try again."
+                    )
+                else:
+                    text = f"Order failed: {err}"
         except Exception as e:
             text = f"Order failed: {e}"
+        for chunk in _chunk(text):
+            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.commit()
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _stream_xyz_fund(pending: dict, db: Session, session_id: str):
+    async def generate():
+        from app.tools.wallet.encrypt import decrypt_key
+        from app.tools.trading.hyperliquid import transfer_to_xyz_dex
+        try:
+            plain_key = decrypt_key(pending["wallet_encrypted_key"])
+            amount    = pending["amount"]
+            result = transfer_to_xyz_dex(plain_key, amount)
+            if result.get("status") == "ok":
+                text = f"✅ Transferred **${amount:,.2f} USDC** from Hyperliquid's main dex to the **xyz** dex."
+            else:
+                err = result.get("error", "unknown error")
+                if "does not exist" in str(err).lower():
+                    text = (
+                        "Transfer failed: this wallet doesn't have a Hyperliquid account yet. "
+                        "Deposit USDC to Hyperliquid's main exchange first, then try again."
+                    )
+                else:
+                    text = f"Transfer failed: {err}"
+        except Exception as e:
+            text = f"Transfer failed: {e}"
+        for chunk in _chunk(text):
+            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.commit()
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _stream_hl_deposit(pending: dict, db: Session, session_id: str):
+    async def generate():
+        from app.tools.wallet.encrypt import decrypt_key
+        from app.tools.trading.hyperliquid import deposit_to_hyperliquid
+        try:
+            plain_key = decrypt_key(pending["wallet_encrypted_key"])
+            amount    = pending["amount"]
+            result = deposit_to_hyperliquid(plain_key, amount)
+            if result.get("status") == "ok":
+                text = (
+                    f"✅ Deposited **${amount:,.2f} USDC** to Hyperliquid's main exchange.\n"
+                    f"Tx hash: `{result['tx_hash']}`\n\n"
+                    f"This should credit your Hyperliquid account within a few minutes."
+                )
+            else:
+                text = f"Deposit failed: {result.get('error', 'unknown error')}"
+        except Exception as e:
+            text = f"Deposit failed: {e}"
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"

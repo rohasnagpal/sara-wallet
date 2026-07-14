@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Sara AI Wallet",
+  "version": "0.1.0",
+  "description": "Self-custodial crypto wallet. Keys are generated, encrypted, and signed entirely inside your browser — they never leave your device.",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "background": {
+    "scripts": [
+      "vendor/ethers.umd.min.js",
+      "vendor/solana-web3.iife.min.js",
+      "src/crypto.js",
+      "src/storage.js",
+      "src/lock.js",
+      "src/evm.js",
+      "src/solana.js",
+      "src/background.js"
+    ]
+  },
+  "action": {
+    "default_title": "Open Sara AI Wallet",
+    "default_icon": "icons/icon-48.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://ethereum.publicnode.com/*",
+    "https://arb1.arbitrum.io/*",
+    "https://mainnet.base.org/*",
+    "https://polygon-bor-rpc.publicnode.com/*",
+    "https://mainnet.optimism.io/*",
+    "https://bsc-dataseed.binance.org/*",
+    "https://api.avax.network/*",
+    "https://api.mainnet-beta.solana.com/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "sara-ai-wallet@sara-wallet.local",
+      "strict_min_version": "115.0"
+    }
+  }
+}

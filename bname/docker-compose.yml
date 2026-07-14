@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: bname
+      POSTGRES_USER: bname
+      POSTGRES_PASSWORD: bname
+    ports:
+      - "5432:5432"
+    volumes:
+      - bname-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bname -d bname"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      BNAME_DATABASE_URL: postgresql+psycopg://bname:bname@postgres:5432/bname
+      BNAME_PUBLIC_BASE_URL: http://localhost:8000
+      BNAME_CORS_ORIGINS: "*"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  resolver:
+    build:
+      context: .
+      dockerfile: resolver/Dockerfile
+    environment:
+      BNAME_RESOLVER_UPSTREAM: http://api:8000
+      BNAME_RESOLVER_DEFAULT_TTL: 300
+      BNAME_RESOLVER_MAX_TTL: 900
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
+volumes:
+  bname-postgres:

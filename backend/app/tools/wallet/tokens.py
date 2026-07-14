@@ -17,24 +17,44 @@ def get_erc20_balances(address: str, network: str = "ethereum") -> list[dict]:
     try:
         r = requests.post(url, json={
             "jsonrpc": "2.0", "id": 1,
-            "method": "alchemy_getTokensForOwner",
-            "params": [address, {"withMetadata": True}]
+            "method": "alchemy_getTokenBalances",
+            "params": [address, "DEFAULT_TOKENS"],
         }, timeout=10)
-        tokens_raw = r.json().get("result", {}).get("tokens", [])
+        balances_raw = r.json().get("result", {}).get("tokenBalances", [])
     except Exception:
         return []
 
-    tokens = []
-    for t in tokens_raw:
+    held = []
+    for entry in balances_raw:
         try:
-            balance = int(t.get("rawBalance", "0")) / (10 ** (t.get("decimals") or 18))
+            raw = int(entry.get("tokenBalance") or "0x0", 16)
         except (ValueError, TypeError):
             continue
+        if raw > 0:
+            held.append({"contract": entry["contractAddress"], "raw": raw})
+    if not held:
+        return []
+
+    tokens = []
+    for h in held:
+        try:
+            meta_r = requests.post(url, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "alchemy_getTokenMetadata",
+                "params": [h["contract"]],
+            }, timeout=10)
+            meta = meta_r.json().get("result", {}) or {}
+        except Exception:
+            continue
+        decimals = meta.get("decimals")
+        if decimals is None:
+            continue
+        balance = h["raw"] / (10 ** decimals)
         if balance < 0.000001:
             continue
         tokens.append({
-            "symbol":  t.get("symbol", "?"),
-            "name":    t.get("name", "Unknown"),
+            "symbol":  meta.get("symbol") or "?",
+            "name":    meta.get("name") or "Unknown",
             "balance": balance,
             "network": network,
         })

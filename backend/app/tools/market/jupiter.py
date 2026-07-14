@@ -1,6 +1,6 @@
 import os, base64, requests
 
-BASE = "https://quote-api.jup.ag/v6"
+BASE = "https://lite-api.jup.ag/swap/v1"
 
 TOKEN_MINTS = {
     "SOL":     "So11111111111111111111111111111111111111112",

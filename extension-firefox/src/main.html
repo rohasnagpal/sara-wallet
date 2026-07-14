@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sara AI Wallet</title>
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<!-- ── Lock / Setup Screen ── -->
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-logo">🎯</div>
+  <div class="lock-title" id="lockTitle">Sara AI Wallet</div>
+  <div class="lock-sub" id="lockSub">Loading…</div>
+  <input class="input" id="lockPassInput" type="password" placeholder="Passphrase" autocomplete="off" style="display:none">
+  <input class="input" id="lockConfirmInput" type="password" placeholder="Confirm passphrase" autocomplete="off" style="display:none">
+  <button class="btn-primary" id="lockSubmitBtn" style="display:none">Continue</button>
+  <div class="status-msg" id="lockStatus"></div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="mainApp" class="main-app" style="display:none">
+
+  <div class="topbar">
+    <div class="topbar-title"><span class="topbar-logo">🎯</span> Sara AI Wallet</div>
+    <button class="icon-btn" id="lockNowBtn" title="Lock">🔒</button>
+  </div>
+
+  <div class="content-wrap">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">My Wallets</div>
+      <button class="btn-small" id="addWalletBtn">+ Add</button>
+    </div>
+    <div id="walletList" class="wallet-list"></div>
+  </div>
+
+  <!-- Add Wallet form -->
+  <div class="section card" id="addWalletForm" style="display:none">
+    <div class="section-title">Add Wallet</div>
+    <div class="tabs">
+      <button class="tab active" id="tabCreate">Create New</button>
+      <button class="tab" id="tabImport">Import Key</button>
+    </div>
+    <label class="field-label">Wallet Name</label>
+    <input class="input" id="newWalletName" placeholder="e.g. Main ETH" maxlength="32">
+    <label class="field-label">Chain</label>
+    <select class="input" id="newWalletChain">
+      <option value="evm">EVM (7 chains)</option>
+      <option value="solana">Solana</option>
+    </select>
+    <div id="importKeyGroup" style="display:none">
+      <label class="field-label">Private Key</label>
+      <input class="input" id="newWalletKey" type="password" placeholder="0x… (EVM) or hex secret key (Solana)">
+    </div>
+    <div class="status-msg" id="addWalletStatus"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" id="cancelAddWalletBtn">Cancel</button>
+      <button class="btn-primary" id="submitAddWalletBtn">Create Wallet</button>
+    </div>
+  </div>
+
+  <!-- Send form -->
+  <div class="section card" id="sendForm" style="display:none">
+    <div class="section-title">Send <span id="sendFromLabel"></span></div>
+    <div id="sendPreviewStep">
+      <label class="field-label">Asset</label>
+      <select class="input" id="sendAssetSelect"></select>
+      <label class="field-label">Network</label>
+      <select class="input" id="sendNetworkSelect"></select>
+      <label class="field-label">To</label>
+      <input class="input" id="sendToInput" placeholder="Address or address-book nickname">
+      <label class="field-label">Amount</label>
+      <input class="input" id="sendAmountInput" placeholder="0.0" type="text" inputmode="decimal">
+      <div class="status-msg" id="sendStatus"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="cancelSendBtn">Cancel</button>
+        <button class="btn-primary" id="previewSendBtn">Preview</button>
+      </div>
+    </div>
+    <div id="sendConfirmStep" style="display:none">
+      <div class="preview-box" id="sendPreviewBox"></div>
+      <div class="status-msg" id="sendConfirmStatus"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="backSendBtn">Back</button>
+        <button class="btn-primary" id="confirmSendBtn">Confirm & Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">Address Book</div>
+    </div>
+    <div class="card">
+      <div class="add-row">
+        <input class="input" id="dirNick" placeholder="Nickname" maxlength="32">
+        <select class="input" id="dirChain" style="max-width:78px">
+          <option value="evm">EVM</option>
+          <option value="solana">Solana</option>
+        </select>
+      </div>
+      <div class="add-row">
+        <input class="input" id="dirAddr" placeholder="Address">
+        <button class="btn-small" id="addDirBtn">Add</button>
+      </div>
+      <div class="status-msg" id="dirStatus"></div>
+      <div id="dirList" class="dir-list"></div>
+    </div>
+  </div>
+
+  </div><!-- /content-wrap -->
+
+</div>
+
+<!-- ── Export Private Key Modal ── -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <div class="modal-title">Reveal Private Key</div>
+    <div id="exportStepPass">
+      <div class="warning-box">⚠ Anyone with this private key can move every asset in this wallet. Never share it, screenshot it, or type it into any website.</div>
+      <label class="field-label">Confirm your Sara passphrase</label>
+      <input class="input" id="exportPassInput" type="password" placeholder="Passphrase" autocomplete="off">
+      <div class="status-msg" id="exportStatus"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="cancelExportBtn">Cancel</button>
+        <button class="btn-primary" id="submitExportBtn">Reveal</button>
+      </div>
+    </div>
+    <div id="exportStepKey" style="display:none">
+      <div class="warning-box">⚠ This is the only time Sara will show you this key. Copy it now and store it somewhere safe and offline.</div>
+      <textarea class="input" id="exportKeyOutput" readonly rows="3" style="font-family:var(--font-mono);font-size:11px;resize:none;word-break:break-all"></textarea>
+      <div class="status-msg" id="exportCopyStatus"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="copyExportBtn">Copy</button>
+        <button class="btn-primary" id="doneExportBtn">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
