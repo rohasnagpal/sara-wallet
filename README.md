@@ -47,16 +47,15 @@ Sara Wallet is not a broker, exchange, custodian, investment adviser, trading pl
 
 | Chain | Native crypto | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/usdc.svg" width="16" height="16" valign="middle" alt="USDC"/> USDC | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/usdt.svg" width="16" height="16" valign="middle" alt="USDT"/> USDT |
 |---|---|:---:|:---:|
-| Ethereum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| Polygon | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/matic.svg" width="16" height="16" valign="middle" alt="POL"/> POL | ✅ | ✅ |
 | Arbitrum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| Base | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | 🔜 Coming soon |
-| Optimism | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| BNB Smart Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/bnb.svg" width="16" height="16" valign="middle" alt="BNB"/> BNB | — | 🔜 Coming soon |
 | Avalanche C-Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/avax.svg" width="16" height="16" valign="middle" alt="AVAX"/> AVAX | 🔜 Coming soon | 🔜 Coming soon |
+| Base | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | 🔜 Coming soon |
+| BNB Smart Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/bnb.svg" width="16" height="16" valign="middle" alt="BNB"/> BNB | — | 🔜 Coming soon |
+| Ethereum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
+| Optimism | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
+| Polygon | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/matic.svg" width="16" height="16" valign="middle" alt="POL"/> POL | ✅ | ✅ |
 | Solana | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/sol.svg" width="16" height="16" valign="middle" alt="SOL"/> SOL | ✅ | ✅ |
 | Tron | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/trx.svg" width="16" height="16" valign="middle" alt="TRX"/> TRX | — | ✅ |
-| Bitcoin | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/btc.svg" width="16" height="16" valign="middle" alt="BTC"/> BTC — 🔜 Coming soon | — | — |
 
 ✅ live today &nbsp;·&nbsp; 🔜 **Coming soon** — not yet integrated, but the stablecoin issuer (Circle for USDC, Tether for USDT) already has a real contract on that chain &nbsp;·&nbsp; — not currently planned (no official issuer contract exists there today)
 
