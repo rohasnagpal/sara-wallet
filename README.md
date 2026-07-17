@@ -48,12 +48,12 @@ Sara Wallet is not a broker, exchange, custodian, investment adviser, trading pl
 | Arbitrum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
 | Avalanche C-Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/avax.svg" width="16" height="16" valign="middle" alt="AVAX"/> AVAX | 🔜 Coming soon | 🔜 Coming soon |
 | Base | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | 🔜 Coming soon |
-| BNB Smart Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/bnb.svg" width="16" height="16" valign="middle" alt="BNB"/> BNB | — | 🔜 Coming soon |
+| BNB Smart Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/bnb.svg" width="16" height="16" valign="middle" alt="BNB"/> BNB | - | 🔜 Coming soon |
 | Ethereum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
 | Optimism | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
 | Polygon | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/matic.svg" width="16" height="16" valign="middle" alt="POL"/> POL | ✅ | ✅ |
 | Solana | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/sol.svg" width="16" height="16" valign="middle" alt="SOL"/> SOL | ✅ | ✅ |
-| Tron | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/trx.svg" width="16" height="16" valign="middle" alt="TRX"/> TRX | — | ✅ |
+| Tron | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/trx.svg" width="16" height="16" valign="middle" alt="TRX"/> TRX | - | ✅ |
 
 ---
 
@@ -66,7 +66,7 @@ Here's what's coming to Sara:
 | 📊 **Balance Monitoring** | Automate routine balance checks and get alerts on Telegram |
 | 🔁 **Battle-test Solana & Tron reconciliation** | Automatic on-chain payment-request matching is built and live-verified for EVM (Alchemy); Solana and Tron use the same approach but haven't yet been proven against a real incoming transfer in the wild |
 | 🛡️ **Send Limits** | Set max send limits as a safety guardrail |
-| 🌍 **Multi-language commands & voice** | Chat commands and voice mode are English-only for now — this is a deliberate v1 scope choice, not an oversight |
+| 🌍 **Multi-language commands & voice** | Chat commands and voice mode are English-only for now - this is a deliberate v1 scope choice, not an oversight |
 
 ---
 
@@ -125,7 +125,7 @@ The first time you open Sara, you'll be asked to **create a passphrase**. This p
 
 Then go to **Settings** and add your OpenRouter API key, and pick any model from the dropdown.
 
-**Optional — market data, token balances & payment reconciliation:**
+**Optional - market data, token balances & payment reconciliation:**
 
 ```env
 COINGECKO_API_KEY
@@ -134,9 +134,9 @@ HELIUS_RPC
 TRONGRID_API_KEY
 ```
 
-`TRONGRID_API_KEY` is required for Tron TRC20 (USDT) balance checks, sends, and payment-request reconciliation — get a free key at [trongrid.io](https://www.trongrid.io). Native TRX sends and TRX reconciliation work without one. `ALCHEMY_API_KEY` also enables automatic reconciliation for EVM payment requests (checks your wallet's real on-chain transfer history for a match instead of requiring a manual "mark paid").
+`TRONGRID_API_KEY` is required for Tron TRC20 (USDT) balance checks, sends, and payment-request reconciliation - get a free key at [trongrid.io](https://www.trongrid.io). Native TRX sends and TRX reconciliation work without one. `ALCHEMY_API_KEY` also enables automatic reconciliation for EVM payment requests (checks your wallet's real on-chain transfer history for a match instead of requiring a manual "mark paid").
 
-At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a full feature list plus your current configuration status — which keys are set, whether bNames are ready, your AI model, and more.
+At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a full feature list plus your current configuration status - which keys are set, whether bNames are ready, your AI model, and more.
 
 ---
 
@@ -184,7 +184,7 @@ Sara uses SQLite by default at `backend/sara.db`. The main tables are `wallets`,
 
 ### Wallet Encryption & Locking
 
-Private keys are encrypted (AES-256-GCM) before being stored in SQLite. The encryption key is derived from a passphrase you set on first run — Sara holds it in memory only for an unlocked session (auto-expiring after 1 hour of inactivity), not sitting loaded at all times the way early versions did. `.env` no longer holds this key. **Private keys never leave your laptop.**
+Private keys are encrypted (AES-256-GCM) before being stored in SQLite. The encryption key is derived from a passphrase you set on first run - Sara holds it in memory only for an unlocked session (auto-expiring after 1 hour of inactivity), not sitting loaded at all times the way early versions did. `.env` no longer holds this key. **Private keys never leave your laptop.**
 
 ### AI Layer
 
@@ -217,11 +217,11 @@ Sara is built on a simple principle:
 > **Your keys never leave your machine.**
 
 - Private keys are encrypted and stored locally
-- Sara locks like a normal wallet — passphrase required to unlock, auto-locks after 1 hour of inactivity
-- Swaps and bridges are verified before signing: Sara simulates the transaction (or checks the aggregator's own quote/result) and refuses to sign if it would move more than the confirmed input amount — it doesn't trust calldata blindly
-- Token symbols only ever resolve to a hardcoded, developer-verified contract address list — never an arbitrary on-chain lookup
+- Sara locks like a normal wallet - passphrase required to unlock, auto-locks after 1 hour of inactivity
+- Swaps and bridges are verified before signing: Sara simulates the transaction (or checks the aggregator's own quote/result) and refuses to sign if it would move more than the confirmed input amount - it doesn't trust calldata blindly
+- Token symbols only ever resolve to a hardcoded, developer-verified contract address list - never an arbitrary on-chain lookup
 - No telemetry, no cloud sync, no external key custody
-- Open source — read every line, audit everything
+- Open source - read every line, audit everything
 - You own your wallet code
 
 ---

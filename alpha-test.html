@@ -1,4 +1,4 @@
-<title>Sara Wallet — Alpha-2 Test Log</title>
+<title>Sara Wallet — Alpha Test Log</title>
 <style>
   @font-face {
     font-family: "Plex";
@@ -325,15 +325,15 @@
 <div class="wrap">
   <header>
     <div class="title-row">
-      <h1>Sara Wallet <span class="dim">— Alpha-2 Test Log</span></h1>
+      <h1>Sara Wallet <span class="dim">— Alpha Test Log</span></h1>
       <div class="header-actions">
         <button id="exportBtn" type="button">export .txt</button>
         <button id="resetBtn" type="button">reset all</button>
       </div>
     </div>
     <p class="subtitle">
-      Manual verification checklist across security, wallets, sending, swaps, perps, bNames,
-      market data, and UX. Progress is saved to this browser only — reload freely.
+      Manual verification checklist across security, wallets, sending, swaps, bridging,
+      payment links, bNames, market data, and UX. Progress is saved to this browser only — reload freely.
     </p>
     <div class="progress-block">
       <div class="progress-meta">
@@ -360,52 +360,63 @@
 <script>
 const SECTIONS = [
   { t: "Fresh Install / Environment", items: [
-    "Clone fresh, create venv, install backend/requirements.txt",
+    "Clone fresh, create a Python 3.12 venv, install backend/requirements-lock.txt",
     "Copy .env to .env.local; app starts with only OPENROUTER_API_KEY set",
-    "Optional keys absent (COINGECKO_API_KEY, ALCHEMY_API_KEY, HELIUS_RPC, RPC URLs, bName vars) don't block startup",
+    "Optional keys absent (COINGECKO_API_KEY, ALCHEMY_API_KEY, HELIUS_RPC, TRONGRID_API_KEY, RPC URLs, bName vars) don't block startup",
     "Settings can save and mask API keys",
     "Saved Settings survive a server restart",
     "Invalid/unsupported settings key is rejected by the API",
     "OpenRouter model list loads; a network/API failure there is handled cleanly; switching model actually changes chat responses",
+    "backend/tests/ passes locally: PYTHONPATH=backend python -m unittest discover -s backend/tests -v (same as CI)",
+    "pip check and pip-audit against requirements-lock.txt come back clean",
   ]},
   { t: "Lock / Security", items: [
     "First-run passphrase setup",
-    ".env.local gets SARA_MASTER_KEY as a 64-char derived hash, never the raw passphrase",
+    ".env.local gets SARA_MASTER_SALT + SARA_MASTER_VERIFIER, never the raw passphrase or a usable key",
+    ".env.local is chmod 0600 after the write, not left group/world-readable",
     "Restart server — wallet shows configured but locked",
     "Wrong passphrase is rejected and stays locked",
+    "Repeated wrong-passphrase attempts get throttled with increasing backoff, not unlimited retries",
     "Correct passphrase unlocks",
     "Manual “Lock Now” locks immediately",
-    "Auto-lock timeout actually fires (wait it out, or shorten it in a throwaway test copy)",
+    "Auto-lock timeout actually fires after 1 hour idle (shorten SESSION_TIMEOUT_SECONDS in a throwaway test copy to verify sooner)",
     "Read-only activity (price check, portfolio view) extends an unlocked session, not just money-moving actions",
-    "While locked: create wallet, import wallet, send, swap confirm, perp confirm, bName registration all fail cleanly with a locked response",
-    "While locked: prices, news, gas, DeFi, Polymarket, portfolio / list wallets still work",
+    "While locked: create wallet, import wallet, send, swap, bridge, payment-link creation, bName registration all fail cleanly with a locked response",
+    "While locked: prices, news, gas, portfolio / list wallets, and public payment-request status checks still work",
     "sara.db inspected directly — encrypted_key column is ciphertext, never a raw private key",
-    "A wallet encrypted under an old/changed SARA_MASTER_KEY fails to decrypt with a clear error, not silent corruption",
-    "No stale SARA_MASTER_KEY row lingers in the config table after startup",
+    "A wallet encrypted under an old/changed passphrase fails to decrypt with a clear error, not silent corruption",
+    "A legacy install with SARA_MASTER_KEY set migrates cleanly to the salt+verifier scheme on first unlock",
+    "A request to a mutating endpoint (send, swap, settings write) without the per-launch session token is rejected",
   ]},
   { t: "Wallet Management", items: [
     "Create EVM wallet",
     "Create Solana wallet",
+    "Create Tron wallet",
     "Import existing EVM private key — derived address matches",
     "Import existing Solana key bytes (hex) — derived address matches",
+    "Import existing Tron private key (hex) — derived address matches",
     "Invalid EVM private key is rejected",
     "Invalid Solana private key is rejected",
+    "Invalid Tron private key is rejected",
     "Unsupported chain value is rejected",
     "Duplicate wallet name is rejected",
     "Wallets list correctly in both UI and API",
     "Delete a wallet — it disappears from the list",
     "Balance check across EVM: Ethereum, Polygon, Arbitrum, Base, Optimism, BSC, Avalanche",
     "Balance check — Solana native SOL",
+    "Balance check — Tron native TRX (works without TRONGRID_API_KEY)",
+    "Tron TRC20/USDT balance appears with TRONGRID_API_KEY set, degrades gracefully (not an error) without one",
     "ERC-20 balances appear with ALCHEMY_API_KEY set",
     "ERC-20 balances degrade gracefully (empty, not an error) with no Alchemy key",
   ]},
   { t: "Address Book / Name Resolution", items: [
     "Add nickname for an EVM address",
     "Add nickname for a Solana address",
+    "Add nickname for a Tron address",
     "Update an existing nickname",
     "Delete a nickname — second click required, doesn't delete on the first click",
     "Send to a saved nickname",
-    "Sending to a Solana nickname on an EVM send (and vice versa) is rejected",
+    "Sending to an address-book entry on a send targeting a different chain (EVM/Solana/Tron mismatch) is rejected",
     "Resolve / send to an ENS name (alice.eth)",
     "Resolve / send to an SNS name (bob.sol)",
     "Resolve / send to a .sara / .bname name (once registrar is configured)",
@@ -416,20 +427,23 @@ const SECTIONS = [
     "Send native POL on Polygon",
     "Send native assets on Arbitrum / Base / Optimism / BSC / Avalanche where funded",
     "Send SOL between your own Solana wallets",
+    "Send native TRX between your own Tron wallets",
     "Send to a raw EVM address",
     "Send to a raw Solana address",
+    "Send to a raw Tron address",
     "Send to an ENS name",
     "Send to an SNS name",
     "Send to an address-book nickname",
-    "Preview shows amount, wallet, network, recipient, balance, and gas estimate",
+    "Preview shows amount, wallet, network, recipient, balance, and gas/fee estimate",
     "Typing YES does not execute the transaction",
     "Typing CONFIRM executes the transaction",
     "Typing CANCEL aborts",
     "Amount larger than balance fails before confirmation",
-    "Amount that would leave no gas fails cleanly",
+    "Amount that would leave no gas/fee balance fails cleanly",
     "Zero or negative amount fails",
     "Invalid recipient address fails",
-    "Sending a supported ERC-20 token (e.g. USDC) previews and executes correctly; an unsupported token or an SPL token on Solana fails with a clear \"not supported\" message — not confused with insufficient funds",
+    "Sending USDC or USDT previews and executes correctly on every chain Sara lists it for; an unsupported/untrusted token symbol fails with a clear rejection (typo-correction against the trusted list, never substituting a different real asset)",
+    "Sending Tron TRC20 USDT without TRONGRID_API_KEY fails cleanly, not silently as insufficient funds",
     "A submitted send creates a transactions row",
     "A failed send does not create a misleading “submitted” record",
     "Ambiguous send with multiple eligible wallets asks which one",
@@ -442,27 +456,42 @@ const SECTIONS = [
     "Unsupported token symbol fails with a “supported tokens” message",
     "Approval flow works correctly for an ERC-20 source token",
     "CONFIRM executes, CANCEL aborts",
-    "Solana swap preview via Jupiter (SOL → USDC)",
-    "Solana supported tokens: SOL, USDC, USDT, BONK, JUP, RAY, WIF",
+    "Before signing, a swap whose simulated/actual result would move more than the confirmed input amount is rejected, not silently signed",
+    "Solana swap preview via Jupiter (SOL → USDC, SOL → USDT, USDC → USDT) — Sara only swaps native SOL, USDC, and USDT now, no speculative tokens",
     "Solana unsupported token fails cleanly",
     "A Paraswap/Jupiter outage or bad quote reports failure without crashing chat",
     "Ambiguous swap with multiple eligible wallets asks which one",
     "Replying with just the wallet name correctly continues the pending swap",
+    "Attempting a swap on Tron (no DEX aggregator wired up) fails with a clear message, not a confusing EVM/Paraswap-shaped error",
   ]},
-  { t: "Hyperliquid Perps", items: [
-    "Open / check / close a small BTC long",
-    "Open / check / close a small BTC short",
-    "Open / check / close a small ETH or SOL position",
-    "Open / check / close a commodity perp (Gold/XAU or Silver/XAG)",
-    "Open / check / close an FX perp (EUR or GBP)",
-    "Open / check / close a blue-chip equity perp (NVDA, TSLA, AAPL, MSFT, META, GOOGL, AMZN)",
-    "An index command like “S&P 500” fails cleanly as unsupported (not currently in the alias map)",
-    "Order preview shows side, symbol, size, leverage, entry, margin, liquidation price, fee",
-    "Typing YES does not execute; only CONFIRM does",
-    "Close-position preview + CANCEL works",
-    "Closing with no open position says so clearly",
-    "A missing Hyperliquid SDK or API error surfaces as a clean message, not a stack trace",
-    "Ambiguous perp order with multiple wallets asks which one, and a bare wallet-name reply works",
+  { t: "Bridging (LI.FI)", items: [
+    "Bridge preview for same-token cross-chain (e.g. bridge 1 USDC from Polygon to Arbitrum)",
+    "Bridge preview for a different destination token (e.g. bridge 1 POL from Polygon to USDC on Arbitrum)",
+    "Preview shows amount, bridge route, and an estimated time before anything moves",
+    "Typing CONFIRM submits, CANCEL aborts",
+    "Before signing, a bridge whose simulated/actual result would move more than the confirmed input amount is rejected",
+    "Bridging the same chain as source and destination is rejected",
+    "A chain pair LI.FI doesn't support fails cleanly",
+    "Attempting to bridge to/from Solana or Tron fails cleanly — EVM chains only, no Solana or Tron route",
+    "\"how to bridge\" returns the bridge-help explainer with the current supported-chain list",
+    "Pasting a 64-char tx hash returns a live bridge status (pending / done / failed) via LI.FI's status API",
+    "A LI.FI outage or bad quote reports failure without crashing chat",
+    "Ambiguous bridge with multiple eligible wallets asks which one",
+  ]},
+  { t: "Payment Links & Reconciliation", items: [
+    "\"payment link for 100 USDC\" creates a link + reference for a specific wallet",
+    "Ambiguous payment-link request with multiple wallets asks which one",
+    "Amount of zero or less is rejected before a link is created",
+    "The generated link decodes back to the correct recipient, chain, network, token, and amount",
+    "A corrupted/incomplete payload fails to parse with a clear error, not a crash",
+    "QR code renders for a given payment payload and actually scans to the right data",
+    "Payment requests list shows reference, wallet, chain, token, amount, note, and status",
+    "A pending request is automatically checked against on-chain activity and flips to paid when a matching transfer is found (EVM, via Alchemy)",
+    "Solana and Tron reconciliation follow the same matching approach — verify against a real incoming transfer, since this hasn't been proven live yet",
+    "A request can be manually re-checked, and manually marked paid/pending/cancelled",
+    "A payment request can be deleted",
+    "CSV export downloads all requests, and a wallet name/note starting with =, +, -, or @ is neutralized (prefixed), not left as a live spreadsheet formula",
+    "\"payment link\" and \"bridge\" style phrases route to the right intent even though they contain unrelated-keyword substrings (e.g. \"link\" inside LINK the token, \"pol\" inside an unrelated word) — no substring-collision misroute",
   ]},
   { t: "bNames", items: [
     "“buy a bname” guided flow asks which name",
@@ -486,13 +515,7 @@ const SECTIONS = [
     "Commodity price — Gold, Silver, Brent/Crude Oil, Natural Gas",
     "Forex — AUD/USD, EUR/USD, INR",
     "Gas fees (e.g. for POL)",
-    "DeFi total TVL",
-    "DeFi TVL by chain — Ethereum, Solana, Base, Polygon",
-    "DeFi TVL by protocol — Aave, Uniswap, Lido, Hyperliquid",
-    "DeFi yields, optionally filtered by chain",
-    "“What's trending on Polymarket” correctly routes to Polymarket, not a POL price lookup",
     "Crypto news/sentiment, with and without a news API key configured",
-    "Polymarket search on a specific topic",
     "A data-API failure or rate limit returns a clean message, not a stack trace",
   ]},
   { t: "Portfolio", items: [
@@ -500,6 +523,7 @@ const SECTIONS = [
     "Portfolio aggregates across all wallets",
     "EVM native balances shown across Ethereum, Polygon, Arbitrum, Base, Optimism, BSC, Avalanche",
     "Solana native balance shown",
+    "Tron native TRX (and USDT, with TRONGRID_API_KEY) balance shown",
     "ERC-20 balances only appear when ALCHEMY_API_KEY is set",
     "USD values and 24h change render correctly",
     "Per-chain totals add up to match individual assets",
@@ -516,7 +540,7 @@ const SECTIONS = [
     "CORS only allows localhost origins (a request from another origin is blocked)",
   ]},
   { t: "UI / Visual", items: [
-    "Add Wallet dropdown shows only EVM / Solana / Bitcoin (disabled, “Coming soon”)",
+    "Add Wallet dropdown shows EVM / Solana / Tron, with Bitcoin disabled (“Coming soon”)",
     "Theme switcher works across all themes (Lime default, Pearl, Glassy, Dark Pro, Sunset, Forest)",
     "Mic button hides/disables gracefully in browsers without speech recognition support",
     "Address-book delete requires a second click to confirm",
@@ -524,7 +548,7 @@ const SECTIONS = [
   ]},
 ];
 
-const STORE_KEY = "sara-alpha2-testlog-v1";
+const STORE_KEY = "sara-alpha-testlog-v1";
 
 function loadState() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
@@ -651,7 +675,7 @@ function showToast(msg) {
 }
 
 document.getElementById("exportBtn").addEventListener("click", async () => {
-  let lines = ["Sara Wallet — Alpha-2 Test Log", "Exported " + new Date().toLocaleString(), ""];
+  let lines = ["Sara Wallet — Alpha Test Log", "Exported " + new Date().toLocaleString(), ""];
   let done = 0, total = 0;
   SECTIONS.forEach((sec, si) => {
     lines.push("## " + sec.t);
@@ -674,7 +698,7 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "sara-alpha2-testlog.txt";
+    a.href = url; a.download = "sara-alpha-testlog.txt";
     a.click();
     URL.revokeObjectURL(url);
     showToast("Downloaded as file");
