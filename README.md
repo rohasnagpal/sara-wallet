@@ -16,9 +16,7 @@
 
 ## ✦ What is Sara Wallet?
 
-**Sara Wallet** is an open source, AI-native wallet that specializes in stablecoin payments and cross-border remittances. Sara Wallet gets its name from the hindi word सारा that means everything.
-
-Sara handles the everyday moving-money workflow in plain English — sending, requesting, bridging, and reconciling stablecoins — instead of asking you to navigate a dozen different wallet screens and bridge UIs.
+**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending stablecoins as easy as sending a text message: Send 50 USDT to Maria.
 
 Some of the things you can do with Sara Wallet:
 
@@ -56,10 +54,6 @@ Sara Wallet is not a broker, exchange, custodian, investment adviser, trading pl
 | Polygon | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/matic.svg" width="16" height="16" valign="middle" alt="POL"/> POL | ✅ | ✅ |
 | Solana | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/sol.svg" width="16" height="16" valign="middle" alt="SOL"/> SOL | ✅ | ✅ |
 | Tron | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/trx.svg" width="16" height="16" valign="middle" alt="TRX"/> TRX | — | ✅ |
-
-✅ live today &nbsp;·&nbsp; 🔜 **Coming soon** — not yet integrated, but the stablecoin issuer (Circle for USDC, Tether for USDT) already has a real contract on that chain &nbsp;·&nbsp; — not currently planned (no official issuer contract exists there today)
-
-Swaps (via Paraswap on EVM chains, Jupiter on Solana) are available for every ✅ pair above except Tron, which supports sends only — there's no DEX aggregator wired up for Tron yet. Bridging (via LI.FI) covers the EVM chains only, no Solana or Tron route. USDC availability per chain is cross-checked against [Circle's official contract list](https://developers.circle.com/stablecoins/usdc-contract-addresses); USDT against [Tether's supported protocols](https://tether.to/en/supported-protocols/).
 
 ---
 
