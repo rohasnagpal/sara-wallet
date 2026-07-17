@@ -11,8 +11,8 @@ API and vendored signing libraries. Private keys never leave your browser.
 
 This is a **core wallet only** build — a separate, deliberately smaller first
 milestone from the full Sara Wallet app. It does **not** include: AI chat,
-voice mode, swaps, Hyperliquid perps, DeFi stats, prediction markets, or
-bNames. Those live in the main app. This extension covers:
+voice mode, swaps, bridging, payment links/reconciliation, or bNames. Those
+live in the main app. This extension covers:
 
 - Create or import wallets — EVM (one address, works across 7 chains) and Solana
 - View native + token balances

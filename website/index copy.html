@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sara — Send money across borders like a text</title>
+<meta name="description" content="Sara moves dollars instantly, for a fraction of a cent, using plain English commands. USDT & USDC across Tron, Polygon, Base, Ethereum and Solana. Non-custodial. Your keys, your funds.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23090b0c'/%3E%3Ctext x='50' y='68' font-family='Georgia,serif' font-size='58' font-weight='700' fill='%2342e8b4' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="noise-overlay" aria-hidden="true"></div>
+<div class="glow glow-a" aria-hidden="true"></div>
+<div class="glow glow-b" aria-hidden="true"></div>
+
+<!-- ══════════════════════════════════════ NAV ══════════════════════════════════════ -->
+<header class="nav" id="nav">
+  <div class="shell nav-inner">
+    <a href="#top" class="brand">
+      <span class="brand-mark">S</span>
+      <span class="brand-word">Sara</span>
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#how">How it works</a>
+      <a href="#why">Why Sara</a>
+      <a href="#coins">Coins &amp; chains</a>
+      <a href="#regions">Regions</a>
+      <a href="#bnames">bNames</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a href="#get-sara" class="btn btn-primary btn-sm">Get Sara</a>
+    </div>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ══════════════════════════════════════ HERO ══════════════════════════════════════ -->
+  <section class="hero">
+    <div class="shell hero-grid">
+      <div class="hero-copy" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Cross-border payments, reinvented</div>
+        <h1>Sending money home should be as easy as <span class="text-accent">sending a text.</span></h1>
+        <p class="hero-sub">
+          Bank wires take days. Cards randomly decline. Remittance apps eat 5–10% in fees.
+          Sara moves dollars instantly, for a fraction of a cent — using plain English.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#get-sara" class="btn btn-primary btn-lg">
+            Get Sara
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 8H12.5M12.5 8L8.5 4M12.5 8L8.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="#how" class="btn btn-ghost btn-lg">See how it works</a>
+        </div>
+
+        <div class="hero-trust">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12.2 11.2 14.4 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Non&#8209;custodial. Sara never touches your money — your keys, your funds.
+        </div>
+      </div>
+
+      <div class="hero-visual" data-reveal data-reveal-delay="1">
+        <div class="phone-card">
+          <div class="phone-card-head">
+            <span class="phone-dot"></span>
+            <span class="phone-card-title">Sara</span>
+            <span class="phone-status"><i></i>Live on Polygon</span>
+          </div>
+          <div class="phone-thread" id="demoThread">
+            <div class="bubble bubble-user" data-line>send 50 USDT to maria</div>
+            <div class="bubble bubble-sara" data-line>
+              Sending <b>50 USDT</b> to <b>maria</b> — routed via Polygon, fee <b>&lt;$0.01</b>.<br>
+              Type <b>CONFIRM</b> to send.
+            </div>
+            <div class="bubble bubble-user" data-line>CONFIRM</div>
+            <div class="bubble bubble-sara bubble-success" data-line>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 12.5 9.5 18 20 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Sent. Maria has her $50 &mdash; landed in 2s.
+            </div>
+          </div>
+          <div class="phone-input">
+            <span class="phone-input-caret" id="typeCaret">Type or say a command…</span>
+          </div>
+        </div>
+        <div class="float-chip float-chip-a">$0.004 fee</div>
+        <div class="float-chip float-chip-b">2.1s settlement</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ STAT STRIP ══════════════════════════════════════ -->
+  <section class="stats" data-reveal>
+    <div class="shell stats-grid">
+      <div class="stat">
+        <div class="stat-num">&lt;1&cent;</div>
+        <div class="stat-label">Typical send fee</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">~2s</div>
+        <div class="stat-label">To settle, not days</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Chains, one command</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Wallet addresses to copy</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ HOW IT WORKS ══════════════════════════════════════ -->
+  <section class="section" id="how">
+    <div class="shell">
+      <div class="section-head" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>How it works</div>
+        <h2>Talk to it like a person. It moves like a wire.</h2>
+        <p class="section-sub">No wallet addresses to copy, no bank forms, no waiting. Just tell Sara what you want.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step-card" data-reveal>
+          <div class="step-num">01</div>
+          <h3>Type it, or say it</h3>
+          <p>“Send 50 USDT to maria.” That's the whole interaction — plain English, typed or spoken.</p>
+        </div>
+        <div class="step-card" data-reveal data-reveal-delay="1">
+          <div class="step-num">02</div>
+          <h3>Sara shows you everything</h3>
+          <p>One clear preview: what moves, which route, what it costs. No surprises after you confirm.</p>
+        </div>
+        <div class="step-card" data-reveal data-reveal-delay="2">
+          <div class="step-num">03</div>
+          <h3>Type CONFIRM. Done.</h3>
+          <p>Funds move in seconds, for a fraction of a cent. Ask Sara anytime to check on it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ WHY SARA / TRUST ══════════════════════════════════════ -->
+  <section class="section section-alt" id="why">
+    <div class="shell">
+      <div class="section-head" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Why Sara</div>
+        <h2>Built for stablecoins. Not everything.</h2>
+        <p class="section-sub">
+          General-purpose wallets are built to do everything crypto can do — which means they hand you
+          all of its complexity, too. Sara does one thing: move your dollars, safely.
+        </p>
+      </div>
+
+      <div class="why-grid">
+        <div class="why-card" data-reveal>
+          <div class="why-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12.2 11.2 14.4 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Your keys, your funds</h3>
+          <p>Sara is non&#8209;custodial. It never holds, touches, or has access to your money — unlike a bank wire or remittance company sitting in the middle.</p>
+        </div>
+        <div class="why-card" data-reveal data-reveal-delay="1">
+          <div class="why-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17" stroke="currentColor" stroke-width="1.6"/></svg>
+          </div>
+          <h3>One clear preview, every time</h3>
+          <p>Before anything is signed, Sara shows you exactly what will happen — swap, bridge, gas, all of it. No blind signing, no fine print to decode.</p>
+        </div>
+        <div class="why-card" data-reveal data-reveal-delay="2">
+          <div class="why-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 12.5 10.7 14.7 15.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Contract addresses, not names</h3>
+          <p>Anyone can launch a token called “USDC.” Sara only ever recognizes verified real contracts — a lookalike wearing the right logo won't fool it.</p>
+        </div>
+        <div class="why-card" data-reveal data-reveal-delay="3">
+          <div class="why-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 17V7a3 3 0 0 1 3-3h6l7 7v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 4v6h7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>No approval graveyard</h3>
+          <p>Sara handles token allowances precisely, so you're not left with dozens of forgotten permissions scattered across chains, years later.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ COMPARISON ══════════════════════════════════════ -->
+  <section class="section" id="compare">
+    <div class="shell">
+      <div class="section-head" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>The part most wallets get wrong</div>
+        <h2>Say you have 100 USDT on Polygon, and need to pay 50 USDC on Base.</h2>
+        <p class="section-sub">One sentence tells Sara everything it needs. Watch what that replaces.</p>
+      </div>
+
+      <div class="compare-grid">
+        <div class="compare-col compare-sara" data-reveal>
+          <div class="compare-label">
+            <span class="compare-badge compare-badge-sara">With Sara</span>
+          </div>
+          <div class="compare-command">“pay 100 USDC on base from my USDT on polygon”</div>
+          <ol class="compare-list compare-list-sara">
+            <li><span class="compare-check">1</span>Sara finds the route — swap, bridge, gas, all handled.</li>
+            <li><span class="compare-check">2</span>One preview shows exactly what's about to happen.</li>
+            <li><span class="compare-check">3</span>Type <b>CONFIRM</b>. Done. Ask Sara to check on it anytime.</li>
+          </ol>
+        </div>
+        <div class="compare-col compare-typical" data-reveal data-reveal-delay="1">
+          <div class="compare-label">
+            <span class="compare-badge compare-badge-typical">With a typical wallet</span>
+          </div>
+          <div class="compare-command compare-command-muted">seven manual steps, one at a time</div>
+          <ol class="compare-list compare-list-typical">
+            <li><span class="compare-x">×</span>Select the source network</li>
+            <li><span class="compare-x">×</span>Select the source token</li>
+            <li><span class="compare-x">×</span>Select the destination network</li>
+            <li><span class="compare-x">×</span>Select the destination token</li>
+            <li><span class="compare-x">×</span>Review the route</li>
+            <li><span class="compare-x">×</span>Approve the token</li>
+            <li><span class="compare-x">×</span>Confirm, then wait for the bridge to land</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ COINS & CHAINS ══════════════════════════════════════ -->
+  <section class="section section-alt" id="coins">
+    <div class="shell">
+      <div class="section-head" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Coins &amp; chains</div>
+        <h2>The stablecoins that move the world's dollars.</h2>
+        <p class="section-sub">
+          Sara runs on USDT and USDC — across the chains that already carry the most real payment volume.
+          You never pick a chain. Sara just finds the fastest, cheapest way to get your dollars there.
+        </p>
+      </div>
+
+      <div class="coin-row" data-reveal>
+        <div class="coin-badge coin-badge-lg">
+          <span class="coin-mark coin-mark-usdt">₮</span>USDT
+        </div>
+        <div class="coin-badge coin-badge-lg">
+          <span class="coin-mark coin-mark-usdc">$</span>USDC
+        </div>
+      </div>
+
+      <div class="chain-grid" data-reveal data-reveal-delay="1">
+        <div class="chain-card">
+          <span class="chain-dot" style="--c:#EF4444"></span>Tron
+        </div>
+        <div class="chain-card">
+          <span class="chain-dot" style="--c:#A78BFA"></span>Polygon
+        </div>
+        <div class="chain-card">
+          <span class="chain-dot" style="--c:#60A5FA"></span>Base
+        </div>
+        <div class="chain-card">
+          <span class="chain-dot" style="--c:#94A3B8"></span>Ethereum
+        </div>
+        <div class="chain-card">
+          <span class="chain-dot" style="--c:#42E8B4"></span>Solana
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ REGIONS ══════════════════════════════════════ -->
+  <section class="section" id="regions">
+    <div class="shell">
+      <div class="section-head" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Where Sara starts</div>
+        <h2>Built first for where the need is greatest.</h2>
+        <p class="section-sub">
+          Latin America, Southeast Asia, and Africa — regions where millions already rely on remittances,
+          and are turning to stablecoins for faster, cheaper dollar access.
+        </p>
+      </div>
+
+      <div class="region-grid">
+        <div class="region-card" data-reveal>
+          <div class="region-tag">Latin America</div>
+          <div class="region-example">Mexico</div>
+          <p>Traditional transfers cost 5–10% and take days.</p>
+          <div class="region-arrow">Sara: seconds, for pennies.</div>
+        </div>
+        <div class="region-card" data-reveal data-reveal-delay="1">
+          <div class="region-tag">Southeast Asia</div>
+          <div class="region-example">Philippines</div>
+          <p>Traditional transfers cost 5–10% and take days.</p>
+          <div class="region-arrow">Sara: seconds, for pennies.</div>
+        </div>
+        <div class="region-card" data-reveal data-reveal-delay="2">
+          <div class="region-tag">Africa</div>
+          <div class="region-example">Nigeria</div>
+          <p>Traditional transfers cost 5–10% and take days.</p>
+          <div class="region-arrow">Sara: seconds, for pennies.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ PAYMENT LINKS ══════════════════════════════════════ -->
+  <section class="section section-alt" id="payments">
+    <div class="shell payments-grid">
+      <div class="payments-copy" data-reveal>
+        <div class="eyebrow"><span class="eyebrow-dot"></span>For businesses &amp; freelancers</div>
+        <h2>Turn any payment request into a link, or a code.</h2>
+        <p class="section-sub">
+          Send an invoice. Drop a code at checkout. Or just hit “request payment” and share it however's easiest.
+          Whoever's paying doesn't need a Sara account, or any crypto know-how.
+        </p>
+        <ul class="check-list">
+          <li>Scan the code</li>
+          <li>Confirm the amount</li>
+          <li>It's done</li>
+        </ul>
+      </div>
+      <div class="payments-visual" data-reveal data-reveal-delay="1">
+        <div class="qr-card">
+          <div class="qr-card-head">Payment request</div>
+          <div class="qr-box">
+            <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+              <rect width="120" height="120" rx="10" fill="none"/>
+              <g fill="currentColor">
+                <rect x="8" y="8" width="28" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="18" y="18" width="8" height="8"/>
+                <rect x="84" y="8" width="28" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="94" y="18" width="8" height="8"/>
+                <rect x="8" y="84" width="28" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="6"/>
+                <rect x="18" y="94" width="8" height="8"/>
+                <rect x="48" y="8" width="8" height="8"/><rect x="64" y="8" width="8" height="8"/>
+                <rect x="48" y="24" width="8" height="8"/><rect x="60" y="24" width="8" height="8"/>
+                <rect x="48" y="48" width="8" height="8"/><rect x="64" y="48" width="8" height="8"/>
+                <rect x="80" y="48" width="8" height="8"/><rect x="96" y="48" width="8" height="8"/>
+                <rect x="48" y="64" width="8" height="8"/><rect x="72" y="64" width="8" height="8"/>
+                <rect x="104" y="64" width="8" height="8"/>
+                <rect x="48" y="80" width="8" height="8"/><rect x="64" y="80" width="8" height="8"/>
+                <rect x="88" y="80" width="8" height="8"/>
+                <rect x="48" y="96" width="8" height="8"/><rect x="64" y="96" width="8" height="8"/>
+                <rect x="80" y="104" width="8" height="8"/><rect x="96" y="96" width="8" height="8"/>
+                <rect x="104" y="104" width="8" height="8"/>
+              </g>
+            </svg>
+          </div>
+          <div class="qr-amount">$50.00 <span>USDC</span></div>
+          <div class="qr-to">to <b>maria.sara</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ BNAMES ══════════════════════════════════════ -->
+  <section class="section" id="bnames">
+    <div class="shell bnames-grid">
+      <div class="bnames-visual" data-reveal>
+        <div class="address-swap">
+          <div class="address-old">
+            <span class="addr-label">Without a bName</span>
+            <code>0x6358B1A2489043A6ebbbA634640Ff882f6B7EcfD</code>
+          </div>
+          <div class="address-arrow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M12 20l-5-5M12 20l5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="address-new">
+            <span class="addr-label">With a bName</span>
+            <code>maria<span class="text-accent">.sara</span></code>
+          </div>
+        </div>
+      </div>
+      <div class="bnames-copy" data-reveal data-reveal-delay="1">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>bNames</div>
+        <h2>Your public payment identity — not an address.</h2>
+        <p class="section-sub">
+          Chosen once, yours forever. Put it on an invoice, an email signature, a storefront, a business card.
+          The more people around you using theirs, the more useful yours gets — the same way a Venmo handle,
+          or a phone number, does.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ FINAL CTA ══════════════════════════════════════ -->
+  <section class="cta-band" id="get-sara" data-reveal>
+    <div class="shell cta-inner">
+      <h2>The simplest way in the world<br>to move a dollar, anywhere.</h2>
+      <a href="#top" class="btn btn-primary btn-lg" id="ctaBtn">
+        Get Sara
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 8H12.5M12.5 8L8.5 4M12.5 8L8.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <div class="cta-note">Non&#8209;custodial · Your keys, your funds · No app-store banks in the middle</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════════════════════ FOOTER ══════════════════════════════════════ -->
+<footer class="footer">
+  <div class="shell footer-inner">
+    <div class="footer-brand">
+      <a href="#top" class="brand">
+        <span class="brand-mark">S</span>
+        <span class="brand-word">Sara</span>
+      </a>
+      <p>Sending money across borders, as easy as sending a text.</p>
+    </div>
+    <div class="footer-links">
+      <div class="footer-col">
+        <div class="footer-col-title">Product</div>
+        <a href="#how">How it works</a>
+        <a href="#coins">Coins &amp; chains</a>
+        <a href="#bnames">bNames</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Company</div>
+        <a href="#why">Why Sara</a>
+        <a href="#regions">Regions</a>
+        <a href="#payments">For business</a>
+      </div>
+    </div>
+  </div>
+  <div class="shell footer-legal">
+    <p>Sara is a non&#8209;custodial wallet. Sara never holds, controls, or has access to your funds at any time. Digital assets carry risk — do your own research.</p>
+    <p>&copy; <span id="year"></span> Sara Wallet.</p>
+  </div>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from app.core.session_auth import require_session
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 class ResolveBody(BaseModel):
     name: str
 
-@router.post("/names/resolve")
+@router.post("/names/resolve", dependencies=[Depends(require_session)])
 def resolve_name(body: ResolveBody):
     name = body.name.strip().lower()
     if name.endswith(".eth"):
@@ -21,14 +22,6 @@ def resolve_name(body: ResolveBody):
         addr = resolve(name)
         return {"name": name, "address": addr, "chain": "solana", "resolved": bool(addr)}
     return {"name": name, "address": None, "chain": None, "resolved": False}
-
-
-# ── Polymarket ────────────────────────────────────────────────────────────────
-
-@router.get("/prediction")
-def prediction_markets(q: str = ""):
-    from app.tools.prediction.polymarket import search_markets
-    return search_markets(q, limit=5)
 
 
 # ── News & Sentiment ──────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Config
+from app.core.session_auth import require_session
 import os
 import time
 import requests
@@ -17,6 +18,7 @@ ALLOWED_KEYS = {
     "CRYPTOPANIC_API_KEY": "CryptoPanic API Key (news & sentiment)",
     "ALCHEMY_API_KEY":    "Alchemy API Key (token balances + faster RPCs)",
     "HELIUS_RPC":         "Helius RPC URL (optional, Solana)",
+    "TRONGRID_API_KEY":   "TronGrid API Key (Tron token balances + sends)",
 }
 
 
@@ -43,7 +45,7 @@ class SettingBody(BaseModel):
     value: str
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_session)])
 def save_setting(body: SettingBody, db: Session = Depends(get_db)):
     if body.key not in ALLOWED_KEYS:
         raise HTTPException(400, f"Unknown key: {body.key}")

@@ -15,32 +15,6 @@ CRYPTO_TICKERS = {
     "BITCOIN": "BTC-USD", "ETHEREUM": "ETH-USD", "SOLANA": "SOL-USD",
 }
 
-def get_crypto_price(symbol: str) -> dict | None:
-    sym = symbol.upper()
-    ticker = CRYPTO_TICKERS.get(sym, sym + "-USD")
-    d = _fetch(ticker)
-    if not d:
-        return None
-    return {
-        "symbol": sym,
-        "price": d["price"],
-        "change_24h": d["change_pct"],
-        "currency": "USD",
-        "source": "yfinance",
-    }
-
-COMMODITY_NAMES = {
-    "GC=F": "Gold", "CL=F": "WTI Crude Oil", "BZ=F": "Brent Crude",
-    "SI=F": "Silver", "NG=F": "Natural Gas", "ZW=F": "Wheat",
-    "HG=F": "Copper", "ZC=F": "Corn", "PL=F": "Platinum",
-}
-
-INDEX_NAMES = {
-    "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq",
-    "^RUT": "Russell 2000", "^VIX": "VIX", "^FTSE": "FTSE 100",
-    "^N225": "Nikkei 225",
-}
-
 def _fetch(ticker: str) -> dict | None:
     try:
         t = yf.Ticker(ticker)
@@ -60,42 +34,16 @@ def _fetch(ticker: str) -> dict | None:
     except Exception:
         return None
 
-def get_stock(ticker: str) -> dict | None:
-    d = _fetch(ticker.upper())
+def get_crypto_price(symbol: str) -> dict | None:
+    sym = symbol.upper()
+    ticker = CRYPTO_TICKERS.get(sym, sym + "-USD")
+    d = _fetch(ticker)
     if not d:
         return None
-    try:
-        info = yf.Ticker(ticker).info
-        d["market_cap"] = info.get("marketCap")
-        d["name"] = info.get("shortName") or info.get("longName") or ticker
-    except Exception:
-        d["name"] = ticker
-    return d
-
-def get_commodity(ticker: str) -> dict | None:
-    t = ticker.upper()
-    d = _fetch(t)
-    if not d:
-        return None
-    d["name"] = COMMODITY_NAMES.get(t, t)
-    return d
-
-def get_forex(pair: str) -> dict | None:
-    p = pair.upper()
-    if "=" not in p:
-        p = p + "=X"
-    d = _fetch(p)
-    if not d:
-        return None
-    d["pair"] = pair
-    d["rate"] = d.pop("price")
-    return d
-
-def get_index(ticker: str) -> dict | None:
-    t = ticker.upper()
-    d = _fetch(t)
-    if not d:
-        return None
-    d["name"] = INDEX_NAMES.get(t, t)
-    d["value"] = d.pop("price")
-    return d
+    return {
+        "symbol": sym,
+        "price": d["price"],
+        "change_24h": d["change_pct"],
+        "currency": "USD",
+        "source": "yfinance",
+    }

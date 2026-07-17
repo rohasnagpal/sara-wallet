@@ -16,6 +16,7 @@ Thanks for your interest in contributing to Sara. This is an open-source project
   - [Adding a New AI Provider](#adding-a-new-ai-provider)
   - [Frontend Changes](#frontend-changes)
   - [Bug Fixes](#bug-fixes)
+- [Testing](#testing)
 - [Pull Request Process](#pull-request-process)
 - [Code Style](#code-style)
 - [Security](#security)
@@ -24,7 +25,7 @@ Thanks for your interest in contributing to Sara. This is an open-source project
 
 ## Ways to Contribute
 
-- **Build a tool** — market data, DeFi, prediction markets, trading, anything useful
+- **Build a tool** — payment flows, reconciliation, market data, trading, anything useful
 - **Add a chain** — new EVM chain, or a non-EVM network
 - **Fix a bug** — check the Issues tab for known bugs
 - **Improve the UI** — the frontend is a single `index.html`, no build step needed
@@ -48,10 +49,10 @@ The setup is the same as the main Getting Started guide in the README.
 ```bash
 git clone https://github.com/rohasnagpal/sara-wallet.git
 cd sara-wallet/backend
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-lock.txt
 ```
 
 Copy `.env` (repo root) to `.env.local` and set at minimum — `.env` is just
@@ -85,6 +86,7 @@ sara-wallet/
 └── backend/
     ├── main.py             # FastAPI app entrypoint
     ├── requirements.txt
+    ├── requirements-lock.txt
     └── app/
         ├── routers/        # HTTP route handlers (/api/*)
         ├── tools/          # Wallet, market, trading, and utility functions, routed to by regex intent matching in chat.py
@@ -149,6 +151,21 @@ When making frontend changes: test across Chrome and Firefox, keep the file self
 
 ---
 
+## Testing
+
+Sara has a small automated security regression suite in `backend/tests/` (`unittest`) — it covers things like rejecting swap/bridge results that move more than the confirmed input amount. It's not a full test suite for the app; most changes still need manual testing (see [Bug Fixes](#bug-fixes) above). CI (`.github/workflows/security.yml`) runs it on every push and PR, along with `pip check` and `pip-audit` against `requirements-lock.txt`.
+
+Run it locally the same way CI does:
+
+```bash
+cd backend
+PYTHONPATH=. python -m unittest discover -s tests -v
+```
+
+If you add a new tool that verifies transaction effects before signing (see `app/tools/market/tx_simulate.py` for the pattern), add a regression test for it here.
+
+---
+
 ## Pull Request Process
 
 1. Fork the repo and create a branch from `main`:
@@ -161,7 +178,7 @@ git checkout -b feature/describe-the-feature
 
 2. Make your changes. Keep commits focused — one logical change per commit.
 
-3. Test your changes manually. Sara doesn't have an automated test suite yet; make sure the relevant chat commands and UI flows still work.
+3. Test your changes manually — make sure the relevant chat commands and UI flows still work. Also run the automated security regression suite (see [Testing](#testing) below); it's a small suite, but it's what CI runs on every push and PR.
 
 4. Open a pull request against `main`. In the PR description, include:
    - What the change does
@@ -178,7 +195,8 @@ Sara's backend is Python. Follow these conventions:
 
 - Use clear, descriptive names. Prefer readability over brevity.
 - Don't introduce new dependencies without discussion. Open an issue first if you want to add a package.
-- Keep `requirements.txt` updated if you do add a dependency.
+- Keep `requirements.txt` updated if you add a dependency, then deliberately
+  regenerate and review `requirements-lock.txt`; CI installs and audits the lockfile.
 
 For the frontend (`index.html`), keep JavaScript readable and avoid abstractions that obscure what's happening. This is a wallet — the code should be easy to audit.
 

@@ -4,11 +4,11 @@ from pydantic import BaseModel
 from typing import Optional
 from app.db.session import SessionLocal
 from app.db.models import Wallet
-from app.tools.wallet.keygen import generate_evm_wallet, generate_solana_wallet
+from app.tools.wallet.keygen import generate_evm_wallet, generate_solana_wallet, generate_tron_wallet
 from app.tools.wallet.encrypt import encrypt_key, decrypt_key
 from app.tools.wallet.lock import WalletLockedError, unlock as verify_passphrase
 from app.tools.wallet.balance import get_wallet_balance
-from app.tools.wallet.send import execute_send
+from app.core.session_auth import require_session
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
 
@@ -28,18 +28,13 @@ class ImportWalletRequest(BaseModel):
     chain: str
     private_key: str  # hex string
 
-class SendRequest(BaseModel):
-    to: str
-    amount: float
-    network: Optional[str] = None
-
 class RenameWalletRequest(BaseModel):
     name: str
 
 class ExportWalletRequest(BaseModel):
     passphrase: str
 
-@router.post("/create")
+@router.post("/create", dependencies=[Depends(require_session)])
 def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
     if db.query(Wallet).filter(Wallet.name == req.name).first():
         raise HTTPException(400, "Wallet name already exists")
@@ -53,8 +48,12 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
             w = generate_solana_wallet()
             encrypted = encrypt_key(w["private_key_bytes"].hex())
             address = w["address"]
+        elif chain == "tron":
+            w = generate_tron_wallet()
+            encrypted = encrypt_key(w["private_key"])
+            address = w["address"]
         else:
-            raise HTTPException(400, "chain must be 'evm' or 'solana'")
+            raise HTTPException(400, "chain must be 'evm', 'solana', or 'tron'")
     except WalletLockedError as e:
         raise HTTPException(423, str(e))
 
@@ -64,7 +63,7 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
     db.refresh(wallet)
     return {"id": wallet.id, "name": wallet.name, "chain": wallet.chain, "address": wallet.address}
 
-@router.post("/import")
+@router.post("/import", dependencies=[Depends(require_session)])
 def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
     if db.query(Wallet).filter(Wallet.name == req.name).first():
         raise HTTPException(400, "Wallet name already exists")
@@ -83,8 +82,14 @@ def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
             address = str(kp.pubkey())
         except Exception:
             raise HTTPException(400, "Invalid Solana private key (hex bytes expected)")
+    elif chain == "tron":
+        from app.chains.tron import import_wallet as tron_import
+        try:
+            address = tron_import(req.private_key)["address"]
+        except Exception:
+            raise HTTPException(400, "Invalid Tron private key (hex expected)")
     else:
-        raise HTTPException(400, "chain must be 'evm' or 'solana'")
+        raise HTTPException(400, "chain must be 'evm', 'solana', or 'tron'")
 
     try:
         encrypted = encrypt_key(req.private_key)
@@ -101,7 +106,7 @@ def list_wallets(db: Session = Depends(get_db)):
     wallets = db.query(Wallet).all()
     return [{"id": w.id, "name": w.name, "chain": w.chain, "address": w.address} for w in wallets]
 
-@router.patch("/{wallet_id}")
+@router.patch("/{wallet_id}", dependencies=[Depends(require_session)])
 def rename_wallet(wallet_id: int, req: RenameWalletRequest, db: Session = Depends(get_db)):
     w = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not w:
@@ -115,7 +120,7 @@ def rename_wallet(wallet_id: int, req: RenameWalletRequest, db: Session = Depend
     db.commit()
     return {"id": w.id, "name": w.name, "chain": w.chain, "address": w.address}
 
-@router.delete("/{wallet_id}")
+@router.delete("/{wallet_id}", dependencies=[Depends(require_session)])
 def delete_wallet(wallet_id: int, db: Session = Depends(get_db)):
     w = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not w:
@@ -124,7 +129,7 @@ def delete_wallet(wallet_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"deleted": wallet_id}
 
-@router.post("/{wallet_id}/export")
+@router.post("/{wallet_id}/export", dependencies=[Depends(require_session)])
 def export_wallet(wallet_id: int, req: ExportWalletRequest, db: Session = Depends(get_db)):
     w = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not w:
@@ -149,15 +154,16 @@ def wallet_balance(wallet_id: int, network: Optional[str] = None, db: Session = 
     except Exception as e:
         raise HTTPException(502, str(e))
 
-@router.post("/{wallet_id}/send")
-def wallet_send(wallet_id: int, req: SendRequest, db: Session = Depends(get_db)):
-    w = db.query(Wallet).filter(Wallet.id == wallet_id).first()
-    if not w:
-        raise HTTPException(404, "Wallet not found")
-    try:
-        result = execute_send(w, req.to, req.amount, req.network)
-    except WalletLockedError as e:
-        raise HTTPException(423, str(e))
-    if result.get("status") == "failed":
-        raise HTTPException(502, result.get("error", "send failed"))
-    return result
+
+# Note: there is deliberately no direct "send" endpoint here. Every send
+# goes through the chat CONFIRM flow (app/routers/chat.py's _stream_send and
+# friends) so a human always sees and explicitly confirms exactly what's
+# about to move before it's signed. A prior direct-send endpoint bypassed
+# that entirely — the per-launch session token (app/core/session_auth.py)
+# proves a caller loaded this app's own served page, but it can't prove the
+# caller IS that page rather than another local process that also just
+# GETs it, so a same-machine attacker with no other foothold could reach it
+# and move funds with no confirmation step at all. Removed rather than
+# patched: it was unused by the frontend (confirmed — no fetch call
+# anywhere in index.html ever hit /wallets/{id}/send), so there was no
+# product behavior to preserve.

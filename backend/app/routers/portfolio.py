@@ -3,13 +3,17 @@ from sqlalchemy.orm import Session
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.db.session import get_db
 from app.db.models import Wallet
-from app.chains import evm as evm_chain, solana as sol_chain
+from app.chains import evm as evm_chain, solana as sol_chain, tron as tron_chain
 from app.tools.wallet.tokens import get_erc20_balances
 from app.tools.market.coingecko import get_multi_price, SYMBOL_TO_ID
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism", "bsc", "avalanche"]
+# Only the networks Alchemy's token-balance API actually supports (see
+# app/tools/wallet/tokens.py's _ALCHEMY_SLUGS) — bsc/avalanche aren't in
+# there, and would silently fall back to Ethereum's token list if queried.
+ERC20_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
 
 NATIVE_SYMBOLS = {
     "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
@@ -37,6 +41,19 @@ def get_portfolio(db: Session = Depends(get_db)):
                     holdings.append({"wallet": w.name, "chain": "solana", "symbol": "SOL", "balance": b["balance"]})
             except Exception:
                 pass
+        elif w.chain == "tron":
+            try:
+                b = tron_chain.get_balance(w.address)
+                if b["balance"] > 0:
+                    holdings.append({"wallet": w.name, "chain": "tron", "symbol": "TRX", "balance": b["balance"]})
+            except Exception:
+                pass
+            try:
+                usdt = tron_chain.get_trc20_balance(w.address, "USDT")
+                if usdt["balance"] > 0:
+                    holdings.append({"wallet": w.name, "chain": "tron", "symbol": "USDT", "balance": usdt["balance"]})
+            except Exception:
+                pass
         else:
             def _fetch(net, addr=w.address, wname=w.name):
                 try:
@@ -52,11 +69,22 @@ def get_portfolio(db: Session = Depends(get_db)):
                     r = result.result()
                     if r:
                         holdings.append(r)
-            # ERC-20 tokens via Alchemy (for any network that has a native balance)
-            funded_nets = {h["chain"] for h in holdings if h["wallet"] == w.name}
-            for net in (funded_nets or ["ethereum"]):
-                for tok in get_erc20_balances(w.address, net):
-                    holdings.append({"wallet": w.name, "chain": net, "symbol": tok["symbol"], "balance": tok["balance"]})
+            # ERC-20 tokens via Alchemy — checked on every network regardless
+            # of native balance there. A wallet can hold a bridged/received
+            # token on a chain it has zero native gas on (e.g. right after a
+            # cross-chain bridge, before ever funding gas there), so gating
+            # this on native balance made real token balances invisible.
+            def _fetch_tokens(net, addr=w.address):
+                try:
+                    return get_erc20_balances(addr, net)
+                except Exception:
+                    return []
+            with ThreadPoolExecutor(max_workers=5) as ex:
+                futures = {ex.submit(_fetch_tokens, net): net for net in ERC20_NETWORKS}
+                for fut in as_completed(futures, timeout=10):
+                    net = futures[fut]
+                    for tok in fut.result():
+                        holdings.append({"wallet": w.name, "chain": net, "symbol": tok["symbol"], "balance": tok["balance"]})
 
     # Fetch live prices for all unique symbols
     symbols = list({h["symbol"] for h in holdings})

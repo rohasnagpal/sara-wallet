@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import AddressBook
+from app.core.session_auth import require_session
 
 router = APIRouter(prefix="/directory", tags=["directory"])
 
@@ -19,7 +20,7 @@ def list_entries(db: Session = Depends(get_db)):
     return [{"id": r.id, "nickname": r.nickname, "address": r.address, "chain": r.chain} for r in rows]
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_session)])
 def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
     nick = body.nickname.strip().lower()
     if not nick:
@@ -34,7 +35,7 @@ def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
     return {"status": "saved", "nickname": nick}
 
 
-@router.delete("/{nickname}")
+@router.delete("/{nickname}", dependencies=[Depends(require_session)])
 def delete_entry(nickname: str, db: Session = Depends(get_db)):
     nick = nickname.strip().lower()
     row = db.query(AddressBook).filter(AddressBook.nickname == nick).first()

@@ -1,5 +1,6 @@
 from web3 import Web3
 import os
+from app.core.amounts import to_base_units
 
 _RPC = {
     "ethereum":  os.getenv("ETH_RPC")  or "https://ethereum.publicnode.com",
@@ -27,6 +28,17 @@ _NATIVE_TOKEN = {
     "avalanche": "AVAX",
 }
 
+# Chains Alchemy's API supports — shared by reconcile.py (asset-transfer
+# lookups) and tx_simulate.py (pre-signing simulation). bsc/avalanche are
+# real EVM networks Sara can send on (see _RPC above) but aren't in this
+# list, so anything gated on Alchemy support (reconciliation, and — more
+# importantly — simulation-based swap/bridge validation) simply isn't
+# available there yet.
+ALCHEMY_NETWORK_SLUGS = {
+    "ethereum": "eth-mainnet", "polygon": "polygon-mainnet", "arbitrum": "arb-mainnet",
+    "base": "base-mainnet", "optimism": "opt-mainnet",
+}
+
 def get_web3(network: str = "ethereum") -> Web3:
     network = network.lower()
     if network not in _RPC:
@@ -49,10 +61,10 @@ def get_native_transfer_preview(address: str, amount_eth: float, network: str = 
     w3 = get_web3(network)
     checksum = Web3.to_checksum_address(address)
     raw_balance = w3.eth.get_balance(checksum)
-    gas_price = w3.eth.gas_price
+    gas_price = int(w3.eth.gas_price * 1.2)  # margin for gas-price drift between preview and confirm, same as the ERC20 preview/Paraswap fix
     gas_limit = 21000
     fee_wei = gas_price * gas_limit
-    value_wei = w3.to_wei(amount_eth, "ether")
+    value_wei = to_base_units(amount_eth, 18, _NATIVE_TOKEN.get(network, "native asset"))
     total_wei = value_wei + fee_wei
     unit = _NATIVE_TOKEN.get(network, "ETH")
     return {
@@ -78,13 +90,17 @@ def _encode_uint(value: int) -> str:
     return hex(value)[2:].zfill(64)
 
 
-def get_erc20_balance(token_address: str, decimals: int, wallet_address: str, network: str = "ethereum") -> float:
-    """Read an ERC-20 balance directly via balanceOf() — no external API/key needed."""
+def _get_erc20_balance_raw(token_address: str, wallet_address: str,
+                           network: str = "ethereum") -> int:
     w3 = get_web3(network)
     calldata = "0x" + _ERC20_BALANCEOF_SELECTOR + _encode_address(wallet_address)
     result = w3.eth.call({"to": Web3.to_checksum_address(token_address), "data": calldata})
-    raw = int.from_bytes(result, "big")
-    return raw / (10 ** decimals)
+    return int.from_bytes(result, "big")
+
+
+def get_erc20_balance(token_address: str, decimals: int, wallet_address: str, network: str = "ethereum") -> float:
+    """Read an ERC-20 balance directly via balanceOf() — no external API/key needed."""
+    return _get_erc20_balance_raw(token_address, wallet_address, network) / (10 ** decimals)
 
 
 def get_erc20_transfer_preview(token_address: str, decimals: int, wallet_address: str,
@@ -94,8 +110,9 @@ def get_erc20_transfer_preview(token_address: str, decimals: int, wallet_address
     network = network.lower()
     w3 = get_web3(network)
     checksum = Web3.to_checksum_address(wallet_address)
-    token_balance = get_erc20_balance(token_address, decimals, wallet_address, network)
-    amount_raw = int(round(amount * (10 ** decimals)))
+    token_balance_raw = _get_erc20_balance_raw(token_address, wallet_address, network)
+    token_balance = token_balance_raw / (10 ** decimals)
+    amount_raw = to_base_units(amount, decimals, "token")
     calldata = "0x" + _ERC20_TRANSFER_SELECTOR + _encode_address(to) + _encode_uint(amount_raw)
     gas_price = w3.eth.gas_price
     try:
@@ -114,7 +131,7 @@ def get_erc20_transfer_preview(token_address: str, decimals: int, wallet_address
         "network": network,
         "amount": amount,
         "token_balance": token_balance,
-        "has_token_funds": token_balance >= amount,
+        "has_token_funds": token_balance_raw >= amount_raw,
         "gas_fee": float(w3.from_wei(fee_wei, "ether")),
         "native_balance": float(w3.from_wei(native_balance_wei, "ether")),
         "has_gas_funds": native_balance_wei >= fee_wei,
@@ -176,7 +193,7 @@ def send_tx(private_key: str, to: str, amount_eth: float, network: str = "ethere
     tx = {
         "nonce": nonce,
         "to": Web3.to_checksum_address(to),
-        "value": w3.to_wei(amount_eth, "ether"),
+        "value": to_base_units(amount_eth, 18, _NATIVE_TOKEN.get(network, "native asset")),
         "gas": 21000,
         "gasPrice": gas_price,
         "chainId": chain_id,

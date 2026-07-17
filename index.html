@@ -552,8 +552,6 @@ select.settings-input { text-overflow: ellipsis; }
 /* ══════════════════════════════════════
    CARDS
 ══════════════════════════════════════ */
-.cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -570,14 +568,7 @@ select.settings-input { text-overflow: ellipsis; }
 .card-mini-icon:hover { background: var(--sidebar-nav-active); }
 
 .card-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 5px; font-family: var(--font-body); }
-.badge { font-size: 9.5px; padding: 2px 5px; border-radius: 5px; font-weight: 600; }
 .badge-warn { background: rgba(245,158,11,0.12); color: #d97706; }
-.badge-up { background: rgba(34,197,94,0.12); color: #16a34a; }
-.badge-down { background: rgba(239,68,68,0.12); color: #dc2626; }
-
-.card-value { font-size: 26px; font-weight: 700; letter-spacing: -0.8px; font-family: var(--font-mono); line-height: 1; color: var(--text-primary); }
-.card-value span { font-size: 13px; color: var(--text-muted); font-weight: 400; }
-.card-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; }
 
 /* Bar chart */
 .bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 32px; }
@@ -908,6 +899,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     <input class="lock-input" id="lockInput" type="password" placeholder="Passphrase" autocomplete="off">
     <input class="lock-input" id="lockConfirmInput" type="password" placeholder="Confirm passphrase" autocomplete="off" style="display:none">
     <button class="lock-btn" id="lockSubmitBtn" onclick="submitLock()">Unlock</button>
+    <button class="lock-btn" id="lockCancelBtn" onclick="cancelTransactionConfirmation()" style="display:none;margin-top:8px;background:transparent;border:1px solid var(--border-dark);color:var(--text-primary)">Cancel</button>
     <div class="lock-status" id="lockStatus"></div>
   </div>
 </div>
@@ -919,19 +911,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
     <div class="s1-logo">🎯</div>
-    <div class="s1-coins">
-      <div class="s1-coin" data-id="BNB"  title="BNB"         onclick="selectCoinSidebar('BNB')"><img src="/images/cryptos/BNB.png"  alt="BNB"></div>
-      <div class="s1-coin" data-id="BTC"  title="Bitcoin"     onclick="selectCoinSidebar('BTC')"><img src="/images/cryptos/BTC.png"  alt="BTC"></div>
-      <div class="s1-coin" data-id="DOGE" title="Dogecoin"    onclick="selectCoinSidebar('DOGE')"><img src="/images/cryptos/DOGE.png" alt="DOGE"></div>
-      <div class="s1-coin" data-id="ETH"  title="Ethereum"    onclick="selectCoinSidebar('ETH')"><img src="/images/cryptos/ETH.png"  alt="ETH"></div>
-      <div class="s1-coin" data-id="LINK" title="Chainlink"   onclick="selectCoinSidebar('LINK')"><img src="/images/cryptos/LINK.png" alt="LINK"></div>
-      <div class="s1-coin" data-id="LTC"  title="Litecoin"    onclick="selectCoinSidebar('LTC')"><img src="/images/cryptos/LTC.png"  alt="LTC"></div>
-      <div class="s1-coin" data-id="SOL"  title="Solana"      onclick="selectCoinSidebar('SOL')"><img src="/images/cryptos/SOL.png"  alt="SOL"></div>
-      <div class="s1-coin" data-id="TRX"  title="Tron"        onclick="selectCoinSidebar('TRX')"><img src="/images/cryptos/TRX.png"  alt="TRX"></div>
-      <div class="s1-coin" data-id="XMR"  title="Monero"      onclick="selectCoinSidebar('XMR')"><img src="/images/cryptos/XMR.png"  alt="XMR"></div>
-      <div class="s1-coin" data-id="XRP"  title="XRP"         onclick="selectCoinSidebar('XRP')"><img src="/images/cryptos/XRP.png"  alt="XRP"></div>
-      <div class="s1-coin" data-id="ZEC"  title="Zcash"       onclick="selectCoinSidebar('ZEC')"><img src="/images/cryptos/ZEC.png"  alt="ZEC"></div>
-    </div>
+    <div class="s1-coins" id="s1Coins"></div>
     <div class="s1-add" onclick="openWalletModal()" title="Add wallet">+</div>
     <div class="s1-btn" id="s1BtnDir" onclick="showCol2('directory')" title="Address Book">📖</div>
     <div class="s1-btn" id="s1BtnSettings" onclick="showCol2('settings')" title="API Keys & Settings">⚙</div>
@@ -943,45 +923,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <div class="s2-title">Sara AI Wallet</div>
     </div>
     <div class="watchlist-header">
-      <div class="watchlist-title">Assets</div>
+      <div class="watchlist-title">Holdings</div>
       <button class="wallet-add-btn" onclick="openWalletModal()" title="Add wallet">+</button>
     </div>
 
-    <div class="watchlist-scroll">
-
-    <div class="watchlist-section-label">Crypto</div>
-    <div id="cryptoList">
-      <div class="asset-item" data-id="BNB"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">⬡</div><div class="asset-info"><div class="asset-name">BNB</div><div class="asset-sym">BNB</div></div><div class="asset-right"><div class="asset-price" id="p-BNB">—</div><div class="asset-chg" id="c-BNB">—</div></div></div>
-      <div class="asset-item" data-id="BTC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">₿</div><div class="asset-info"><div class="asset-name">Bitcoin</div><div class="asset-sym">BTC</div></div><div class="asset-right"><div class="asset-price" id="p-BTC">—</div><div class="asset-chg" id="c-BTC">—</div></div></div>
-      <div class="asset-item" data-id="DOGE"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ð</div><div class="asset-info"><div class="asset-name">Dogecoin</div><div class="asset-sym">DOGE</div></div><div class="asset-right"><div class="asset-price" id="p-DOGE">—</div><div class="asset-chg" id="c-DOGE">—</div></div></div>
-      <div class="asset-item" data-id="ETH"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ξ</div><div class="asset-info"><div class="asset-name">Ethereum</div><div class="asset-sym">ETH</div></div><div class="asset-right"><div class="asset-price" id="p-ETH">—</div><div class="asset-chg" id="c-ETH">—</div></div></div>
-      <div class="asset-item" data-id="LINK"  data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">🔗</div><div class="asset-info"><div class="asset-name">Chainlink</div><div class="asset-sym">LINK</div></div><div class="asset-right"><div class="asset-price" id="p-LINK">—</div><div class="asset-chg" id="c-LINK">—</div></div></div>
-      <div class="asset-item" data-id="LTC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">Ł</div><div class="asset-info"><div class="asset-name">Litecoin</div><div class="asset-sym">LTC</div></div><div class="asset-right"><div class="asset-price" id="p-LTC">—</div><div class="asset-chg" id="c-LTC">—</div></div></div>
-      <div class="asset-item" data-id="SOL"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◎</div><div class="asset-info"><div class="asset-name">Solana</div><div class="asset-sym">SOL</div></div><div class="asset-right"><div class="asset-price" id="p-SOL">—</div><div class="asset-chg" id="c-SOL">—</div></div></div>
-      <div class="asset-item" data-id="TRX"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">◈</div><div class="asset-info"><div class="asset-name">Tron</div><div class="asset-sym">TRX</div></div><div class="asset-right"><div class="asset-price" id="p-TRX">—</div><div class="asset-chg" id="c-TRX">—</div></div></div>
-      <div class="asset-item" data-id="XMR"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">ɱ</div><div class="asset-info"><div class="asset-name">Monero</div><div class="asset-sym">XMR</div></div><div class="asset-right"><div class="asset-price" id="p-XMR">—</div><div class="asset-chg" id="c-XMR">—</div></div></div>
-      <div class="asset-item" data-id="XRP"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">✕</div><div class="asset-info"><div class="asset-name">XRP</div><div class="asset-sym">XRP</div></div><div class="asset-right"><div class="asset-price" id="p-XRP">—</div><div class="asset-chg" id="c-XRP">—</div></div></div>
-      <div class="asset-item" data-id="ZEC"   data-type="crypto"    onclick="selectAsset(this)"><div class="asset-icon">ⓩ</div><div class="asset-info"><div class="asset-name">Zcash</div><div class="asset-sym">ZEC</div></div><div class="asset-right"><div class="asset-price" id="p-ZEC">—</div><div class="asset-chg" id="c-ZEC">—</div></div></div>
-    </div>
-
-    <div class="watchlist-section-label">Commodities</div>
-    <div id="commodityList">
-      <div class="asset-item" data-id="BZ=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🛢️</div><div class="asset-info"><div class="asset-name">Brent</div><div class="asset-sym">BZ/USD</div></div><div class="asset-right"><div class="asset-price" id="p-BZF">—</div><div class="asset-chg" id="c-BZF">—</div></div></div>
-      <div class="asset-item" data-id="HG=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🔶</div><div class="asset-info"><div class="asset-name">Copper</div><div class="asset-sym">HG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-HGF">—</div><div class="asset-chg" id="c-HGF">—</div></div></div>
-      <div class="asset-item active" data-id="GC=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🥇</div><div class="asset-info"><div class="asset-name">Gold</div><div class="asset-sym">XAU/USD</div></div><div class="asset-right"><div class="asset-price" id="p-GCF">—</div><div class="asset-chg" id="c-GCF">—</div></div></div>
-      <div class="asset-item" data-id="NG=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🔥</div><div class="asset-info"><div class="asset-name">Nat Gas</div><div class="asset-sym">NG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-NGF">—</div><div class="asset-chg" id="c-NGF">—</div></div></div>
-      <div class="asset-item" data-id="SI=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🥈</div><div class="asset-info"><div class="asset-name">Silver</div><div class="asset-sym">XAG/USD</div></div><div class="asset-right"><div class="asset-price" id="p-SIF">—</div><div class="asset-chg" id="c-SIF">—</div></div></div>
-      <div class="asset-item" data-id="CL=F"  data-type="commodity" onclick="selectAsset(this)"><div class="asset-icon">🛢️</div><div class="asset-info"><div class="asset-name">WTI Oil</div><div class="asset-sym">CL/USD</div></div><div class="asset-right"><div class="asset-price" id="p-CLF">—</div><div class="asset-chg" id="c-CLF">—</div></div></div>
-    </div>
-
-    <div class="watchlist-section-label">Forex</div>
-    <div id="forexList">
-      <div class="asset-item" data-id="AUDUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">$</div><div class="asset-info"><div class="asset-name">Aussie</div><div class="asset-sym">AUD/USD</div></div><div class="asset-right"><div class="asset-price" id="p-AUDUSD">—</div><div class="asset-chg" id="c-AUDUSD">—</div></div></div>
-      <div class="asset-item" data-id="EURUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">€</div><div class="asset-info"><div class="asset-name">Euro</div><div class="asset-sym">EUR/USD</div></div><div class="asset-right"><div class="asset-price" id="p-EURUSD">—</div><div class="asset-chg" id="c-EURUSD">—</div></div></div>
-      <div class="asset-item" data-id="GBPUSD=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">£</div><div class="asset-info"><div class="asset-name">Pound</div><div class="asset-sym">GBP/USD</div></div><div class="asset-right"><div class="asset-price" id="p-GBPUSD">—</div><div class="asset-chg" id="c-GBPUSD">—</div></div></div>
-      <div class="asset-item" data-id="USDJPY=X" data-type="forex" onclick="selectAsset(this)"><div class="asset-icon">¥</div><div class="asset-info"><div class="asset-name">Yen</div><div class="asset-sym">USD/JPY</div></div><div class="asset-right"><div class="asset-price" id="p-USDJPY">—</div><div class="asset-chg" id="c-USDJPY">—</div></div></div>
-    </div>
-
+    <div class="watchlist-scroll" id="holdingsScroll">
+      <div style="padding:14px;font-size:11px;color:var(--text-muted)">Loading…</div>
     </div><!-- /watchlist-scroll -->
   </div>
 
@@ -1009,7 +956,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <!-- Col2 panel nav (hidden on asset view) -->
         <div class="col2-panel-nav" id="col2Nav">
-          <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Charts</button>
+          <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
         </div>
@@ -1017,94 +964,48 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Asset View ── -->
         <div id="assetView">
 
-        <!-- Asset headline -->
+        <!-- Total portfolio headline -->
         <div class="card" style="margin-bottom:0">
           <div class="card-header" style="margin-bottom:6px">
             <div style="display:flex;align-items:center;gap:8px;">
-              <div class="card-icon" id="assetIcon">🥇</div>
+              <div class="card-icon">💰</div>
               <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-primary)" id="assetName">Gold</div>
-                <div style="font-size:10px;color:var(--text-muted)" id="assetSym">XAU/USD · Commodity</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Total Portfolio Value</div>
+                <div style="font-size:10px;color:var(--text-muted)" id="portfolioChainCount">—</div>
               </div>
             </div>
           </div>
           <div class="asset-headline">
-            <div class="asset-headline-price" id="assetPrice">—</div>
-            <div class="asset-headline-chg" id="assetChg">—</div>
+            <div class="asset-headline-price" id="portfolioTotal">$0.00</div>
+            <div class="asset-headline-chg" id="portfolioChg">—</div>
           </div>
-          <div class="asset-headline-sub" id="assetUpdated">Loading…</div>
+          <div class="asset-headline-sub" id="portfolioUpdated">Loading…</div>
         </div>
 
-        <!-- Stat cards row -->
-        <div class="cards-row" style="margin-top:10px">
-          <div class="card">
-            <div class="card-label" id="stat1Label">Open</div>
-            <div class="card-value" id="stat1Val">—</div>
+        <!-- Allocation + Gas status -->
+        <div class="charts-row" style="margin-top:10px">
+          <div class="donut-card">
+            <div class="card-label">Allocation</div>
+            <div class="donut-wrap">
+              <div class="donut-svg" id="allocDonut" style="border-radius:50%;background:var(--bg-card2)"></div>
+              <div class="donut-legend" id="allocLegend"></div>
+            </div>
           </div>
-          <div class="card">
-            <div class="card-label" id="stat2Label">Prev Close</div>
-            <div class="card-value" id="stat2Val">—</div>
+          <div class="gas-card">
+            <div class="card-label">Gas Status</div>
+            <div id="gasStatusList" style="margin-top:8px"></div>
           </div>
         </div>
 
-        <!-- 5d chart -->
+        <!-- Holdings -->
         <div class="chart-card" style="margin-top:10px">
           <div class="card-header">
             <div style="display:flex;align-items:center;gap:8px;">
-              <div class="card-icon">📊</div>
-              <div class="card-label">5d <span class="badge badge-up" id="chartBadge5d">…</span></div>
+              <div class="card-icon">📋</div>
+              <div class="card-label">Holdings by Wallet</div>
             </div>
           </div>
-          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart5d">
-            <defs>
-              <linearGradient id="chartGrad5d" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" id="gradStop1-5d"/>
-                <stop offset="100%" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path id="chartArea5d" fill="url(#chartGrad5d)"/>
-            <path id="chartLine5d" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-
-        <!-- 1mo chart -->
-        <div class="chart-card" style="margin-top:10px">
-          <div class="card-header">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div class="card-icon">📈</div>
-              <div class="card-label">1mo <span class="badge badge-up" id="chartBadge">…</span></div>
-            </div>
-          </div>
-          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart">
-            <defs>
-              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" id="gradStop1"/>
-                <stop offset="100%" id="gradStop2" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path id="chartArea" fill="url(#chartGrad)"/>
-            <path id="chartLine" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-
-        <!-- 3mo chart -->
-        <div class="chart-card" style="margin-top:10px">
-          <div class="card-header">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div class="card-icon">📉</div>
-              <div class="card-label">3mo <span class="badge badge-up" id="chartBadge3m">…</span></div>
-            </div>
-          </div>
-          <svg class="line-chart" viewBox="0 0 500 72" preserveAspectRatio="none" id="lineChart3m">
-            <defs>
-              <linearGradient id="chartGrad3m" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" id="gradStop1-3m"/>
-                <stop offset="100%" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path id="chartArea3m" fill="url(#chartGrad3m)"/>
-            <path id="chartLine3m" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <div id="holdingsDetailList"></div>
         </div>
 
         </div><!-- /assetView -->
@@ -1127,7 +1028,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 </div>
               </div>
               <div class="settings-row" id="aiKeyRow">
-                <div class="settings-label" id="aiKeyLabel">OpenRouter API Key <span id="smask-AI_KEY"></span></div>
+                <div class="settings-label" id="aiKeyLabel">OpenRouter API Key</div>
                 <div class="settings-input-row">
                   <input class="settings-input" id="sinput-AI_KEY" type="password" placeholder="sk-or-…" autocomplete="off">
                   <button class="settings-save-btn" onclick="saveAIKey()">Save</button>
@@ -1141,7 +1042,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="settings-section-title">Data APIs</div>
 
             <div class="settings-row" id="srow-COINGECKO_API_KEY">
-              <div class="settings-label">CoinGecko API Key <span id="smask-COINGECKO_API_KEY"></span></div>
+              <div class="settings-label">CoinGecko API Key</div>
               <div class="settings-input-row">
                 <input class="settings-input" id="sinput-COINGECKO_API_KEY" type="password" placeholder="CG-… (optional)" autocomplete="off">
                 <button class="settings-save-btn" onclick="saveSetting('COINGECKO_API_KEY')">Save</button>
@@ -1150,7 +1051,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
 
             <div class="settings-row" id="srow-ALCHEMY_API_KEY">
-              <div class="settings-label">Alchemy API Key <span id="smask-ALCHEMY_API_KEY"></span></div>
+              <div class="settings-label">Alchemy API Key</div>
               <div class="settings-input-row">
                 <input class="settings-input" id="sinput-ALCHEMY_API_KEY" type="password" placeholder="(optional)" autocomplete="off">
                 <button class="settings-save-btn" onclick="saveSetting('ALCHEMY_API_KEY')">Save</button>
@@ -1159,12 +1060,21 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
 
             <div class="settings-row" id="srow-HELIUS_RPC">
-              <div class="settings-label">Helius RPC URL <span id="smask-HELIUS_RPC"></span></div>
+              <div class="settings-label">Helius RPC URL</div>
               <div class="settings-input-row">
                 <input class="settings-input" id="sinput-HELIUS_RPC" type="password" placeholder="https://… (optional)" autocomplete="off">
                 <button class="settings-save-btn" onclick="saveSetting('HELIUS_RPC')">Save</button>
               </div>
               <div class="settings-status" id="sstatus-HELIUS_RPC"></div>
+            </div>
+
+            <div class="settings-row" id="srow-TRONGRID_API_KEY">
+              <div class="settings-label">TronGrid API Key</div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="sinput-TRONGRID_API_KEY" type="password" placeholder="(needed for Tron USDT balances/sends)" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveSetting('TRONGRID_API_KEY')">Save</button>
+              </div>
+              <div class="settings-status" id="sstatus-TRONGRID_API_KEY"></div>
             </div>
 
             <!-- Security -->
@@ -1196,6 +1106,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <select class="dir-input" id="dirChain" style="max-width:90px">
                   <option value="evm">EVM</option>
                   <option value="solana">Solana</option>
+                  <option value="tron">Tron</option>
                 </select>
               </div>
               <div class="dir-add-row">
@@ -1226,15 +1137,17 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-suggestions" id="chatSuggestions">
           <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
-          <div class="chat-chip" onclick="sendChip(this)">List my wallets</div>
-          <div class="chat-chip" onclick="sendChip(this)">BTC price</div>
-          <div class="chat-chip" onclick="sendChip(this)">What's trending on Polymarket</div>
-          <div class="chat-chip" onclick="sendChip(this)">Top DeFi yields</div>
-          <div class="chat-chip" onclick="sendChip(this)">Hyperliquid Assets</div>
-          <div class="chat-chip" onclick="sendChip(this)">Swap 1 POL for USDC</div>
-          <div class="chat-chip" onclick="sendChip(this)">How to bridge chains</div>
-          <div class="chat-chip" onclick="sendChip(this)">ETH sentiment</div>
-          <div class="chat-chip" onclick="sendChip(this)">Show my portfolio</div>
+          <div class="chat-chip" onclick="showSampleMessage('bridge 1 USDC from polygon to arbitrum')">Bridge</div>
+          <div class="chat-chip" onclick="sendChip(this)">My wallets</div>
+          <div class="chat-chip" onclick="sendChip(this)">My portfolio</div>
+          <div class="chat-chip" onclick="showSampleMessage('swap 1 POL for USDC')">Swap</div>
+        </div>
+
+        <div class="chat-suggestions" id="chatToolPills" style="padding-top:0">
+          <div class="chat-chip" onclick="showTrustedTokensInChat()" title="View every contract address Sara trusts">🛡️ Trusted Tokens</div>
+          <div class="chat-chip" onclick="showPaymentLinkFormInChat()" title="Request a payment via link or QR code">🔗 Payment Links</div>
+          <div class="chat-chip" id="scanPayPill" onclick="openScanPayModal()" title="Scan a Sara payment QR code">📷 Scan to Pay</div>
+          <div class="chat-chip" onclick="showPaymentRequestsInChat()" title="Track and reconcile requests you've sent">📋 Payment Requests</div>
         </div>
 
         <div class="chat-input-wrap">
@@ -1271,7 +1184,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <select class="wallet-form-select" id="walletChain">
         <option value="evm">EVM (Ethereum, Arbitrum, Base, Polygon, Optimism, BSC, Avalanche)</option>
         <option value="solana">Solana</option>
-        <option value="bitcoin" disabled>Bitcoin (BTC) — Coming soon</option>
+        <option value="tron">Tron</option>
       </select>
     </div>
     <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
@@ -1323,13 +1236,39 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   </div>
 </div>
 
+<!-- ── Scan to Pay Modal ── -->
+<div class="wallet-modal-overlay" id="scanPayOverlay" onclick="closeScanPayModal(event)">
+  <div class="wallet-modal" onclick="event.stopPropagation()" style="width:360px">
+    <div class="wallet-modal-title">📷 Scan to Pay</div>
+    <video id="scanPayVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000"></video>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px" id="scanPayStatus">Point the camera at a Sara payment QR code.</div>
+    <div class="wallet-modal-actions">
+      <button class="wallet-btn-cancel" onclick="closeScanPayModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════
 // LOCK / UNLOCK
 // ══════════════════════════════════════
-let _lockMode = 'unlock'; // 'unlock' | 'setup'
+let _lockMode = 'unlock'; // 'unlock' | 'setup' | 'confirm'
+let _transactionPassphraseResolver = null;
 
-const _origFetch = window.fetch.bind(window);
+// Every mutating/sensitive backend endpoint now requires this per-launch
+// token (see backend/app/core/session_auth.py) — injected into `<head>` by
+// the server itself on page load, never persisted anywhere. Adding it here,
+// in the one place the app already wraps every outgoing fetch (for 423
+// handling below), means every one of this file's ~20 other `fetch(...)`
+// call sites gets it automatically with no per-call-site changes.
+const _rawFetch = window.fetch.bind(window);
+function _withAuthHeaders(init) {
+  init = init || {};
+  const headers = new Headers(init.headers || {});
+  if (window.__SARA_SESSION__) headers.set('X-Sara-Session', window.__SARA_SESSION__);
+  return { ...init, headers };
+}
+const _origFetch = (input, init) => _rawFetch(input, _withAuthHeaders(init));
 window.fetch = async (...args) => {
   const res = await _origFetch(...args);
   if (res.status === 423 && !String(args[0]).includes('/api/lock/')) {
@@ -1344,11 +1283,17 @@ function showLockOverlay(mode, subMessage) {
   document.getElementById('lockInput').value = '';
   document.getElementById('lockConfirmInput').value = '';
   document.getElementById('lockStatus').textContent = '';
+  document.getElementById('lockCancelBtn').style.display = mode === 'confirm' ? '' : 'none';
   if (mode === 'setup') {
     document.getElementById('lockTitle').textContent = 'Set up Sara';
     document.getElementById('lockSub').textContent = subMessage || 'Create a passphrase to protect your wallets. You\'ll need it every time you unlock Sara.';
     document.getElementById('lockConfirmInput').style.display = '';
     document.getElementById('lockSubmitBtn').textContent = 'Create';
+  } else if (mode === 'confirm') {
+    document.getElementById('lockTitle').textContent = 'Authorize transaction';
+    document.getElementById('lockSub').textContent = subMessage || 'Re-enter your Sara passphrase to authorize this transaction.';
+    document.getElementById('lockConfirmInput').style.display = 'none';
+    document.getElementById('lockSubmitBtn').textContent = 'Authorize';
   } else {
     document.getElementById('lockTitle').textContent = 'Unlock Sara';
     document.getElementById('lockSub').textContent = subMessage || 'Enter your passphrase to unlock your wallets.';
@@ -1366,6 +1311,14 @@ async function submitLock() {
     const confirmPass = document.getElementById('lockConfirmInput').value;
     if (pass !== confirmPass) { statusEl.textContent = 'Passphrases do not match.'; return; }
   }
+  if (_lockMode === 'confirm') {
+    const resolve = _transactionPassphraseResolver;
+    _transactionPassphraseResolver = null;
+    document.getElementById('lockInput').value = '';
+    document.getElementById('lockOverlay').classList.remove('open');
+    if (resolve) resolve(pass);
+    return;
+  }
   const endpoint = _lockMode === 'setup' ? '/api/lock/setup' : '/api/lock/unlock';
   try {
     const r = await _origFetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({passphrase: pass}) });
@@ -1378,6 +1331,20 @@ async function submitLock() {
   } catch(e) {
     statusEl.textContent = 'Could not reach Sara. Is the server running?';
   }
+}
+
+function requestTransactionPassphrase() {
+  if (_transactionPassphraseResolver) return Promise.resolve(null);
+  showLockOverlay('confirm');
+  return new Promise(resolve => { _transactionPassphraseResolver = resolve; });
+}
+
+function cancelTransactionConfirmation() {
+  const resolve = _transactionPassphraseResolver;
+  _transactionPassphraseResolver = null;
+  document.getElementById('lockInput').value = '';
+  document.getElementById('lockOverlay').classList.remove('open');
+  if (resolve) resolve(null);
 }
 
 document.getElementById('lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitLock(); });
@@ -1417,55 +1384,9 @@ document.querySelectorAll('.theme-dot').forEach(dot => {
     dot.classList.add('active');
     themes.forEach(t => { shell.classList.remove('theme-'+t); appBg.classList.remove('theme-'+t); });
     if (theme !== 'default') { shell.classList.add('theme-'+theme); appBg.classList.add('theme-'+theme); }
-    setTimeout(() => { drawLineChart(); }, 60);
+    _renderAllocDonut();
   });
 });
-
-// ══════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════
-function getCSSVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
-         getComputedStyle(shell).getPropertyValue(name).trim();
-}
-function makeSmoothPath(xs, ys) {
-  let d = `M ${xs[0]} ${ys[0]}`;
-  for (let i = 1; i < xs.length; i++) {
-    const cpx = (xs[i-1]+xs[i])/2;
-    d += ` C ${cpx} ${ys[i-1]}, ${cpx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
-  }
-  return d;
-}
-
-// ══════════════════════════════════════
-// CHART DRAWING
-// ══════════════════════════════════════
-let _chartPts = [380,320,360,290,340,260,300,230,280,200,250,190,240,170,200,160,210,140,190,130];
-
-function _drawChart(pts, lineId, areaId, stop1Id) {
-  if (!pts || pts.length < 2) return;
-  const W=500, H=72;
-  const xs = pts.map((_,i) => i/((pts.length-1)||1)*W);
-  const mn = Math.min(...pts), mx = Math.max(...pts);
-  const range = mx - mn || 1;
-  const ys = pts.map(p => H - ((p-mn)/range)*(H-10) - 5);
-  const d = makeSmoothPath(xs, ys);
-  const area = d + ' L ' + xs[xs.length-1] + ' ' + H + ' L ' + xs[0] + ' ' + H + ' Z';
-  const accentColor = getCSSVar('--chart-line') || '#3d5a4a';
-  const lineEl = document.getElementById(lineId);
-  const areaEl = document.getElementById(areaId);
-  const stopEl = document.getElementById(stop1Id);
-  if (lineEl) { lineEl.setAttribute('d', d); lineEl.setAttribute('stroke', accentColor); }
-  if (areaEl) areaEl.setAttribute('d', area);
-  if (stopEl) { stopEl.setAttribute('stop-color', accentColor); stopEl.setAttribute('stop-opacity', '0.25'); }
-}
-
-function drawLineChart(pts) {
-  if (pts) _chartPts = pts;
-  _drawChart(_chartPts, 'chartLine', 'chartArea', 'gradStop1');
-}
-drawLineChart();
-
 
 // ══════════════════════════════════════
 // CHAT
@@ -1474,9 +1395,44 @@ const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
 
-const SESSION_ID = 'sara-' + Math.random().toString(36).slice(2);
+const SESSION_ID = 'sara-' + crypto.randomUUID();
 let chatHistory = [];
 let isStreaming = false;
+
+// Escapes text for safe use inside innerHTML — both as element content and
+// inside a quoted HTML attribute. MUST be applied to any string that didn't
+// originate from this file's own hardcoded literals: payment-link payloads
+// (unsigned, attacker-craftable), on-chain token metadata (symbol/name are
+// attacker-settable — a scam token can name itself anything), user-entered
+// notes/wallet names, and anything else that round-trips through the
+// backend from external input.
+function _escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// For a value passed as a single-quoted JS string-literal argument inside an
+// onclick="..." attribute — e.g. onclick="foo('${_jsAttrString(name)}')".
+// Escaping only the HTML layer (as _escapeHtml does) is NOT enough here: the
+// browser HTML-decodes the attribute before JS parses it, so an HTML-escaped
+// quote (&#39;) still becomes a real ' by the time it reaches the JS parser
+// and can terminate the string literal early. This escapes backslash/quote
+// for JS syntax first, then HTML-escapes the result for the attribute — the
+// pattern this codebase used before (bare `.replace(/'/g, "\\'")`) missed
+// double-quote escaping entirely, which let a value like `x" onmouseover="…`
+// break out of the attribute and inject new ones.
+function _jsAttrString(str) {
+  const jsEscaped = String(str == null ? '' : str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+  return _escapeHtml(jsEscaped);
+}
 
 function addMsg(text, role) {
   const div = document.createElement('div');
@@ -1485,8 +1441,27 @@ function addMsg(text, role) {
   if (role === 'bot') {
     div.innerHTML = `<div class="msg-avatar bot">🎯</div><div><div class="msg-bubble">${text}</div></div>`;
   } else {
-    div.innerHTML = `<div class="msg-avatar user-av">👤</div><div><div class="msg-bubble">${text}</div><div class="msg-time">${time}</div></div>`;
+    // The user's own message can contain anything they typed — including
+    // payment-link fields copied in verbatim by _chatPayRequest's "Review
+    // in Chat" flow, which are unsigned/attacker-craftable data from a
+    // scanned or pasted link, not something the user composed themselves.
+    // Escaping here (rather than trusting every caller to do it) closes
+    // that whole class regardless of where the text originated — e.g. the
+    // voice-dictation transcript at the other addMsg(text, 'user') call
+    // site gets the same protection for free.
+    div.innerHTML = `<div class="msg-avatar user-av">👤</div><div><div class="msg-bubble">${_escapeHtml(text)}</div><div class="msg-time">${time}</div></div>`;
   }
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Like addMsg('bot'), but the bubble gets an id so its content can be
+// updated in place later (interactive tool output — forms, lists with
+// actions — instead of a fresh message each time).
+function _addBotBubble(html, bubbleId) {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = `<div class="msg-avatar bot">🎯</div><div><div class="msg-bubble" id="${bubbleId}">${html}</div></div>`;
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -1503,6 +1478,11 @@ function showTyping() {
 async function sendMessage(text) {
   text = (text || chatInput.value).trim();
   if (!text || isStreaming) return;
+  let confirmationPassphrase = null;
+  if (text.toUpperCase() === 'CONFIRM') {
+    confirmationPassphrase = await requestTransactionPassphrase();
+    if (!confirmationPassphrase) return;
+  }
   isStreaming = true;
 
   addMsg(text, 'user');
@@ -1513,10 +1493,15 @@ async function sendMessage(text) {
   const typing = showTyping();
 
   try {
+    const reference = _activePaymentReference;
+    _activePaymentReference = null;
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: chatHistory.slice(-20), session_id: SESSION_ID })
+      body: JSON.stringify({
+        message: text, history: chatHistory.slice(-20), session_id: SESSION_ID, reference,
+        confirmation_passphrase: confirmationPassphrase,
+      })
     });
 
     typing.remove();
@@ -1579,6 +1564,18 @@ async function sendMessage(text) {
 
 function sendChip(el) { sendMessage(el.textContent); }
 
+// For chips that are just a category label (Bridge, Swap) rather than a
+// complete command — show an example instead of sending the label itself.
+function showSampleMessage(example) {
+  const safe = example.replace(/"/g, '&quot;');
+  addMsg(`Try something like:<br><code class="chat-addr" data-msg="${safe}" onclick="_fillSampleInput(this)" title="Click to use this">${example}<span class="copy-icon"> ✎</span></code>`, 'bot');
+}
+
+function _fillSampleInput(el) {
+  chatInput.value = el.dataset.msg;
+  chatInput.focus();
+}
+
 chatSend.addEventListener('click', () => sendMessage());
 chatInput.addEventListener('keydown', e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 chatInput.addEventListener('input', () => {
@@ -1626,158 +1623,432 @@ if (!_SpeechRecognition) {
 }
 
 // ══════════════════════════════════════
-// LIVE MARKET DATA (real API)
-// ══════════════════════════════════════
-// ══════════════════════════════════════
-// ASSET WATCHLIST + DETAIL
+// PORTFOLIO BALANCE VIEW
 // ══════════════════════════════════════
 
-// Descriptor map for every watchlist asset
-const ASSETS = {
-  // Crypto (alphabetical by symbol)
-  'BNB':      { type:'crypto',    yf:'BNB-USD',  label:'BNB',         sym:'BNB',      cat:'Cryptocurrency' },
-  'BTC':      { type:'crypto',    yf:'BTC-USD',  label:'Bitcoin',     sym:'BTC',      cat:'Cryptocurrency' },
-  'DOGE':     { type:'crypto',    yf:'DOGE-USD', label:'Dogecoin',    sym:'DOGE',     cat:'Cryptocurrency' },
-  'ETH':      { type:'crypto',    yf:'ETH-USD',  label:'Ethereum',    sym:'ETH',      cat:'Cryptocurrency' },
-  'LINK':     { type:'crypto',    yf:'LINK-USD', label:'Chainlink',   sym:'LINK',     cat:'Cryptocurrency' },
-  'LTC':      { type:'crypto',    yf:'LTC-USD',  label:'Litecoin',    sym:'LTC',      cat:'Cryptocurrency' },
-  'SOL':      { type:'crypto',    yf:'SOL-USD',  label:'Solana',      sym:'SOL',      cat:'Cryptocurrency' },
-  'TRX':      { type:'crypto',    yf:'TRX-USD',  label:'Tron',        sym:'TRX',      cat:'Cryptocurrency' },
-  'XMR':      { type:'crypto',    yf:'XMR-USD',  label:'Monero',      sym:'XMR',      cat:'Cryptocurrency' },
-  'XRP':      { type:'crypto',    yf:'XRP-USD',  label:'XRP',         sym:'XRP',      cat:'Cryptocurrency' },
-  'ZEC':      { type:'crypto',    yf:'ZEC-USD',  label:'Zcash',       sym:'ZEC',      cat:'Cryptocurrency' },
-  // Commodities (alphabetical by name)
-  'BZ=F':     { type:'commodity', yf:'BZ=F',     label:'Brent',       sym:'BZ/USD',   cat:'Commodity',    priceId:'BZF',    chgId:'BZF' },
-  'HG=F':     { type:'commodity', yf:'HG=F',     label:'Copper',      sym:'HG/USD',   cat:'Commodity',    priceId:'HGF',    chgId:'HGF' },
-  'GC=F':     { type:'commodity', yf:'GC=F',     label:'Gold',        sym:'XAU/USD',  cat:'Commodity',    priceId:'GCF',    chgId:'GCF' },
-  'NG=F':     { type:'commodity', yf:'NG=F',     label:'Nat Gas',     sym:'NG/USD',   cat:'Commodity',    priceId:'NGF',    chgId:'NGF' },
-  'SI=F':     { type:'commodity', yf:'SI=F',     label:'Silver',      sym:'XAG/USD',  cat:'Commodity',    priceId:'SIF',    chgId:'SIF' },
-  'CL=F':     { type:'commodity', yf:'CL=F',     label:'WTI Oil',     sym:'CL/USD',   cat:'Commodity',    priceId:'CLF',    chgId:'CLF' },
-  // Forex (alphabetical by name)
-  'AUDUSD=X': { type:'forex',     yf:'AUDUSD=X', label:'Aussie',      sym:'AUD/USD',  cat:'Forex',        priceId:'AUDUSD', chgId:'AUDUSD' },
-  'EURUSD=X': { type:'forex',     yf:'EURUSD=X', label:'Euro',        sym:'EUR/USD',  cat:'Forex',        priceId:'EURUSD', chgId:'EURUSD' },
-  'GBPUSD=X': { type:'forex',     yf:'GBPUSD=X', label:'Pound',       sym:'GBP/USD',  cat:'Forex',        priceId:'GBPUSD', chgId:'GBPUSD' },
-  'USDJPY=X': { type:'forex',     yf:'USDJPY=X', label:'Yen',         sym:'USD/JPY',  cat:'Forex',        priceId:'USDJPY', chgId:'USDJPY' },
-};
+const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'ETH', polygon:'POL', bsc:'BNB', avalanche:'AVAX', solana:'SOL', tron:'TRX' };
+const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'Optimism', polygon:'Polygon', bsc:'BNB Chain', avalanche:'Avalanche', solana:'Solana', tron:'Tron' };
+const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', MATIC:'🟣', BNB:'🟡', AVAX:'🔴', SOL:'🟠', TRX:'🟤', USDT:'🟢', USDC:'🔵' };
 
-// sidebar price element IDs — crypto use id=p-SYM, others use custom priceId
-function _priceElemId(id) {
-  const a = ASSETS[id];
-  return a.priceId ? 'p-' + a.priceId : 'p-' + id;
+function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '—'); }
+function _symbolIcon(sym) { return SYMBOL_ICONS[sym] || (sym ? sym.charAt(0) : '?'); }
+function _fmtUsd(n) {
+  return '$' + (n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
-function _chgElemId(id) {
-  const a = ASSETS[id];
-  return a.priceId ? 'c-' + a.priceId : 'c-' + id;
+function _fmtBal(n) {
+  n = n || 0;
+  if (n >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits: 2});
+  if (n >= 1)    return (n.toFixed(4)).replace(/\.?0+$/, '');
+  return (n.toFixed(6)).replace(/\.?0+$/, '');
 }
 
-function _fmt(price, type) {
-  if (price === null || price === undefined) return '—';
-  if (type === 'crypto' && price >= 1000) return '$' + price.toLocaleString('en-US', {maximumFractionDigits: 0});
-  if (type === 'crypto' && price >= 1)    return '$' + price.toFixed(2);
-  if (type === 'crypto')                  return '$' + price.toFixed(5);
-  if (type === 'forex')                   return price.toFixed(4);
-  return '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
+let _portfolioData = null;
+let _portfolioWallets = [];
 
-let _activeAssetId = 'GC=F';
-
-async function loadWatchlistPrices() {
-  const ids = Object.keys(ASSETS);
-  await Promise.allSettled(ids.map(async id => {
-    const a = ASSETS[id];
-    try {
-      const data = await fetch('/api/market/history/' + encodeURIComponent(a.yf) + '?period=2d').then(r => r.ok ? r.json() : null);
-      if (!data) return;
-      const price = data.current;
-      const prev  = data.prev_close || price;
-      const chgPct = prev ? ((price - prev) / prev * 100) : 0;
-      const pEl = document.getElementById(_priceElemId(id));
-      const cEl = document.getElementById(_chgElemId(id));
-      if (pEl) pEl.textContent = _fmt(price, a.type);
-      if (cEl) {
-        const sign = chgPct >= 0 ? '+' : '';
-        cEl.textContent = sign + chgPct.toFixed(2) + '%';
-        cEl.className = 'asset-chg ' + (chgPct >= 0 ? 'up' : 'down');
-      }
-      // Cache current + prev for detail view
-      a._current = price;
-      a._prev    = prev;
-      a._chgPct  = chgPct;
-    } catch(e) {}
-  }));
-}
-
-async function selectAsset(el) {
-  const id = el.dataset.id;
-  if (!id || !ASSETS[id]) return;
-  _activeAssetId = id;
-
-  // Highlight asset-item in sidebar2
-  document.querySelectorAll('.asset-item').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  // Sync sidebar1 coin highlight (only for crypto)
-  document.querySelectorAll('.s1-coin').forEach(c => c.classList.remove('active'));
-  const s1coin = document.querySelector('.s1-coin[data-id="' + id + '"]');
-  if (s1coin) s1coin.classList.add('active');
-
-  const a = ASSETS[id];
-  document.getElementById('topbarTitle').textContent = a.label;
-
-  // Update headline
-  document.getElementById('assetIcon').textContent = el.querySelector('.asset-icon').textContent;
-  document.getElementById('assetName').textContent = a.label;
-  document.getElementById('assetSym').textContent  = a.sym + ' · ' + a.cat;
-  document.getElementById('assetPrice').textContent = '—';
-  document.getElementById('assetChg').textContent   = '—';
-  document.getElementById('assetUpdated').textContent = 'Loading…';
-  document.getElementById('stat1Val').textContent   = '—';
-  document.getElementById('stat2Val').textContent   = '—';
-
-  // Load 5d, 1mo, 3mo history in parallel
+async function loadPortfolioView(isBackgroundPoll = false) {
   try {
-    const enc = encodeURIComponent(a.yf);
-    const [r5d, r1m, r3m] = await Promise.all([
-      fetch('/api/market/history/' + enc + '?period=5d').then(r => r.ok ? r.json() : null),
-      fetch('/api/market/history/' + enc + '?period=1mo').then(r => r.ok ? r.json() : null),
-      fetch('/api/market/history/' + enc + '?period=3mo').then(r => r.ok ? r.json() : null),
+    // The periodic setInterval refresh isn't real user activity — tagging it
+    // lets the backend's auto-lock timer skip extending on these requests,
+    // so leaving the tab open unattended still locks after inactivity.
+    const bgHeaders = isBackgroundPoll ? { 'X-Sara-Background': '1' } : {};
+    const [wallets, data] = await Promise.all([
+      fetch('/api/wallets', { headers: bgHeaders }).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/portfolio', { headers: bgHeaders }).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
+    _portfolioWallets = wallets || [];
+    _portfolioData = data;
+    _renderSidebarWallets(_portfolioWallets);
+    _renderHoldingsSidebar(_portfolioData, _portfolioWallets);
+    _renderPortfolioHeadline(_portfolioData);
+    _renderAllocDonut();
+    _renderGasStatus(_portfolioData);
+    _renderHoldingsDetail(_portfolioData, _portfolioWallets);
+  } catch(e) {}
+}
 
-    const data = r1m || r5d || r3m;
-    if (!data) { document.getElementById('assetUpdated').textContent = 'Data unavailable'; return; }
+function _renderSidebarWallets(wallets) {
+  const el = document.getElementById('s1Coins');
+  if (!el) return;
+  el.innerHTML = wallets.map(w => {
+    const initial = _escapeHtml((w.name || '?').trim().charAt(0).toUpperCase() || '?');
+    return `<div class="s1-coin" title="${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})" onclick="showCol2('directory')">${initial}</div>`;
+  }).join('');
+}
 
-    const price   = data.current;
-    const prev    = data.prev_close || price;
-    const openVal = data.open || prev;
-    const chgPct  = prev ? ((price - prev) / prev * 100) : 0;
-    const chgAbs  = price - prev;
-    const sign    = chgPct >= 0 ? '+' : '';
+function _renderHoldingsSidebar(data, wallets) {
+  const el = document.getElementById('holdingsScroll');
+  if (!el) return;
+  if (!wallets.length) {
+    el.innerHTML = '<div style="padding:14px;font-size:11px;color:var(--text-muted)">No wallets yet. Click + to add one.</div>';
+    return;
+  }
+  const assets = (data && data.assets) || [];
+  if (!assets.length) {
+    el.innerHTML = '<div style="padding:14px;font-size:11px;color:var(--text-muted)">No funded holdings yet.</div>';
+    return;
+  }
+  const byWallet = {};
+  assets.forEach(a => { (byWallet[a.wallet] = byWallet[a.wallet] || []).push(a); });
+  let html = '';
+  Object.keys(byWallet).forEach(wname => {
+    html += `<div class="watchlist-section-label">${_escapeHtml(wname)}</div>`;
+    byWallet[wname].sort((a, b) => b.usd_value - a.usd_value).forEach(a => {
+      const safeSymbol = _escapeHtml(a.symbol);
+      html += `<div class="asset-item" style="cursor:default"><div class="asset-icon">${_escapeHtml(_symbolIcon(a.symbol))}</div><div class="asset-info"><div class="asset-name">${safeSymbol}</div><div class="asset-sym">${_escapeHtml(_chainLabel(a.chain))}</div></div><div class="asset-right"><div class="asset-price">${_fmtUsd(a.usd_value)}</div><div class="asset-chg">${_fmtBal(a.balance)}</div></div></div>`;
+    });
+  });
+  el.innerHTML = html;
+}
 
-    document.getElementById('assetPrice').textContent = _fmt(price, a.type);
-    const chgEl = document.getElementById('assetChg');
-    chgEl.textContent  = sign + chgPct.toFixed(2) + '% (' + sign + _fmt(Math.abs(chgAbs), a.type).replace('$','') + ')';
-    chgEl.className    = 'asset-headline-chg ' + (chgPct >= 0 ? 'up' : 'down');
-    document.getElementById('assetUpdated').textContent = 'Updated just now · via Yahoo Finance';
+function _renderPortfolioHeadline(data) {
+  const total = document.getElementById('portfolioTotal');
+  const chg = document.getElementById('portfolioChg');
+  const updated = document.getElementById('portfolioUpdated');
+  const chainCount = document.getElementById('portfolioChainCount');
+  if (!data) { updated.textContent = 'Error loading portfolio'; return; }
+  total.textContent = _fmtUsd(data.total_usd);
+  const sign = data.change_24h_pct >= 0 ? '+' : '';
+  chg.textContent = sign + data.change_24h_pct.toFixed(2) + '% (24h)';
+  chg.className = 'asset-headline-chg ' + (data.change_24h_pct >= 0 ? 'up' : 'down');
+  const chains = Object.keys(data.by_chain || {});
+  chainCount.textContent = chains.length ? ('Across ' + chains.length + ' chain' + (chains.length > 1 ? 's' : '')) : 'No funded chains yet';
+  updated.textContent = 'Updated just now';
+}
 
-    // Stat cards
-    document.getElementById('stat1Val').textContent = _fmt(openVal, a.type);
-    document.getElementById('stat2Val').textContent = _fmt(prev, a.type);
+function _renderAllocDonut() {
+  const donut = document.getElementById('allocDonut');
+  const legend = document.getElementById('allocLegend');
+  if (!donut || !legend) return;
+  const alloc = (_portfolioData && _portfolioData.allocation) || [];
+  if (!alloc.length) {
+    donut.style.background = 'var(--bg-card2)';
+    legend.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No holdings yet</div>';
+    return;
+  }
+  let acc = 0;
+  const stops = alloc.map(a => {
+    const start = acc;
+    acc += a.pct;
+    return `${a.color} ${start}% ${acc}%`;
+  }).join(', ');
+  donut.style.background = `conic-gradient(${stops})`;
+  legend.innerHTML = alloc.slice(0, 6).map(a =>
+    `<div class="legend-row"><div class="legend-dot" style="background:${a.color}"></div><div class="legend-name">${_escapeHtml(a.name)}</div><div class="legend-pct">${Number(a.pct) || 0}%</div></div>`
+  ).join('');
+}
 
-    // Helper: draw a chart + update its badge
-    function _fillChart(d, lineId, areaId, stop1Id, badgeId) {
-      if (!d?.closes || d.closes.length < 2) return;
-      _drawChart(d.closes, lineId, areaId, stop1Id);
-      const chgPct = ((d.closes.at(-1) - d.closes[0]) / d.closes[0] * 100).toFixed(2);
-      const b = document.getElementById(badgeId);
-      if (b) { b.textContent = (chgPct >= 0 ? '+' : '') + chgPct + '%'; b.className = 'badge ' + (chgPct >= 0 ? 'badge-up' : 'badge-down'); }
+function _renderGasStatus(data) {
+  const el = document.getElementById('gasStatusList');
+  if (!el) return;
+  const assets = (data && data.assets) || [];
+  const seen = new Set();
+  const gasRows = [];
+  assets.forEach(a => {
+    const native = NATIVE_SYMBOLS[a.chain];
+    if (native && a.symbol === native && !seen.has(a.chain)) {
+      seen.add(a.chain);
+      gasRows.push(a);
     }
-    _fillChart(r5d, 'chartLine5d', 'chartArea5d', 'gradStop1-5d', 'chartBadge5d');
-    _fillChart(r1m, 'chartLine',   'chartArea',   'gradStop1',    'chartBadge');
-    _fillChart(r3m, 'chartLine3m', 'chartArea3m', 'gradStop1-3m', 'chartBadge3m');
-  } catch(e) {
-    document.getElementById('assetUpdated').textContent = 'Error loading data';
+  });
+  if (!gasRows.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No funded chains yet</div>';
+    return;
+  }
+  el.innerHTML = gasRows.map(a => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:11.5px">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${a.balance > 0 ? 'var(--green)' : 'var(--red)'};flex-shrink:0"></span>${_chainLabel(a.chain)}</span>
+      <span style="font-family:var(--font-mono);color:var(--text-secondary)">${_fmtBal(a.balance)} ${a.symbol}</span>
+    </div>`).join('');
+}
+
+function _renderHoldingsDetail(data, wallets) {
+  const el = document.getElementById('holdingsDetailList');
+  if (!el) return;
+  if (!wallets.length) {
+    el.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No wallets yet — click the + button to create or import one.</div>';
+    return;
+  }
+  const assets = (data && data.assets) || [];
+  if (!assets.length) {
+    el.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No funded holdings yet. Send crypto to a wallet address to see it here.</div>';
+    return;
+  }
+  const sorted = [...assets].sort((a, b) => b.usd_value - a.usd_value);
+  el.innerHTML = sorted.map(a => `
+    <div class="asset-item" style="cursor:default">
+      <div class="asset-icon">${_escapeHtml(_symbolIcon(a.symbol))}</div>
+      <div class="asset-info">
+        <div class="asset-name">${_escapeHtml(a.symbol)}</div>
+        <div class="asset-sym">${_escapeHtml(a.wallet)} · ${_escapeHtml(_chainLabel(a.chain))}</div>
+      </div>
+      <div class="asset-right">
+        <div class="asset-price">${_fmtUsd(a.usd_value)}</div>
+        <div class="asset-chg">${_fmtBal(a.balance)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// TRUSTED TOKENS (rendered inline in chat)
+// ══════════════════════════════════════
+
+async function showTrustedTokensInChat() {
+  try {
+    const data = await fetch('/api/tokens/trusted').then(r => r.json());
+    const chains = (data && data.chains) || [];
+    if (!chains.length) { addMsg('Could not load the trusted token list.', 'bot'); return; }
+    let html = '<div style="font-size:11.5px;line-height:1.6"><strong>🛡️ Trusted Tokens</strong><br>' +
+      'Sara only ever sends, swaps, or bridges tokens on this list — a scam token sharing a symbol (like a fake USDT) can never be substituted in.<br><br>';
+    chains.forEach(c => {
+      html += `<strong>${_escapeHtml(_chainLabel(c.chain))}</strong><br>`;
+      c.tokens.forEach(t => {
+        const safeSymbol = _escapeHtml(t.symbol);
+        if (t.native) {
+          html += `${safeSymbol} — native asset<br>`;
+        } else {
+          const short = _escapeHtml(t.address.slice(0, 8) + '…' + t.address.slice(-6));
+          const safeAddr = _escapeHtml(t.address);
+          html += `${safeSymbol} — <code class="chat-addr" data-addr="${safeAddr}" onclick="copyAddr(this)" title="Click to copy">${short}<span class="copy-icon"> ⎘</span></code><br>`;
+        }
+      });
+      html += '<br>';
+    });
+    html += '</div>';
+    addMsg(html, 'bot');
+  } catch (e) {
+    addMsg('Could not load the trusted token list.', 'bot');
   }
 }
 
+// ══════════════════════════════════════
+// PAYMENT LINKS + QR (rendered inline in chat)
+// ══════════════════════════════════════
+
+function showPaymentLinkFormInChat() {
+  const bubbleId = 'pl-' + Date.now();
+  const wallets = _portfolioWallets || [];
+  const walletOptions = wallets.length
+    ? wallets.map(w => `<option value="${_escapeHtml(w.name)}">${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})</option>`).join('')
+    : '<option value="">No wallets yet</option>';
+  const html = `
+    <div style="font-size:11.5px;margin-bottom:8px"><strong>🔗 Request a Payment</strong></div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:260px">
+      <select class="wallet-form-select" id="${bubbleId}-wallet" style="font-size:11.5px;padding:6px">${walletOptions}</select>
+      <input class="wallet-form-input" id="${bubbleId}-amount" type="number" min="0" step="any" placeholder="Amount, e.g. 10" style="font-size:11.5px;padding:6px">
+      <input class="wallet-form-input" id="${bubbleId}-token" placeholder="Token, e.g. USDC" style="font-size:11.5px;padding:6px">
+      <input class="wallet-form-input" id="${bubbleId}-note" placeholder="Note (optional)" style="font-size:11.5px;padding:6px">
+      <button class="wallet-btn-create" style="font-size:11.5px;padding:6px" onclick="_chatGenerateLink('${bubbleId}')">Generate</button>
+      <div style="font-size:10.5px;color:var(--red);min-height:13px" id="${bubbleId}-status"></div>
+    </div>`;
+  _addBotBubble(html, bubbleId);
+}
+
+async function _chatGenerateLink(bubbleId) {
+  const wallet_name = document.getElementById(bubbleId + '-wallet').value;
+  const amount = parseFloat(document.getElementById(bubbleId + '-amount').value);
+  const token = document.getElementById(bubbleId + '-token').value.trim();
+  const note = document.getElementById(bubbleId + '-note').value.trim();
+  const statusEl = document.getElementById(bubbleId + '-status');
+  if (!wallet_name) { statusEl.textContent = 'Add a wallet first.'; return; }
+  if (!amount || amount <= 0) { statusEl.textContent = 'Enter an amount greater than zero.'; return; }
+  if (!token) { statusEl.textContent = 'Enter a token symbol, e.g. USDC.'; return; }
+  statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Working…';
+  try {
+    const resp = await fetch('/api/payments/link', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wallet_name, amount, token, note }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Failed to create link');
+    const url = location.origin + '/?pay=' + data.payload;
+    const bubble = document.getElementById(bubbleId);
+    const safeRef = _escapeHtml(data.reference);
+    const safeToken = _escapeHtml(data.token);
+    const safeWalletName = _escapeHtml(data.wallet_name);
+    const safeNote = _escapeHtml(data.note || '');
+    bubble.innerHTML = `
+      <div style="font-size:11.5px;margin-bottom:8px"><strong>${safeRef}</strong> — Requesting ${_fmtBal(Number(data.amount) || 0)} ${safeToken} into "${safeWalletName}"${safeNote ? ' — "' + safeNote + '"' : ''}</div>
+      <img src="/api/payments/qr?data=${encodeURIComponent(url)}" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;display:block;margin-bottom:8px">
+      <input class="wallet-form-input" value="${_escapeHtml(url)}" readonly onclick="this.select()" style="font-size:10.5px;padding:6px;width:240px;box-sizing:border-box">`;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } catch (e) {
+    statusEl.style.color = 'var(--red)'; statusEl.textContent = e.message;
+  }
+}
+
+function _decodePaymentPayload(payload) {
+  try {
+    let b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    return JSON.parse(atob(b64));
+  } catch (e) {
+    return null;
+  }
+}
+
+let _activePaymentReference = null;
+const _chatPendingRequests = {};
+
+function showPaymentRequestInChat(data) {
+  if (!data || typeof data.to !== 'string' || !data.to || !(Number(data.amount) > 0) || typeof data.token !== 'string' || !data.token) {
+    addMsg('That payment link or QR code could not be read.', 'bot');
+    return;
+  }
+  const bubbleId = 'preq-' + Date.now();
+  _chatPendingRequests[bubbleId] = data;
+  const shortRaw = data.to.length > 14 ? data.to.slice(0, 8) + '…' + data.to.slice(-6) : data.to;
+  const short = _escapeHtml(shortRaw);
+  const safeTo = _escapeHtml(data.to);
+  const safeToken = _escapeHtml(data.token);
+  const safeChain = _escapeHtml(data.chain || '');
+  const safeNetworkLabel = _escapeHtml(_chainLabel(data.network));
+  const safeNote = _escapeHtml(data.note || '');
+  const matching = (_portfolioWallets || []).filter(w => w.chain === data.chain);
+  const walletOptions = matching.length
+    ? matching.map(w => `<option value="${_escapeHtml(w.name)}">${_escapeHtml(w.name)}</option>`).join('')
+    : '<option value="">No compatible wallet</option>';
+  const html = `
+    <div style="font-size:11.5px;margin-bottom:8px">💸 <strong>Payment Request</strong><br>
+    Someone is requesting <strong>${_fmtBal(Number(data.amount) || 0)} ${safeToken}</strong> on <strong>${safeNetworkLabel}</strong><br>
+    To: <code class="chat-addr" data-addr="${safeTo}" onclick="copyAddr(this)" title="Click to copy">${short}<span class="copy-icon"> ⎘</span></code>
+    ${safeNote ? '<br>Note: "' + safeNote + '"' : ''}</div>
+    ${!matching.length ? `<div style="font-size:10.5px;color:var(--red);margin-bottom:6px">You need a ${safeChain.toUpperCase()} wallet to pay this request.</div>` : ''}
+    <div style="display:flex;gap:6px;align-items:center">
+      <select class="wallet-form-select" id="${bubbleId}-wallet" style="font-size:11.5px;padding:6px">${walletOptions}</select>
+      <button class="wallet-btn-create" style="font-size:11.5px;padding:6px;white-space:nowrap" onclick="_chatPayRequest('${bubbleId}')">Review in Chat</button>
+    </div>`;
+  _addBotBubble(html, bubbleId);
+}
+
+function _chatPayRequest(bubbleId) {
+  const data = _chatPendingRequests[bubbleId];
+  const walletName = document.getElementById(bubbleId + '-wallet').value;
+  if (!data || !walletName) return;
+  if (data.note) {
+    addMsg(`📋 Payment request note: "${_escapeHtml(data.note)}"`, 'bot');
+  }
+  _activePaymentReference = data.ref || null;
+  chatInput.value = `send ${data.amount} ${data.token} from ${walletName} to ${data.to} on ${data.network}`;
+  chatInput.focus();
+}
+
+// ── Scan to Pay (BarcodeDetector) ──
+let _scanPayStream = null;
+let _scanPayRAF = null;
+
+function openScanPayModal() {
+  if (!('BarcodeDetector' in window)) {
+    addMsg('Scan to Pay needs a browser with camera barcode scanning support (Chrome/Edge on desktop or Android). Use the payment link instead.', 'bot');
+    return;
+  }
+  document.getElementById('scanPayStatus').textContent = 'Point the camera at a Sara payment QR code.';
+  document.getElementById('scanPayOverlay').classList.add('open');
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
+    _scanPayStream = stream;
+    const video = document.getElementById('scanPayVideo');
+    video.srcObject = stream;
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const scanLoop = async () => {
+      if (!_scanPayStream) return;
+      try {
+        const codes = await detector.detect(video);
+        if (codes.length) {
+          _onScanPaySuccess(codes[0].rawValue);
+          return;
+        }
+      } catch (e) {}
+      _scanPayRAF = requestAnimationFrame(scanLoop);
+    };
+    scanLoop();
+  }).catch(() => {
+    document.getElementById('scanPayStatus').textContent = 'Could not access the camera. Check your browser permissions.';
+  });
+}
+
+function _onScanPaySuccess(rawValue) {
+  closeScanPayModal();
+  let payload = rawValue;
+  try {
+    const url = new URL(rawValue);
+    payload = url.searchParams.get('pay') || rawValue;
+  } catch (e) {}
+  showPaymentRequestInChat(_decodePaymentPayload(payload));
+}
+
+function closeScanPayModal(event) {
+  if (event && event.target !== document.getElementById('scanPayOverlay')) return;
+  if (_scanPayRAF) { cancelAnimationFrame(_scanPayRAF); _scanPayRAF = null; }
+  if (_scanPayStream) { _scanPayStream.getTracks().forEach(t => t.stop()); _scanPayStream = null; }
+  document.getElementById('scanPayOverlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════
+// PAYMENT REQUESTS (reconciliation, rendered inline in chat)
+// ══════════════════════════════════════
+
+const _PAYMENT_STATUS_COLOR = { pending: 'var(--text-muted)', paid: 'var(--green)', cancelled: 'var(--red)' };
+
+async function showPaymentRequestsInChat() {
+  try {
+    const rows = await fetch('/api/payments/requests').then(r => r.json());
+    const bubbleId = 'pr-' + Date.now();
+    _addBotBubble(_paymentRequestsRowsHtml(rows, bubbleId), bubbleId);
+  } catch (e) {
+    addMsg('Could not load payment requests.', 'bot');
+  }
+}
+
+function _paymentRequestsRowsHtml(rows, bubbleId) {
+  if (!rows.length) {
+    return '<div style="font-size:11.5px"><strong>📋 Payment Requests</strong><br>No payment requests yet — try 🔗 Payment Links to create one.</div>';
+  }
+  let html = '<div style="font-size:11px;font-weight:600;margin-bottom:6px">📋 Payment Requests</div>';
+  html += rows.map(r => {
+    const shortRaw = r.matched_tx_hash ? (r.matched_tx_hash.length > 14 ? r.matched_tx_hash.slice(0, 8) + '…' + r.matched_tx_hash.slice(-6) : r.matched_tx_hash) : '';
+    const short = _escapeHtml(shortRaw);
+    const safeRef = _escapeHtml(r.reference);
+    const safeToken = _escapeHtml(r.token);
+    const safeWalletName = _escapeHtml(r.wallet_name);
+    const safeNote = _escapeHtml(r.note || '');
+    const safeStatus = _escapeHtml(r.status);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div>${safeRef} — ${_fmtBal(Number(r.amount) || 0)} ${safeToken} · ${safeWalletName}${safeNote ? ' · ' + safeNote : ''}${short ? ' · tx ' + short : ''}</div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <span style="color:${_PAYMENT_STATUS_COLOR[r.status] || 'var(--text-muted)'};font-size:10px;border:1px solid currentColor;border-radius:5px;padding:1px 5px">${safeStatus}</span>
+        ${r.status === 'pending' ? `<button class="dir-del" onclick="_chatCheckRequest(${r.id},'${bubbleId}')" title="Check for payment now">🔄</button>` : ''}
+        ${r.status === 'pending' ? `<button class="dir-del" onclick="_chatMarkPaid(${r.id},'${bubbleId}')" title="Mark paid manually">✓</button>` : ''}
+        <button class="dir-del" onclick="_chatDeleteRequest(${r.id},'${bubbleId}')" title="Delete">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  html += '<div style="margin-top:6px"><a href="/api/payments/requests/export" style="font-size:10.5px;color:var(--accent)">Export CSV</a></div>';
+  return html;
+}
+
+async function _chatRefreshRequests(bubbleId) {
+  try {
+    const rows = await fetch('/api/payments/requests').then(r => r.json());
+    const bubble = document.getElementById(bubbleId);
+    if (bubble) bubble.innerHTML = _paymentRequestsRowsHtml(rows, bubbleId);
+  } catch (e) {}
+}
+
+async function _chatMarkPaid(id, bubbleId) {
+  await fetch('/api/payments/requests/' + id, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ status: 'paid' }),
+  });
+  await _chatRefreshRequests(bubbleId);
+}
+
+async function _chatDeleteRequest(id, bubbleId) {
+  await fetch('/api/payments/requests/' + id, { method: 'DELETE' });
+  await _chatRefreshRequests(bubbleId);
+}
+
+async function _chatCheckRequest(id, bubbleId) {
+  await fetch('/api/payments/requests/' + id + '/check', { method: 'POST' });
+  await _chatRefreshRequests(bubbleId);
+}
 
 // Focus toggle
 function toggleFocus() {
@@ -1842,9 +2113,10 @@ async function submitWallet() {
     if (!resp.ok) throw new Error(data.detail || 'Failed');
     closeWalletModal();
     const action = walletTab === 'create' ? 'created' : 'imported';
-    addMsg('Wallet "' + data.name + '" ' + action + '! Address: ' + data.address, 'bot');
+    addMsg('Wallet "' + _escapeHtml(data.name) + '" ' + action + '! Address: ' + _escapeHtml(data.address), 'bot');
     loadWalletMgmt();
-  } catch(e) { addMsg('Error: ' + e.message, 'bot'); }
+    loadPortfolioView();
+  } catch(e) { addMsg('Error: ' + _escapeHtml(e.message), 'bot'); }
   btn.textContent = walletTab === 'create' ? 'Create Wallet' : 'Import Wallet';
   btn.disabled = false;
 }
@@ -1895,24 +2167,32 @@ async function showCol2(mode) {
   document.getElementById('s1BtnDir')?.classList.toggle('active', mode === 'directory');
   document.getElementById('s1BtnSettings')?.classList.toggle('active', mode === 'settings');
 
+  if (mode === 'asset') await loadPortfolioView();
   if (mode === 'settings') await _loadSettingsView();
   if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
+}
+
+const _SETTINGS_FILLED_PLACEHOLDER = '••••••••••••••••••••';
+
+// A saved key never needs to be shown or re-typed — just make the input
+// itself look filled with dots. Falls back to the field's normal helper
+// placeholder (e.g. "sk-or-…") when nothing is set yet.
+function _applyKeyPlaceholder(inputEl, isSet) {
+  if (!inputEl) return;
+  if (inputEl.dataset.origPlaceholder === undefined) inputEl.dataset.origPlaceholder = inputEl.placeholder;
+  inputEl.placeholder = isSet ? _SETTINGS_FILLED_PLACEHOLDER : inputEl.dataset.origPlaceholder;
 }
 
 async function _loadSettingsView() {
   try {
     const data = await fetch('/api/settings').then(r => r.json());
-    // Update mask spans for data/security rows
+    // Show each saved key as a filled-looking input, not a label full of dots
     for (const [key, info] of Object.entries(data)) {
-      const maskEl = document.getElementById('smask-' + key);
-      if (maskEl) {
-        maskEl.textContent = info.set ? '(' + info.masked + ')' : '(not set)';
-        maskEl.style.color = 'var(--text-muted)';
-      }
+      _applyKeyPlaceholder(document.getElementById('sinput-' + key), info.set);
     }
     document.getElementById('sinput-AI_KEY').dataset.settingKey = 'OPENROUTER_API_KEY';
     const keyInfo = data['OPENROUTER_API_KEY'];
-    document.getElementById('smask-AI_KEY').textContent = keyInfo && keyInfo.set ? '(' + keyInfo.masked + ')' : '(not set)';
+    _applyKeyPlaceholder(document.getElementById('sinput-AI_KEY'), keyInfo && keyInfo.set);
     await _loadOpenrouterModels();
     const modelInfo = data['LLM_MODEL'];
     const savedModel = (modelInfo && modelInfo.raw) ? modelInfo.raw : '';
@@ -1926,7 +2206,7 @@ async function _loadOpenrouterModels() {
   if (_openrouterModels.length) return;
   try {
     _openrouterModels = await fetch('/api/settings/openrouter-models').then(r => r.json());
-    select.innerHTML = _openrouterModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    select.innerHTML = _openrouterModels.map(m => `<option value="${_escapeHtml(m.id)}">${_escapeHtml(m.name)}</option>`).join('');
   } catch(e) {
     select.innerHTML = `<option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>`;
   }
@@ -1963,8 +2243,7 @@ async function saveAIKey() {
     inp.value = '';
     statusEl.textContent = 'Saved!';
     statusEl.style.color = 'var(--green)';
-    const masked = val.length > 8 ? val.slice(0,4)+'••••'+val.slice(-4) : '••••••••';
-    document.getElementById('smask-AI_KEY').textContent = '(' + masked + ')';
+    _applyKeyPlaceholder(inp, true);
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {
     statusEl.textContent = 'Error: ' + e.message;
@@ -1987,9 +2266,7 @@ async function saveSetting(key) {
     inp.value = '';
     statusEl.textContent = 'Saved!';
     statusEl.style.color = 'var(--green)';
-    const maskEl = document.getElementById('smask-' + key);
-    const masked = val.length > 8 ? val.slice(0,4) + '••••' + val.slice(-4) : '••••••••';
-    if (maskEl) maskEl.textContent = '(' + masked + ')';
+    _applyKeyPlaceholder(inp, true);
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {
     statusEl.textContent = 'Error: ' + e.message;
@@ -2012,12 +2289,12 @@ async function loadWalletMgmt() {
     }
     list.innerHTML = wallets.map(w => `
       <div class="dir-entry" data-wallet-id="${w.id}">
-        <div class="dir-nick" id="walletName-${w.id}">${w.name}</div>
-        <div class="dir-addr" title="${w.address}">${w.address}</div>
-        <div class="dir-chain">${w.chain}</div>
-        <button class="dir-del" onclick="startEditWalletName(this, ${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Rename wallet">✎</button>
-        <button class="dir-del" onclick="openExportModal(${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Reveal private key">🔑</button>
-        <button class="dir-del" onclick="confirmDeleteWallet(this, ${w.id}, '${w.name.replace(/'/g, "\\'")}')" title="Delete wallet">×</button>
+        <div class="dir-nick" id="walletName-${w.id}">${_escapeHtml(w.name)}</div>
+        <div class="dir-addr" title="${_escapeHtml(w.address)}">${_escapeHtml(w.address)}</div>
+        <div class="dir-chain">${_escapeHtml(w.chain)}</div>
+        <button class="dir-del" onclick="startEditWalletName(this, ${w.id}, '${_jsAttrString(w.name)}')" title="Rename wallet">✎</button>
+        <button class="dir-del" onclick="openExportModal(${w.id}, '${_jsAttrString(w.name)}')" title="Reveal private key">🔑</button>
+        <button class="dir-del" onclick="confirmDeleteWallet(this, ${w.id}, '${_jsAttrString(w.name)}')" title="Delete wallet">×</button>
       </div>`).join('');
   } catch(err) {
     list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading wallets.</div>';
@@ -2052,7 +2329,7 @@ async function saveWalletName(id, newName) {
     });
     if (!r.ok) {
       const data = await r.json().catch(() => ({}));
-      addMsg('Rename failed: ' + (data.detail || 'unknown error'), 'bot');
+      addMsg('Rename failed: ' + _escapeHtml(data.detail || 'unknown error'), 'bot');
     }
   } catch(e) {}
   await loadWalletMgmt();
@@ -2080,6 +2357,7 @@ async function deleteWalletMgmt(id) {
   try {
     await fetch('/api/wallets/' + id, { method: 'DELETE' });
     await loadWalletMgmt();
+    loadPortfolioView();
   } catch(e) {}
 }
 
@@ -2156,10 +2434,10 @@ async function loadDirectory() {
     }
     list.innerHTML = entries.map(e => `
       <div class="dir-entry">
-        <div class="dir-nick">${e.nickname}</div>
-        <div class="dir-addr" title="${e.address}">${e.address}</div>
-        <div class="dir-chain">${e.chain}</div>
-        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${e.nickname}')" title="Remove">×</button>
+        <div class="dir-nick">${_escapeHtml(e.nickname)}</div>
+        <div class="dir-addr" title="${_escapeHtml(e.address)}">${_escapeHtml(e.address)}</div>
+        <div class="dir-chain">${_escapeHtml(e.chain)}</div>
+        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
       </div>`).join('');
   } catch(err) {
     list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading directory.</div>';
@@ -2216,25 +2494,22 @@ async function deleteDirectoryEntry(nickname) {
   } catch(e) {}
 }
 
-// ══════════════════════════════════════
-// SIDEBAR 1 COIN SHORTCUTS
-// ══════════════════════════════════════
-function selectCoinSidebar(id) {
-  const el = document.querySelector('.asset-item[data-id="' + id + '"]');
-  if (el) selectAsset(el);
-}
-
 // ── Boot ──
 (async () => {
-  // Default: select Gold
-  const goldEl = document.querySelector('.asset-item[data-id="GC=F"]');
-  if (goldEl) await selectAsset(goldEl);
+  await loadPortfolioView();
 
-  // Load all sidebar prices (staggered to avoid hammering yfinance)
-  await loadWatchlistPrices();
+  // Refresh portfolio balances every 2 minutes
+  setInterval(() => loadPortfolioView(true), 120000);
 
-  // Refresh watchlist prices every 90s
-  setInterval(loadWatchlistPrices, 90000);
+  if (!('BarcodeDetector' in window)) {
+    document.getElementById('scanPayPill')?.remove();
+  }
+
+  const payPayload = new URLSearchParams(location.search).get('pay');
+  if (payPayload) {
+    showPaymentRequestInChat(_decodePaymentPayload(payPayload));
+    history.replaceState({}, '', location.pathname);
+  }
 })();
 </script>
 </body>
