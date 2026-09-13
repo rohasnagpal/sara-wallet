@@ -50,7 +50,7 @@ WALLET_TOOLS = [
                     "wallet_name": {"type": "string", "description": "Name of the wallet to send from"},
                     "to": {"type": "string", "description": "Recipient wallet address"},
                     "amount": {"type": "number", "description": "Amount to send"},
-                    "network": {"type": "string", "description": "Network: ethereum, arbitrum, base, polygon, optimism, solana"},
+                    "network": {"type": "string", "description": "Network: ethereum, arbitrum, base, optimism, polygon"},
                 },
                 "required": ["wallet_name", "to", "amount"],
             },
@@ -91,7 +91,7 @@ class ChatRequest(BaseModel):
 
 
 def _resolve_wallet(name: str, db: Session) -> Optional[Wallet]:
-    return db.query(Wallet).filter(Wallet.name == name).first()
+    return db.query(Wallet).filter(Wallet.name == name, Wallet.chain == "evm").first()
 
 def _match_wallet(text: str, wallets: list) -> Optional[Wallet]:
     """Find a wallet whose name appears in the user's message
@@ -112,10 +112,6 @@ _TOKEN_TO_NETWORK = {
     "arb": "arbitrum", "arbitrum": "arbitrum",
     "base": "base",
     "op": "optimism", "optimism": "optimism",
-    "sol": "solana", "solana": "solana",
-    "bnb": "bsc",
-    "avax": "avalanche", "avalanche": "avalanche",
-    "trx": "tron", "tron": "tron",
 }
 
 _NETWORK_NATIVE_TOKEN = {
@@ -124,10 +120,6 @@ _NETWORK_NATIVE_TOKEN = {
     "base": "ETH",
     "optimism": "ETH",
     "polygon": "POL",
-    "solana": "SOL",
-    "bsc": "BNB",
-    "avalanche": "AVAX",
-    "tron": "TRX",
 }
 
 _ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
@@ -136,21 +128,11 @@ _SEND_LIKE_RE = re.compile(
     re.I,
 )
 
-from app.tools.names.sara_names import SUFFIXES as _SARA_SUFFIXES
-_SARA_SUFFIX_PATTERN = "|".join(re.escape(s) for s in _SARA_SUFFIXES)
+from app.tools.names.sara_names import _LABEL_RE as _SARA_LABEL_RE
+_SARA_LABEL_PATTERN = _SARA_LABEL_RE.pattern.strip("^$")
 
 
 def _is_valid_recipient(address: str, network: Optional[str]) -> bool:
-    if network == "solana":
-        try:
-            from solders.pubkey import Pubkey
-            Pubkey.from_string(address)
-            return True
-        except Exception:
-            return False
-    if network == "tron":
-        from app.chains.tron import is_valid_address
-        return is_valid_address(address)
     return _is_valid_evm_recipient(address)
 
 
@@ -178,7 +160,7 @@ def _native_send_error(token: str, network: Optional[str]) -> Optional[str]:
     if not native:
         return f"I don't support sending **{token.upper()}** on {network.capitalize()} yet."
     if token.upper() != native:
-        return f"I can only send native **{native}** on {network.capitalize()} right now. ERC-20/SPL token sends are not implemented."
+        return f"I can only send native **{native}** or USDC on {network.capitalize()}."
     return None
 
 
@@ -186,13 +168,21 @@ def _looks_like_transaction_text(msg: str) -> bool:
     return bool(_SEND_LIKE_RE.search(msg.strip()))
 
 
-def _exception_message(exc: Exception) -> str:
+def _exception_message(exc: Exception, *sensitive_values: object) -> str:
     text = str(exc).strip()
-    if text:
-        return text
-    if getattr(exc, "args", None):
-        return " ".join(str(arg) for arg in exc.args if str(arg).strip()) or repr(exc)
-    return repr(exc)
+    if not text and getattr(exc, "args", None):
+        text = " ".join(str(arg) for arg in exc.args if str(arg).strip())
+    if not text:
+        text = repr(exc)
+    for value in sensitive_values:
+        if value is None:
+            continue
+        secret = value.hex() if isinstance(value, bytes) else str(value)
+        if secret:
+            text = text.replace(secret, "[REDACTED]")
+            if secret.startswith("0x"):
+                text = text.replace(secret[2:], "[REDACTED]")
+    return text
 
 
 def _wallet_named(msg: str, db: Session) -> Optional[Wallet]:
@@ -206,13 +196,13 @@ def _wallet_named(msg: str, db: Session) -> Optional[Wallet]:
     msg_l = msg.strip().lower()
     if not msg_l:
         return None
-    return db.query(Wallet).filter(func.lower(Wallet.name) == msg_l).first()
+    return db.query(Wallet).filter(func.lower(Wallet.name) == msg_l, Wallet.chain == "evm").first()
 
 
 def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Optional[tuple[str, dict]]:
     """Fast keyword-based intent detection for common wallet queries."""
     m = msg.lower()
-    wallets = db.query(Wallet).all()
+    wallets = db.query(Wallet).filter(Wallet.chain == "evm").all()
 
     # help / capabilities
     if any(p in m for p in ("what can you do", "what do you do", "your capabilities", "what are you capable", "what can sara", "how do you work", "help me understand", "what features", "how to use sara", "how do i use sara")):
@@ -248,25 +238,13 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         token_corrected_from = None
         if network is None:
             # Not a native chain symbol — check if it's a recognized ERC-20
-            # (or, on Tron, TRC20) token instead. Network defaults to Ethereum
+            # token instead. Network defaults to Ethereum
             # unless the user named one, same convention swaps already use.
             # Only ever resolves to Sara's verified contract list — a typo
-            # like "UDST" can correct to USDT, but never to a different asset.
+            # like "USCD" can correct to USDC, but never to a different asset.
             resolve_network = (net_hint or "ethereum").lower()
-            if resolve_network == "tron":
-                from app.chains.tron import resolve_trc20_with_correction
-                token_result, corrected = resolve_trc20_with_correction(token)
-            elif resolve_network == "solana":
-                # Paraswap (the else branch below) only knows EVM chains, so
-                # an SPL token symbol like USDC would never resolve here
-                # without this — meaning a Solana payment request for
-                # anything but native SOL could never actually be paid.
-                from app.tools.market.jupiter import resolve_mint_with_correction, get_decimals
-                mint, corrected = resolve_mint_with_correction(token)
-                token_result = (mint, get_decimals(corrected or token)) if mint else None
-            else:
-                from app.tools.market.paraswap import resolve_token_with_correction
-                token_result, corrected = resolve_token_with_correction(token, resolve_network)
+            from app.tools.market.paraswap import resolve_token_with_correction
+            token_result, corrected = resolve_token_with_correction(token, resolve_network)
             if token_result:
                 token_address, token_decimals = token_result
                 network = resolve_network
@@ -275,29 +253,32 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     token = corrected
         if network is None:
             resolve_network = (net_hint or "ethereum").lower()
-            if resolve_network == "tron":
-                from app.chains.tron import trusted_trc20_symbols
-                trusted = ["TRX"] + trusted_trc20_symbols()
-            else:
-                from app.tools.market.paraswap import trusted_symbols
-                trusted = trusted_symbols(resolve_network)
-            supported = ", ".join(trusted) if trusted else "USDC, USDT"
+            from app.tools.market.paraswap import trusted_symbols
+            trusted = trusted_symbols(resolve_network)
+            supported = ", ".join(trusted) if trusted else "none (network disabled or unsupported)"
             return ("send_rejected", {
                 "message": f"I don't recognize **{token.upper()}** as a token I can send. "
-                           f"Native chain tokens (ETH, POL, SOL, BNB, AVAX, TRX...) or Sara's verified tokens on "
+                           f"Sara supports USDC and the native gas asset on "
                            f"{resolve_network.capitalize()}: {supported}. "
                            f"Sara only ever sends to contracts on this trusted list — see the 🛡️ Trusted Tokens pill for the full set."
+            })
+        from app.core.assets import token_enabled
+        if not token_enabled(token, network):
+            return ("send_rejected", {
+                "message": f"**{token.upper()}** is disabled or unsupported on {network.capitalize()}. "
+                           "Enable the network and USDC under Settings → Manage Networks & Tokens."
             })
         native_error = None if token_address else _native_send_error(token, network)
         if native_error:
             return ("send_rejected", {"message": native_error})
-        # Resolve to_addr: nickname → real address, or ENS/SNS → on-chain address
+        # Resolve to_addr: nickname → real address, or ENS/Sara Names → on-chain address
+        from app.tools.names import sara_names
         to_nickname = None
         ab_entry = db.query(AddressBook).filter(AddressBook.nickname == to_addr.lower()).first()
         if ab_entry:
             to_nickname = to_addr
             to_addr = ab_entry.address
-            required_entry_chain = network if network in ("solana", "tron") else "evm"
+            required_entry_chain = "evm"
             if ab_entry.chain != required_entry_chain:
                 return ("send_rejected", {
                     "message": f"**{to_nickname}** is a {ab_entry.chain.upper()} directory entry, "
@@ -311,27 +292,23 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                 to_addr = resolved
             else:
                 return ("name_not_found", {"name": to_addr})
-        elif to_addr.lower().endswith(".sol"):
-            from app.tools.names.sns import resolve as sns_resolve
-            resolved = sns_resolve(to_addr)
+        elif not _is_valid_recipient(to_addr, network) and sara_names.is_valid_label(to_addr.lower()) and sara_names.is_configured():
+            # Not already a valid address, and shaped like a Sara Name
+            # label — address-book nicknames were already tried above, so
+            # this only ever fires as the second-choice resolver, never
+            # ahead of the user's own local directory (collision handling
+            # per CLAUDE_STAGES_3_TO_7.md Stage 6.4).
+            resolved = sara_names.resolve(to_addr.lower())
             if resolved:
                 to_nickname = to_addr
-                to_addr = resolved
-            else:
-                return ("name_not_found", {"name": to_addr})
-        elif to_addr.lower().endswith(_SARA_SUFFIXES):
-            from app.tools.names.sara_names import resolve as sara_resolve
-            resolved = sara_resolve(to_addr)
-            if resolved:
-                to_nickname = to_addr
-                to_addr = resolved
+                to_addr = resolved["owner"]
             else:
                 return ("name_not_found", {"name": to_addr})
         elif not _is_valid_recipient(to_addr, network):
             return ("name_not_found", {"name": to_addr})
         if not _is_valid_recipient(to_addr, network):
             return ("send_rejected", {"message": f"Resolved recipient for **{to_nickname or to_addr}** is not valid on {network.capitalize()}."})
-        required_chain = network if network in ("solana", "tron") else "evm"
+        required_chain = "evm"
         compatible_wallets = [w for w in wallets if w.chain == required_chain]
         # Resolve which wallet to send from
         wallet = None
@@ -388,7 +365,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         # on a different chain (e.g. an EVM wallet) whenever its name
         # happened to match, with the mismatch only surfacing later (if at
         # all) when actually trying to execute against the wrong chain.
-        required_chain = network if network in ("solana", "tron") else "evm"
+        required_chain = "evm"
         compatible_wallets = [w for w in wallets if w.chain == required_chain]
         wallet = None
         if from_hint:
@@ -473,9 +450,18 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             else:
                 return ("send_no_wallets", {})
 
-    # sara name registration — "register rohas.sara", "buy rohas.sara from test1"
+    # sara name registration — guided flow, no name given yet. Checked
+    # BEFORE the specific-name regex below: without a suffix requirement,
+    # the generic word "name" in a phrase like "register a name" would
+    # otherwise itself look like an attempted label.
+    if any(p in m for p in ("buy a name", "buy a bname", "buy a .sara", "register a name",
+                             "register a bname", "register a .sara", "get a .sara name",
+                             "get a name", "get a bname")):
+        return ("register_ask_name", {})
+
+    # sara name registration — "register rohas", "buy c4lab from test1"
     reg_match = re.search(
-        r'(?:register|buy|claim)\s+(?:the\s+name\s+)?([\w-]+(?:' + _SARA_SUFFIX_PATTERN + r'))(?:\s+from\s+(\w[\w\s]*))?',
+        r'(?:register|buy|claim)\s+(?:the\s+name\s+)?(' + _SARA_LABEL_PATTERN + r')(?:\s+from\s+(\w[\w\s]*))?',
         m
     )
     if reg_match:
@@ -484,28 +470,28 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         error = sara_names.validate_name(name)
         if error:
             return ("register_name_invalid", {"name": name, "message": error})
+        if not sara_names.is_configured():
+            return ("register_name_invalid", {"name": name, "message": "Sara Names is not configured on this instance."})
         name = sara_names.normalize_name(name)
         evm_wallets = [w for w in wallets if w.chain == "evm"]
-        if sara_names.is_available(name):
+        try:
+            available = sara_names.is_available(name)
+        except Exception as e:
+            return ("register_name_invalid", {"name": name, "message": f"Could not reach the Sara Names registry: {_exception_message(e)}"})
+        if available:
             wallet = _match_wallet(from_hint, evm_wallets) if from_hint else None
             if not wallet:
                 wallet = _match_wallet(msg, evm_wallets)
             if not wallet and len(evm_wallets) == 1:
                 wallet = evm_wallets[0]
             if wallet:
-                return ("register_name", {"wallet_name": wallet.name, "name": name, "price": sara_names.get_price()})
+                return ("register_name", {"wallet_name": wallet.name, "name": name})
             elif evm_wallets:
-                return ("register_needs_wallet", {"name": name, "price": sara_names.get_price(), "wallets": [w.name for w in evm_wallets]})
+                return ("register_needs_wallet", {"name": name, "wallets": [w.name for w in evm_wallets]})
             else:
                 return ("send_no_wallets", {})
         else:
             return ("register_name_taken", {"name": name})
-
-    # sara name registration — guided flow, no name given yet
-    if any(p in m for p in ("buy a name", "buy a bname", "buy a .sara", "register a name",
-                             "register a bname", "register a .sara", "get a .sara name",
-                             "get a name", "get a bname")):
-        return ("register_ask_name", {})
 
     # list wallets
     if any(p in m for p in ("list wallet", "my wallet", "show wallet", "list my wallet")):
@@ -516,7 +502,8 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         matched = _match_wallet(msg, wallets)
         if matched:
             network = None
-            for net in ("ethereum", "arbitrum", "base", "polygon", "optimism", "bsc", "avalanche", "solana"):
+            from app.core.assets import enabled_networks
+            for net in enabled_networks():
                 if net in m:
                     network = net
                     break
@@ -694,8 +681,13 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return f"__PENDING_REGISTER__{json.dumps(args)}"
 
     if tool_name == "register_needs_wallet":
+        from app.tools.names import sara_names
         names = ", ".join(f"**{n}**" for n in args["wallets"])
-        return (f"**{args['name']}** is available for **{args['price']} POL**. Which wallet should pay?\n"
+        try:
+            price_text = f"{sara_names.price_decimal(sara_names.price_for(args['name'], 365 * 86400))} USDC"
+        except Exception:
+            price_text = "an on-chain-priced amount of USDC"
+        return (f"**{args['name']}** is available for **{price_text}**. Which wallet should pay?\n"
                 f"Your wallets: {names}\n"
                 f"Reply with e.g. \"register {args['name']} from {args['wallets'][0]}\"")
 
@@ -706,7 +698,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return args["message"]
 
     if tool_name == "register_ask_name":
-        return "Sure — which bName would you like? (e.g. `rohas.sara`)"
+        return "Sure — which Sara Name would you like? (e.g. `rohas`)"
 
     if tool_name == "show_help":
         import os as _os
@@ -714,9 +706,9 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         from app.tools.wallet import lock as _lock_state
         from app.core.config import settings as _settings
 
-        _chain_display = {"bsc": "BSC"}
-        chain_list = ", ".join(_chain_display.get(n, n.capitalize()) for n in _evm_networks) + ", Solana"
-        wallet_count = db.query(Wallet).count()
+        from app.core.assets import enabled_networks
+        chain_list = ", ".join(n.capitalize() if n != "polygon" else "Polygon PoS" for n in enabled_networks())
+        wallet_count = db.query(Wallet).filter(Wallet.chain == "evm").count()
 
         provider = _os.environ.get("LLM_PROVIDER", _settings.LLM_PROVIDER)
         model = _os.environ.get("LLM_MODEL", _settings.LLM_MODEL)
@@ -725,13 +717,11 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         def _flag(key: str) -> str:
             return "✅ configured" if _os.getenv(key) else "— not set"
 
-        bname_ready = bool(_os.getenv("SARA_NAME_REGISTRAR_ADDRESS") and _os.getenv("SARA_NAME_SERVICE_URL"))
+        bname_ready = bool(_os.getenv("SARA_NAME_REGISTRAR_ADDRESS"))
         lock_status = "🔓 unlocked" if _lock_state.is_unlocked() else "🔒 locked"
 
-        evm_only = chain_list.rsplit(', Solana', 1)[0]
-
         return (
-            "**Sara specializes in stablecoin payments** — sending, requesting, and moving USDC/USDT across chains "
+            "**Sara specializes in USDC payments** — sending, requesting, and moving USDC across chains "
             "as easily as sending a text. Here's everything Sara can do:\n\n"
             "**Payments** *(Sara's core)*\n"
             "• Send crypto with plain English — \"send 100 USDC to zara\" — then type CONFIRM\n"
@@ -739,24 +729,25 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• 📷 Scan to Pay — scan someone else's Sara payment QR to pre-fill a send\n"
             "• 📋 Payment Requests — Sara checks on-chain automatically for a matching incoming transfer and marks requests paid; export them all as a CSV\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
-            "• Swap tokens on EVM (via Paraswap) or Solana (via Jupiter) — \"swap 1 POL for USDC\"\n\n"
+            "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n\n"
             "**Wallets & Chains**\n"
-            f"• Create & import wallets across EVM ({evm_only}), Solana, and Tron\n"
+            f"• Create & import one EVM wallet that works across {chain_list}\n"
             "• Check balance on any supported network\n"
             "• Address book — save nicknames, send to them by name\n\n"
-            "**bNames** — a human-readable name for your wallet\n"
-            "• \"buy a bname\" or \"register rohas.sara\" — pay a small fee, get a name like `rohas.sara` linked to your wallet\n"
-            "• Send to a bName directly, same as `alice.eth` or `bob.sol`\n\n"
+            "**Sara Names** — a human-readable name for your wallet (Polygon Amoy testnet)\n"
+            "• \"register rohas\" — pay in USDC via a front-running-resistant commit/reveal, get a name like `rohas` linked to your wallet\n"
+            "• Send to a Sara Name directly, same as `alice.eth`\n\n"
+            "**File Proofs**\n"
+            "• Hash a file locally, authorize an exact 1 USDC Polygon checkout, and retain the encrypted BlockchainProof evidence package\n"
+            "• Verify a file fingerprint against matching public proofs from the Proofs tab\n\n"
             "**Market Data** *(live via CoinGecko)*\n"
             "• Crypto prices, gas fees, trending coins, global market cap\n\n"
             "**Intelligence**\n"
-            "• News & sentiment, ENS/SNS/bName resolution\n\n"
-            "**Voice mode** — click the mic next to the chat box to speak instead of type (English only for now). "
-            "For your safety, CONFIRM must always be typed, never spoken.\n\n"
+            "• News & sentiment, ENS and Sara Names resolution\n\n"
             "**Security**\n"
             "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
-            "• Only money-moving actions (send, swap, bName registration) require unlocking — price checks and general chat work while locked\n"
-            "• 🛡️ Trusted Tokens — Sara only ever sends, swaps, or bridges to a verified contract list, so a fake token sharing a symbol like USDT can't be substituted in. See the pill in the sidebar for the full list. Typos in a token symbol (like \"udst\") are auto-corrected against that same list\n\n"
+            "• Only money-moving actions (send, swap, proof checkout, Sara Name registration) require unlocking — price checks and general chat work while locked\n"
+            "• 🛡️ Trusted Tokens — Sara only uses Circle's verified USDC contract and each network's native gas asset. See the pill for the full list\n\n"
             "---\n"
             "**Your current setup**\n"
             f"• Wallet lock: {lock_status}\n"
@@ -764,19 +755,18 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             f"• AI model: {ai_status}\n"
             f"• CoinGecko API key: {_flag('COINGECKO_API_KEY')}\n"
             f"• Alchemy API key (ERC-20 balances + EVM payment reconciliation): {_flag('ALCHEMY_API_KEY')}\n"
-            f"• Helius RPC (Solana): {_flag('HELIUS_RPC')}\n"
-            f"• TronGrid API key (Tron USDT balances/sends + reconciliation): {_flag('TRONGRID_API_KEY')}\n"
-            f"• bName registration: {'✅ ready' if bname_ready else '— not set up yet (needs a deployed registrar service, see registrar-service/DEPLOYMENT.md)'}\n"
-            f"• Chains available: EVM ({evm_only}), Solana, Tron"
+            f"• Sara Names registration: {'✅ ready (Polygon Amoy testnet)' if bname_ready else '— not set up yet (needs SARA_NAME_REGISTRAR_ADDRESS configured)'}\n"
+            f"• Networks enabled: {chain_list}"
         )
 
     if tool_name == "list_wallets":
-        wallets = db.query(Wallet).all()
+        wallets = db.query(Wallet).filter(Wallet.chain == "evm").all()
         if not wallets:
             return "No wallets added yet. Ask me to create one!"
-        from app.chains import evm as evm_chain, solana as sol_chain, tron as tron_chain
+        from app.chains import evm as evm_chain
+        from app.core.assets import enabled_networks
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
+        EVM_NETWORKS = list(enabled_networks())
         blocks = []
         for w in wallets:
             card = []
@@ -821,37 +811,13 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
 
                 if not balances and not token_lines:
                     card.append("No funds detected")
-            elif w.chain == "tron":
-                found_any = False
-                try:
-                    b = tron_chain.get_balance(w.address)
-                    if b["balance"] > 0.000001:
-                        card.append(f"{b['balance']:.6f} **TRX**")
-                        found_any = True
-                except Exception:
-                    card.append("TRX balance unavailable")
-                try:
-                    usdt = tron_chain.get_trc20_balance(w.address, "USDT")
-                    if usdt["balance"] > 0:
-                        card.append(f"{usdt['balance']:.6f} **USDT**")
-                        found_any = True
-                except Exception:
-                    pass
-                if not found_any and len(card) == 1:
-                    card.append("No funds detected")
-            else:
-                try:
-                    b = sol_chain.get_balance(w.address)
-                    card.append(f"{b['balance']:.6f} **SOL**")
-                except Exception:
-                    card.append("Balance unavailable")
             card.append(f"`{w.address}`")
             blocks.append("\n".join(card))
         result = "\n---\n".join(blocks)
         import os
         has_evm = any(w.chain == "evm" for w in wallets)
         if has_evm and not os.getenv("ALCHEMY_API_KEY", "").strip():
-            result += "\n\n_Note: token balances (USDC, USDT, etc.) won't show until you add an Alchemy API key in Settings — only native balances (ETH, POL, etc.) are shown without it._"
+            result += "\n\n_Note: USDC balances won't show until you add an Alchemy API key in Settings; native gas balances still work without it._"
         return result
 
     if tool_name == "get_balance":
@@ -965,7 +931,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         w = _resolve_wallet(args["wallet_name"], db)
         if not w:
             return f"Wallet '{args['wallet_name']}' not found."
-        network = "solana" if w.chain == "solana" else "tron" if w.chain == "tron" else "ethereum"
+        network = "ethereum"
         row, result = create_payment_request(db, w, network, args["token"], args["amount"])
         if row is None:
             return (f"{result}. Check the 🛡️ Trusted Tokens panel for what's supported, or check your spelling.")
@@ -1014,59 +980,12 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     w = db.query(Wallet).filter(Wallet.id == pending["wallet_id"]).first()
     if not w:
         return _stream_text(f"Wallet '{pending['wallet_name']}' not found.", db, session_id)
+    if w.chain != "evm":
+        return _stream_text("This wallet uses a chain Sara no longer supports.", db, session_id)
     token_sym = pending.get("token") or (pending.get("network") or "native").upper()
     net_display = (pending.get("network") or "ethereum").capitalize()
     try:
-        if pending.get("token_address") and w.chain == "tron":
-            from app.chains import tron as tron_chain
-            preview = tron_chain.get_trc20_transfer_preview(w.address, pending["amount"], token_sym)
-            if not preview["has_token_funds"]:
-                return _stream_text(
-                    f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{preview['token_balance']:.6f} {token_sym}**, but you asked to send "
-                    f"**{pending['amount']} {token_sym}**.",
-                    db, session_id,
-                )
-            if not preview["has_gas_funds"]:
-                return _stream_text(
-                    f"Insufficient **{preview['native_unit']}** for fees. **{pending['wallet_name']}** has "
-                    f"**{preview['native_balance']:.6f} {preview['native_unit']}**, but this send needs "
-                    f"~**{preview['gas_fee']:.6f} {preview['native_unit']}** for energy/bandwidth.",
-                    db, session_id,
-                )
-            balance_line = (
-                f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
-                f"Estimated fee: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
-                f"(from your {preview['native_unit']} balance, not {token_sym})\n"
-            )
-        elif pending.get("token_address") and w.chain == "solana":
-            from app.chains import solana as sol_chain
-            from app.core.amounts import to_base_units
-            token_balance = sol_chain.get_spl_token_balance(
-                w.address, pending["token_address"], pending["token_decimals"],
-            )
-            requested_raw = to_base_units(pending["amount"], pending["token_decimals"], token_sym)
-            if token_balance["raw_balance"] < requested_raw:
-                return _stream_text(
-                    f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{token_balance['balance']:.6f} {token_sym}**, but you asked to send "
-                    f"**{pending['amount']} {token_sym}**.",
-                    db, session_id,
-                )
-            spl_preview = sol_chain.get_spl_transfer_preview(w.address, pending["to"], pending["token_address"])
-            if not spl_preview["has_funds"]:
-                rent_note = " (including rent for the recipient's new token account)" if spl_preview["needs_new_ata"] else ""
-                return _stream_text(
-                    f"**{pending['wallet_name']}** has **{spl_preview['sol_balance']:.6f} SOL**, but this "
-                    f"send needs ~**{spl_preview['required_sol']:.6f} SOL** for network fees{rent_note}.",
-                    db, session_id,
-                )
-            balance_line = (
-                f"Token balance: **{token_balance['balance']:.6f} {token_sym}**\n"
-                f"SOL balance (for fees{' + new account rent' if spl_preview['needs_new_ata'] else ''}): "
-                f"**{spl_preview['sol_balance']:.6f} SOL**\n"
-            )
-        elif pending.get("token_address"):
+        if pending.get("token_address"):
             from app.chains import evm as evm_chain
             preview = evm_chain.get_erc20_transfer_preview(
                 pending["token_address"], pending["token_decimals"], w.address,
@@ -1091,7 +1010,7 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
                 f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
                 f"(from your {preview['native_unit']} balance, not {token_sym})\n"
             )
-        elif w.chain == "evm":
+        else:
             from app.chains import evm as evm_chain
             bal = evm_chain.get_native_transfer_preview(w.address, pending["amount"], pending.get("network"))
             balance_line = (
@@ -1103,48 +1022,6 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
                     f"Insufficient balance. **{pending['wallet_name']}** has "
                     f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
                     f"**{bal['total']:.6f} {bal['unit']}** including gas.",
-                    db,
-                    session_id,
-                )
-        elif w.chain == "tron":
-            from app.chains import tron as tron_chain
-            bal = tron_chain.get_native_transfer_preview(w.address, pending["amount"])
-            balance_line = (
-                f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                f"Estimated fee: **{bal['fee']:.6f} {bal['unit']}**\n"
-            )
-            if not bal["has_funds"]:
-                return _stream_text(
-                    f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
-                    f"**{bal['total']:.6f} {bal['unit']}** including fees.",
-                    db,
-                    session_id,
-                )
-        elif w.chain == "solana":
-            from app.chains import solana as sol_chain
-            bal = sol_chain.get_native_transfer_preview(w.address, pending["amount"])
-            balance_line = (
-                f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                f"Estimated fee: **{bal['fee']:.6f} {bal['unit']}**\n"
-            )
-            if not bal["has_funds"]:
-                return _stream_text(
-                    f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
-                    f"**{bal['total']:.6f} {bal['unit']}** including the network fee.",
-                    db,
-                    session_id,
-                )
-        else:
-            from app.tools.wallet.balance import get_wallet_balance
-            bal = get_wallet_balance(w, pending.get("network"))
-            balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-            if bal["balance"] < pending["amount"]:
-                return _stream_text(
-                    f"Insufficient balance. **{pending['wallet_name']}** has "
-                    f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
-                    f"**{pending['amount']} {bal['unit']}**.",
                     db,
                     session_id,
                 )
@@ -1169,13 +1046,22 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     return _stream_text(text, db, session_id)
 
 
-def _preview_pending_register(name: str, wallet: Wallet, db: Session, session_id: str):
+def _build_register_pending(name: str, wallet: Wallet) -> tuple[Optional[dict], str]:
+    """Shared by the direct intent-match path and the LLM tool-call path
+    (__PENDING_REGISTER__) so on-chain pricing logic lives in exactly one
+    place. Returns (pending_dict_or_None, text) — None means pricing failed
+    and `text` explains why."""
     from app.tools.names import sara_names
-    price = sara_names.get_price()
-    _pending[session_id] = {
+    duration_seconds = 365 * 86400
+    try:
+        price_raw = sara_names.price_for(name, duration_seconds)
+    except Exception as e:
+        return None, f"Could not reach the Sara Names registry to price this name: {_exception_message(e)}"
+    pending = {
         "type": "register_name",
         "name": name,
-        "price": price,
+        "price_raw": price_raw,
+        "duration_seconds": duration_seconds,
         "wallet_name": wallet.name,
         "wallet_id": wallet.id,
         "wallet_chain": wallet.chain,
@@ -1183,10 +1069,19 @@ def _preview_pending_register(name: str, wallet: Wallet, db: Session, session_id
         "wallet_encrypted_key": wallet.encrypted_key,
     }
     text = (
-        f"Registering **{name}** → `{wallet.address}`\n"
-        f"Cost: **{price} POL** from **{wallet.name}**\n\n"
-        f"Type **CONFIRM** to pay and register, or **CANCEL** to abort."
+        f"Registering **{name}** → `{wallet.address}` for 1 year on Polygon Amoy testnet\n"
+        f"Cost: **{sara_names.price_decimal(price_raw)} USDC** from **{wallet.name}**\n\n"
+        f"This is a two-step, front-running-resistant registration: Sara will first *commit* to the "
+        f"name on-chain, then — after a short mandatory wait — *reveal* to actually claim it.\n\n"
+        f"Type **CONFIRM** to commit, or **CANCEL** to abort."
     )
+    return pending, text
+
+
+def _preview_pending_register(name: str, wallet: Wallet, db: Session, session_id: str):
+    pending, text = _build_register_pending(name, wallet)
+    if pending:
+        _pending[session_id] = pending
     return _stream_text(text, db, session_id)
 
 
@@ -1202,63 +1097,6 @@ def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], s
     amount   = swap_args["amount"]
 
     correction_note = ""
-    if w.chain == "solana" or network == "solana":
-        from app.tools.market.jupiter import (
-            resolve_mint_with_correction, trusted_symbols,
-            get_quote as jup_quote,
-            get_decimals as jup_dec,
-            confirmation_safety_limits,
-        )
-        src_mint, src_corrected = resolve_mint_with_correction(src_sym)
-        dst_mint, dst_corrected = resolve_mint_with_correction(dst_sym)
-        if src_corrected or dst_corrected:
-            if src_corrected:
-                correction_note += f"📝 I read **{src_sym}** as **{src_corrected}** — Sara only swaps verified tokens.\n"
-                src_sym = src_corrected
-            if dst_corrected:
-                correction_note += f"📝 I read **{dst_sym}** as **{dst_corrected}** — Sara only swaps verified tokens.\n"
-                dst_sym = dst_corrected
-            correction_note += "\n"
-        if not src_mint or not dst_mint:
-            supported = ", ".join(trusted_symbols())
-            return None, f"**{src_sym}** or **{dst_sym}** not supported on Solana. Supported: {supported}"
-        src_dec = jup_dec(src_sym)
-        dst_dec = jup_dec(dst_sym)
-        from app.core.amounts import to_base_units
-        amount_raw = to_base_units(amount, src_dec, src_sym)
-        quote = jup_quote(src_mint, dst_mint, amount_raw)
-        if not (quote and "outAmount" in quote):
-            err = quote.get("error", "unknown error") if quote else "Jupiter API unavailable"
-            return None, f"Could not get Solana swap quote: {err}"
-        dst_amount = int(quote["outAmount"]) / 10 ** dst_dec
-        max_fee_lamports, max_rent_lamports = confirmation_safety_limits()
-        pending = {
-            "type": "sol_swap",
-            **swap_args,
-            "src_mint": src_mint,
-            "dst_mint": dst_mint,
-            "src_dec": src_dec,
-            "dst_dec": dst_dec,
-            "amount_raw": amount_raw,
-            "quote": quote,
-            "dst_amount": dst_amount,
-            "wallet_address": w.address,
-            "wallet_id": w.id,
-            "wallet_chain": w.chain,
-            "wallet_encrypted_key": w.encrypted_key,
-        }
-        text = (
-            f"{correction_note}"
-            f"Swap **{amount} {src_sym} → ~{dst_amount:.4f} {dst_sym}**\n"
-            f"Network: **Solana**  ·  Wallet: **{w.name}**\n"
-            f"Slippage: 0.5%\n"
-            f"Maximum network fee: **{max_fee_lamports / 1_000_000_000:.6f} SOL**\n"
-            f"Maximum temporary/account rent debit: **{max_rent_lamports / 1_000_000_000:.6f} SOL**\n\n"
-            f"Type **CONFIRM** to execute or **CANCEL** to abort."
-        )
-        return pending, text
-
-    # EVM → Paraswap
     from app.tools.market.paraswap import (
         resolve_token_with_correction, trusted_symbols, get_quote, CHAIN_IDS,
         max_total_network_fee_wei, NATIVE_SYMBOLS, _NATIVE as PARASWAP_NATIVE,
@@ -1498,29 +1336,73 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 return _stream_text("You need an EVM wallet (Polygon-compatible) to register a name — add one first.", db, req.session_id)
             if len(evm_wallets) > 1:
                 names = ", ".join(f"**{w.name}**" for w in evm_wallets)
+                try:
+                    price_raw = sara_names.price_for(name, 365 * 86400)
+                    price_text = f"{sara_names.price_decimal(price_raw)} USDC"
+                except Exception:
+                    price_text = "an on-chain-priced amount of USDC"
                 return _stream_text(
-                    f"**{name}** is available for **{sara_names.get_price()} POL**. "
+                    f"**{name}** is available for **{price_text}**. "
                     f"Which wallet should pay? Your wallets: {names}\n"
                     f"Reply with e.g. \"register {name} from {evm_wallets[0].name}\"",
                     db, req.session_id,
                 )
             return _preview_pending_register(name, evm_wallets[0], db, req.session_id)
-        if pending.get("type") == "awaiting_register_payment":
+        if pending.get("type") == "awaiting_register_reveal":
             if msg.upper().startswith("CANCEL"):
                 del _pending[req.session_id]
-                return _stream_text("Cancelled.", db, req.session_id)
+                return _stream_text("Cancelled — the commitment will simply expire unused; nothing further happens.", db, req.session_id)
+            from datetime import datetime, timezone
             from app.tools.names import sara_names
-            result = sara_names.submit_registration(pending["name"], pending["wallet_address"], pending["payment_tx_hash"])
-            if result.get("status") == "registered":
-                del _pending[req.session_id]
-                tx = result.get("registry_tx_hash")
-                extra = f"\nRegistry tx: `{tx}`" if tx else ""
-                return _stream_text(f"**{pending['name']}** is now registered to your wallet.{extra}", db, req.session_id)
-            return _stream_text(
-                f"Still waiting on payment confirmation for **{pending['name']}** "
-                f"({result.get('detail', 'not yet confirmed')}). Send any message shortly to check again, or CANCEL to give up.",
-                db, req.session_id,
-            )
+            from app.tools.wallet.encrypt import decrypt_key
+            from app.core.audit import append_audit
+            from app.core.events import publish
+            from app.db.models import SaraName
+            committed_at = datetime.fromisoformat(pending["committed_at"])
+            elapsed = (datetime.now(timezone.utc) - committed_at).total_seconds()
+            if elapsed < 60:
+                return _stream_text(
+                    f"Not quite yet — wait about {int(60 - elapsed)} more second(s), then send any message to finish "
+                    f"registering **{pending['name']}**, or CANCEL to give up.",
+                    db, req.session_id,
+                )
+            del _pending[req.session_id]
+            plain_key = None
+            try:
+                plain_key = decrypt_key(pending["wallet_encrypted_key"])
+                secret = bytes.fromhex(pending["secret"])
+                price_raw = sara_names.price_for(pending["name"], pending["duration_seconds"])
+                sara_names.ensure_usdc_allowance(plain_key, price_raw)
+                tx_hash = sara_names.register(
+                    plain_key, pending["name"], pending["wallet_address"], pending["duration_seconds"], secret,
+                )
+                node = sara_names.node_hex(pending["name"])
+                row = db.query(SaraName).filter(SaraName.node == node).first()
+                if row:
+                    row.status = "registered"
+                    row.register_tx_hash = tx_hash
+                    try:
+                        info = sara_names.get_node(sara_names.namehash_name(pending["name"]))
+                        if info and info["expiry"]:
+                            row.expiry = datetime.utcfromtimestamp(info["expiry"])
+                    except Exception:
+                        pass
+                _record_submitted_transaction(
+                    db, wallet_id=pending["wallet_id"], network="amoy", tx_hash=tx_hash,
+                    from_address=pending["wallet_address"], to_address=sara_names.registry_address(),
+                    amount=float(price_raw) / 1_000000, amount_raw=price_raw, decimals=6, token="USDC",
+                    category="name_registration", reference=pending["name"],
+                )
+                publish(db, "sara_name.registered", {"label": pending["name"], "node": node, "tx_hash": tx_hash},
+                        aggregate_type="sara_name", aggregate_id=node, event_key=f"sara_name:register:{tx_hash}")
+                append_audit(db, "sara_name.registered", "sara_name", details={"label": pending["name"], "tx_hash": tx_hash})
+                db.commit()
+                text = f"**{pending['name']}** is now registered to your wallet. Tx: `{tx_hash}`"
+            except Exception as e:
+                text = _execution_error("Registration", e, plain_key)
+            finally:
+                plain_key = None
+            return _stream_text(text, db, req.session_id)
         if msg.upper() == "CONFIRM":
             from app.tools.wallet import lock as lock_state
             try:
@@ -1539,7 +1421,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
             if ptype == "swap":
                 return _stream_swap(pending, db, req.session_id)
             if ptype == "sol_swap":
-                return _stream_sol_swap(pending, db, req.session_id)
+                return _stream_text("Solana is no longer supported.", db, req.session_id)
             if ptype == "bridge":
                 return _stream_bridge(pending, db, req.session_id)
             if ptype == "register_name":
@@ -1777,21 +1659,9 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     if not w:
                         text = f"Wallet '{reg_args['wallet_name']}' not found."
                     else:
-                        _pending[req.session_id] = {
-                            "type": "register_name",
-                            "name": reg_args["name"],
-                            "price": reg_args["price"],
-                            "wallet_name": w.name,
-                            "wallet_id": w.id,
-                            "wallet_chain": w.chain,
-                            "wallet_address": w.address,
-                            "wallet_encrypted_key": w.encrypted_key,
-                        }
-                        text = (
-                            f"Registering **{reg_args['name']}** → `{w.address}`\n"
-                            f"Cost: **{reg_args['price']} POL** from **{w.name}**\n\n"
-                            f"Type **CONFIRM** to pay and register, or **CANCEL** to abort."
-                        )
+                        pending, text = _build_register_pending(reg_args["name"], w)
+                        if pending:
+                            _pending[req.session_id] = pending
                 else:
                     if tool_name == "send_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_send_wallet", **args}
@@ -1852,20 +1722,101 @@ def _stream_text(text: str, db: Session, session_id: str):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+class BroadcastPersistenceError(RuntimeError):
+    """The chain accepted a transaction but local durable recording failed."""
+    def __init__(self, tx_hash: str, cause: Exception):
+        super().__init__(str(cause))
+        self.tx_hash = tx_hash
+
+
+def _execution_error(label: str, exc: Exception, *sensitive_values: object) -> str:
+    if isinstance(exc, BroadcastPersistenceError):
+        return (
+            f"⚠️ {label} was **broadcast**, but Sara could not save its local record. "
+            f"Do not submit it again until you check transaction `{exc.tx_hash}` on-chain. "
+            f"Local error: {_exception_message(exc, *sensitive_values)}"
+        )
+    return f"{label} failed: {_exception_message(exc, *sensitive_values)}"
+
+
+def _record_submitted_transaction(
+    db: Session, *, wallet_id: int, network: str, tx_hash: str,
+    from_address: str, to_address: str, amount, amount_raw: int,
+    decimals: int, token: str, category: str, reference: str | None = None,
+):
+    """Persist the ledger row, audit record and outbox event atomically."""
+    from datetime import datetime
+    from app.core.audit import append_audit
+    from app.core.events import publish
+    from app.db.models import Transaction
+
+    try:
+        existing = db.query(Transaction).filter(
+            Transaction.chain == "evm", Transaction.network == network,
+            Transaction.tx_hash == tx_hash,
+        ).first()
+        if existing:
+            return existing
+        row = Transaction(
+            wallet_id=wallet_id, chain="evm", network=network, tx_hash=tx_hash,
+            from_address=from_address, to_address=to_address,
+            amount=float(amount), amount_raw=str(amount_raw), decimals=decimals,
+            token=token, status="submitted", direction="outgoing",
+            category=category, counterparty=to_address, reference=reference,
+            timestamp=datetime.utcnow(),
+        )
+        db.add(row)
+        db.flush()
+        details = {
+            "tx_hash": tx_hash, "network": network, "from": from_address,
+            "to": to_address, "amount_raw": str(amount_raw), "decimals": decimals,
+            "token": token, "category": category,
+        }
+        publish(
+            db, "transaction.submitted", details,
+            aggregate_type="transaction", aggregate_id=str(row.id),
+            event_key=f"tx:{network}:{tx_hash}:submitted",
+        )
+        append_audit(
+            db, "transaction.submitted", "transaction", resource_id=str(row.id), details=details,
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise BroadcastPersistenceError(tx_hash, exc) from exc
+    return row
+
+
 def _stream_send(pending: dict, db: Session, session_id: str):
     async def generate():
         from app.tools.wallet.encrypt import decrypt_key
-        from app.chains import evm as evm_chain, solana as sol_chain, tron as tron_chain
-        from app.db.models import Transaction
-        from datetime import datetime
+        from app.chains import evm as evm_chain
+        from app.core.amounts import to_base_units
+        plain_key = None
         try:
             plain_key = decrypt_key(pending["wallet_encrypted_key"])
             chain = pending["wallet_chain"]
-            network = pending.get("network") or ("solana" if chain == "solana" else "ethereum")
+            if chain != "evm":
+                raise ValueError("this wallet uses a chain Sara no longer supports")
+            network = pending.get("network") or "ethereum"
             to_addr = pending["to"]
             amount = pending["amount"]
             if not _is_valid_recipient(to_addr, network):
                 raise ValueError("recipient is not a valid address or resolved directory/ENS/SNS name")
+
+            decimals = pending.get("token_decimals", 18) if pending.get("token_address") else 18
+            token_sym = pending.get("token") or _NETWORK_NATIVE_TOKEN.get(network, "ETH")
+            amount_raw = to_base_units(amount, decimals, token_sym)
+            from app.core import spending_policy
+            from app.tools.risk.screening import enforce_mandatory_screening
+            decision = spending_policy.evaluate(
+                db, wallet_id=pending["wallet_id"], network=network, token=token_sym,
+                counterparty_id=None, destination_address=to_addr, amount_raw=amount_raw,
+                principal_id="local-owner",
+            )
+            if not decision.allowed:
+                raise ValueError("; ".join(decision.denial_reasons))
+            enforce_mandatory_screening(db, to_addr, network)
 
             if chain == "evm" and pending.get("token_address"):
                 tx_hash = evm_chain.send_erc20_tx(
@@ -1879,54 +1830,26 @@ def _stream_send(pending: dict, db: Session, session_id: str):
                         f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available"
                     )
                 tx_hash = evm_chain.send_tx(plain_key, to_addr, amount, network)
-            elif chain == "tron" and pending.get("token_address"):
-                token_sym = pending.get("token") or "USDT"
-                tx_hash = tron_chain.send_trc20(plain_key, to_addr, amount, token_sym)
-            elif chain == "tron":
-                balance = tron_chain.get_balance(pending["wallet_address"])
-                if balance["balance"] < amount:
-                    raise ValueError(
-                        f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available"
-                    )
-                tx_hash = tron_chain.send_trx(plain_key, to_addr, amount)
-            elif chain == "solana" and pending.get("token_address"):
-                from app.core.amounts import to_base_units
-                token_balance = sol_chain.get_spl_token_balance(
-                    pending["wallet_address"], pending["token_address"], pending["token_decimals"],
-                )
-                requested_raw = to_base_units(
-                    amount, pending["token_decimals"], pending.get("token") or "token",
-                )
-                if token_balance["raw_balance"] < requested_raw:
-                    raise ValueError(
-                        f"insufficient token balance: {token_balance['balance']:.6f} available, {amount:.6f} required"
-                    )
-                sol_balance = sol_chain.get_balance(pending["wallet_address"])
-                if sol_balance["balance"] <= 0:
-                    raise ValueError("no SOL available to pay network fees")
-                tx_hash = sol_chain.send_spl_token(
-                    bytes.fromhex(plain_key), to_addr, amount,
-                    pending["token_address"], pending["token_decimals"],
-                )
             else:
-                balance = sol_chain.get_balance(pending["wallet_address"])
+                balance = evm_chain.get_balance(pending["wallet_address"], network)
                 if balance["balance"] < amount:
                     raise ValueError(
                         f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available"
                     )
-                tx_hash = sol_chain.send_tx(bytes.fromhex(plain_key), to_addr, amount)
+                tx_hash = evm_chain.send_tx(plain_key, to_addr, amount, network)
 
-            db.add(Transaction(
-                wallet_id=pending["wallet_id"], chain=chain, tx_hash=tx_hash,
-                to_address=to_addr, amount=amount, status="submitted",
-                token=pending.get("token"), reference=pending.get("reference"),
-                timestamp=datetime.utcnow(),
-            ))
-            db.commit()
-            token_sym = pending.get("token") or network.upper()
+            _record_submitted_transaction(
+                db, wallet_id=pending["wallet_id"], network=network, tx_hash=tx_hash,
+                from_address=pending["wallet_address"], to_address=to_addr,
+                amount=amount, amount_raw=amount_raw,
+                decimals=decimals, token=token_sym, category="transfer",
+                reference=pending.get("reference"),
+            )
             text = f"Broadcast **{amount} {token_sym}**.\nTx hash: `{tx_hash}`"
         except Exception as e:
-            text = f"Send failed: {_exception_message(e)}"
+            text = _execution_error("Send", e, plain_key)
+        finally:
+            plain_key = None
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
@@ -1943,6 +1866,7 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
             ensure_allowance, get_quote, get_swap_tx, execute_swap,
             validate_swap_transaction_static, _NATIVE,
         )
+        plain_key = None
         try:
             plain_key   = decrypt_key(pending["wallet_encrypted_key"])
             network     = pending.get("network", "ethereum")
@@ -2003,10 +1927,18 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
                 expected_src_amount=amount_wei,
                 expected_min_dst_amount=int(new_dst_amount * 0.98),
             )
+            _record_submitted_transaction(
+                db, wallet_id=pending["wallet_id"], network=network, tx_hash=tx_hash,
+                from_address=wallet_addr, to_address=swap_data["to"],
+                amount=src_amount, amount_raw=amount_wei, decimals=src_dec,
+                token=from_tok, category="swap",
+            )
             dst_amount_human = new_dst_amount / (10 ** dst_dec)
             text = f"✅ Swapped **{pending['amount']} {from_tok} → ~{dst_amount_human:.4f} {to_tok}**!\nTx hash: `{tx_hash}`"
         except Exception as e:
-            text = f"Swap failed: {e}"
+            text = _execution_error("Swap", e, plain_key)
+        finally:
+            plain_key = None
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
@@ -2021,6 +1953,7 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
         from app.tools.wallet.encrypt import decrypt_key
         from app.tools.trading import lifi
         approval_note = ""
+        plain_key = None
         try:
             plain_key    = decrypt_key(pending["wallet_encrypted_key"])
             from_network = pending["from_network"].lower()
@@ -2094,6 +2027,12 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
                 expected_destination_chain_id=lifi.CHAIN_IDS[to_network],
                 expected_min_dst_amount=int(new_dst_wei * 0.98),
             )
+            _record_submitted_transaction(
+                db, wallet_id=pending["wallet_id"], network=from_network, tx_hash=tx_hash,
+                from_address=wallet_addr, to_address=tx_request["to"],
+                amount=pending["amount"], amount_raw=amount_wei,
+                decimals=pending.get("src_dec", 18), token=from_tok, category="bridge",
+            )
             dst_amount_human = int(estimate["toAmount"]) / (10 ** dst_dec)
             text = (
                 f"✅ Bridging **{pending['amount']} {from_tok} ({from_network.capitalize()}) → "
@@ -2103,7 +2042,9 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
                 f"balance shortly. If it doesn't show up, ask me to check the bridge status with this tx hash."
             )
         except Exception as e:
-            text = f"Bridge failed: {e}"
+            text = _execution_error("Bridge", e, plain_key)
+        finally:
+            plain_key = None
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
@@ -2117,6 +2058,8 @@ def _stream_sol_swap(pending: dict, db: Session, session_id: str):
     async def generate():
         from app.tools.wallet.encrypt import decrypt_key
         from app.tools.market.jupiter import get_quote as jup_quote, get_swap_transaction, execute_swap as jup_execute
+        plain_key = None
+        key_bytes = None
         try:
             plain_key   = decrypt_key(pending["wallet_encrypted_key"])
             key_bytes   = bytes.fromhex(plain_key)
@@ -2154,7 +2097,10 @@ def _stream_sol_swap(pending: dict, db: Session, session_id: str):
             text = (f"✅ Swapped **{amount} {src_sym} → ~{dst_amount_human:.4f} {dst_sym}** on Solana!\n"
                     f"Signature: `{sig}`")
         except Exception as e:
-            text = f"Solana swap failed: {e}"
+            text = f"Solana swap failed: {_exception_message(e, plain_key, key_bytes)}"
+        finally:
+            plain_key = None
+            key_bytes = None
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
@@ -2165,48 +2111,54 @@ def _stream_sol_swap(pending: dict, db: Session, session_id: str):
 
 
 def _stream_register_name(pending: dict, db: Session, session_id: str):
+    """Step 1 of commit/reveal: sends the on-chain commitment. The reveal
+    (actual register() call) happens later, once MIN_COMMITMENT_AGE has
+    passed — see the "awaiting_register_reveal" pending-state handler."""
     async def generate():
-        import os
+        import secrets as secrets_module
+        from datetime import datetime, timezone
         from app.tools.wallet.encrypt import decrypt_key
         from app.tools.names import sara_names
-        from app.chains import evm as evm_chain
-        from app.db.models import Transaction
-        from datetime import datetime
+        from app.core.audit import append_audit
+        from app.db.models import SaraName
+        plain_key = None
         try:
-            registrar_address = os.getenv("SARA_NAME_REGISTRAR_ADDRESS", "")
-            if not registrar_address:
-                raise ValueError("Name registration is not configured (SARA_NAME_REGISTRAR_ADDRESS is not set).")
+            if not sara_names.is_configured():
+                raise ValueError("Sara Names is not configured on this instance (SARA_NAME_REGISTRAR_ADDRESS is not set).")
             plain_key = decrypt_key(pending["wallet_encrypted_key"])
-            price = pending["price"]
-            balance = evm_chain.get_balance(pending["wallet_address"], "polygon")
-            if balance["balance"] < price:
-                raise ValueError(f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available, {price} POL required")
-            payment_tx_hash = evm_chain.send_tx(plain_key, registrar_address, price, "polygon")
-            db.add(Transaction(
-                wallet_id=pending["wallet_id"], chain="evm", tx_hash=payment_tx_hash,
-                to_address=registrar_address, amount=price, status="submitted",
-                timestamp=datetime.utcnow(),
-            ))
+            secret = secrets_module.token_bytes(32)
+            commitment = sara_names.compute_commitment(pending["name"], pending["wallet_address"], secret)
+            commit_tx_hash = sara_names.commit(plain_key, commitment)
+
+            node = sara_names.node_hex(pending["name"])
+            row = db.query(SaraName).filter(SaraName.node == node).first()
+            if not row:
+                row = SaraName(node=node, label=pending["name"], wallet_id=pending["wallet_id"], status="committed", commit_tx_hash=commit_tx_hash)
+                db.add(row)
+            else:
+                row.status = "committed"
+                row.commit_tx_hash = commit_tx_hash
+            append_audit(db, "sara_name.committed", "sara_name", details={"label": pending["name"], "tx_hash": commit_tx_hash})
             db.commit()
 
-            result = sara_names.submit_registration(pending["name"], pending["wallet_address"], payment_tx_hash)
-            if result.get("status") == "registered":
-                tx = result.get("registry_tx_hash")
-                extra = f"\nRegistry tx: `{tx}`" if tx else ""
-                text = f"Payment sent (`{payment_tx_hash}`). **{pending['name']}** is now registered to your wallet.{extra}"
-            else:
-                _pending[session_id] = {
-                    "type": "awaiting_register_payment",
-                    "name": pending["name"],
-                    "wallet_address": pending["wallet_address"],
-                    "payment_tx_hash": payment_tx_hash,
-                }
-                text = (
-                    f"Payment sent (`{payment_tx_hash}`). I'll finish registering **{pending['name']}** "
-                    f"once it confirms — send any message in a bit and I'll check."
-                )
+            _pending[session_id] = {
+                "type": "awaiting_register_reveal",
+                "name": pending["name"],
+                "wallet_id": pending["wallet_id"],
+                "wallet_address": pending["wallet_address"],
+                "wallet_encrypted_key": pending["wallet_encrypted_key"],
+                "secret": secret.hex(),
+                "duration_seconds": pending["duration_seconds"],
+                "committed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            text = (
+                f"Committed on-chain (`{commit_tx_hash}`). Wait about a minute, then send any message "
+                f"(e.g. \"finish registering {pending['name']}\") and I'll complete it."
+            )
         except Exception as e:
-            text = f"Registration failed: {_exception_message(e)}"
+            text = _execution_error("Registration", e, plain_key)
+        finally:
+            plain_key = None
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"

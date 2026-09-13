@@ -4,8 +4,8 @@ from web3 import Web3
 _BASE = "https://apiv5.paraswap.io"
 
 CHAIN_IDS = {
-    "ethereum": 1, "polygon": 137, "arbitrum": 42161,
-    "base": 8453, "optimism": 10,
+    "ethereum": 1, "arbitrum": 42161, "base": 8453,
+    "optimism": 10, "polygon": 137,
 }
 
 NATIVE_SYMBOLS = {
@@ -16,27 +16,23 @@ NATIVE_SYMBOLS = {
 _NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 _TOKENS: dict[int, dict[str, tuple[str, int]]] = {  # symbol → (address, decimals)
-    # Sara specializes in stablecoin payments — only USDC/USDT (plus each
+    # Sara specializes in stablecoin payments — only Circle-issued USDC (plus each
     # chain's native gas token, handled separately via NATIVE_SYMBOLS) are
     # trusted. No speculative/DeFi tokens.
     1: {
         "USDC":  ("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6),
-        "USDT":  ("0xdAC17F958D2ee523a2206206994597C13D831ec7", 6),
     },
     137: {
         "USDC":  ("0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", 6),
-        "USDT":  ("0xc2132D05D31c914a87C6611C10748AEb04B58e8F", 6),
     },
     42161: {
         "USDC":  ("0xaf88d065e77c8cC2239327C5EDb3A432268e5831", 6),
-        "USDT":  ("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", 6),
     },
     8453: {
         "USDC":  ("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", 6),
     },
     10: {
         "USDC":  ("0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", 6),
-        "USDT":  ("0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", 6),
     },
 }
 
@@ -78,10 +74,14 @@ def max_total_network_fee_wei(source_token: str | None) -> int:
 
 def resolve_token(symbol: str, network: str) -> tuple[str, int] | None:
     """Returns (address, decimals) or None."""
-    chain_id = CHAIN_IDS.get(network.lower())
+    network = network.lower()
+    from app.core.assets import token_enabled
+    if not token_enabled(symbol, network):
+        return None
+    chain_id = CHAIN_IDS.get(network)
     if not chain_id:
         return None
-    native = NATIVE_SYMBOLS.get(network.lower(), "ETH")
+    native = NATIVE_SYMBOLS.get(network, "ETH")
     if symbol.upper() == native:
         return (_NATIVE, 18)
     entry = _TOKENS.get(chain_id, {}).get(symbol.upper())
@@ -91,11 +91,15 @@ def resolve_token(symbol: str, network: str) -> tuple[str, int] | None:
 def trusted_symbols(network: str) -> list[str]:
     """Every symbol Sara will resolve to a real contract on this network —
     the allowlist a user's input is checked (and typo-corrected) against."""
-    chain_id = CHAIN_IDS.get(network.lower())
+    network = network.lower()
+    from app.core.assets import network_enabled, token_enabled
+    if not network_enabled(network):
+        return []
+    chain_id = CHAIN_IDS.get(network)
     if not chain_id:
         return []
-    native = NATIVE_SYMBOLS.get(network.lower(), "ETH")
-    return [native] + list(_TOKENS.get(chain_id, {}).keys())
+    native = NATIVE_SYMBOLS.get(network, "ETH")
+    return [native] + [s for s in _TOKENS.get(chain_id, {}) if token_enabled(s, network)]
 
 
 def resolve_token_with_correction(symbol: str, network: str) -> tuple[tuple[str, int] | None, str | None]:
@@ -184,8 +188,8 @@ def ensure_allowance(private_key: str, token_addr: str, amount_wei: int,
     current = contract.functions.allowance(account.address, spender).call()
     if current == amount_wei:
         return None
-    # Never leave an unlimited or stale oversized approval behind. Tokens
-    # such as USDT require resetting a non-zero allowance before changing it.
+    # Never leave an unlimited or stale oversized approval behind. Some ERC-20
+    # contracts require resetting a non-zero allowance before changing it.
     tx_hash = None
     for value in ([0, amount_wei] if current > 0 else [amount_wei]):
         gas_price = int(w3.eth.gas_price * 1.2)

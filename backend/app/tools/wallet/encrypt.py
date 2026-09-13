@@ -299,9 +299,30 @@ def decrypt_with_key(blob_hex: str, key: bytes) -> str:
         ) from exc
 
 
+def encrypt_bytes_with_key(plaintext: bytes, key: bytes) -> bytes:
+    nonce = os.urandom(12)
+    return nonce + AESGCM(key).encrypt(nonce, plaintext, None)
+
+
+def decrypt_bytes_with_key(blob: bytes, key: bytes) -> bytes:
+    data = bytes(blob)
+    try:
+        return AESGCM(key).decrypt(data[:12], data[12:], None)
+    except InvalidTag as exc:
+        raise ValueError("encrypted local data cannot be decrypted with the active Sara key") from exc
+
+
 def encrypt_key(plaintext: str) -> str:
     return encrypt_with_key(plaintext, _master_key())
 
 
 def decrypt_key(blob_hex: str) -> str:
     return decrypt_with_key(blob_hex, _master_key())
+
+
+def encrypt_bytes(plaintext: bytes) -> bytes:
+    return encrypt_bytes_with_key(plaintext, _master_key())
+
+
+def decrypt_bytes(blob: bytes) -> bytes:
+    return decrypt_bytes_with_key(blob, _master_key())

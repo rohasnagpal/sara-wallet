@@ -1,17 +1,9 @@
 from eth_account import Account
-from solders.keypair import Keypair
 
+# SECURITY INVARIANT: private keys must be created only by the chain
+# libraries' CSPRNG-backed constructors. Do not derive key material here from
+# random, timestamps, UUIDs, user input, hashes, or AI-generated values. The
+# regression suite enforces this narrow dependency boundary.
 def generate_evm_wallet() -> dict:
     acct = Account.create()
     return {"address": acct.address, "private_key": acct.key.hex()}
-
-def generate_solana_wallet() -> dict:
-    kp = Keypair()
-    return {
-        "address": str(kp.pubkey()),
-        "private_key_bytes": bytes(kp),
-    }
-
-def generate_tron_wallet() -> dict:
-    from app.chains.tron import generate_wallet
-    return generate_wallet()

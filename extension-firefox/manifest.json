@@ -10,12 +10,10 @@
   "background": {
     "scripts": [
       "vendor/ethers.umd.min.js",
-      "vendor/solana-web3.iife.min.js",
       "src/crypto.js",
       "src/storage.js",
       "src/lock.js",
       "src/evm.js",
-      "src/solana.js",
       "src/background.js"
     ]
   },
@@ -32,10 +30,7 @@
     "https://arb1.arbitrum.io/*",
     "https://mainnet.base.org/*",
     "https://polygon-bor-rpc.publicnode.com/*",
-    "https://mainnet.optimism.io/*",
-    "https://bsc-dataseed.binance.org/*",
-    "https://api.avax.network/*",
-    "https://api.mainnet-beta.solana.com/*"
+    "https://mainnet.optimism.io/*"
   ],
   "browser_specific_settings": {
     "gecko": {

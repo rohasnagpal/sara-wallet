@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.db.session import SessionLocal
 from app.db.models import Wallet
-from app.tools.wallet.keygen import generate_evm_wallet, generate_solana_wallet, generate_tron_wallet
+from app.tools.wallet.keygen import generate_evm_wallet
 from app.tools.wallet.encrypt import encrypt_key, decrypt_key
 from app.tools.wallet.lock import WalletLockedError, unlock as verify_passphrase
 from app.tools.wallet.balance import get_wallet_balance
@@ -21,7 +22,7 @@ def get_db():
 
 class CreateWalletRequest(BaseModel):
     name: str
-    chain: str  # "evm" | "solana"
+    chain: str = "evm"
 
 class ImportWalletRequest(BaseModel):
     name: str
@@ -44,16 +45,8 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
             w = generate_evm_wallet()
             encrypted = encrypt_key(w["private_key"])
             address = w["address"]
-        elif chain == "solana":
-            w = generate_solana_wallet()
-            encrypted = encrypt_key(w["private_key_bytes"].hex())
-            address = w["address"]
-        elif chain == "tron":
-            w = generate_tron_wallet()
-            encrypted = encrypt_key(w["private_key"])
-            address = w["address"]
         else:
-            raise HTTPException(400, "chain must be 'evm', 'solana', or 'tron'")
+            raise HTTPException(400, "Sara now supports EVM wallets only")
     except WalletLockedError as e:
         raise HTTPException(423, str(e))
 
@@ -75,21 +68,8 @@ def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
             address = acct.address
         except Exception:
             raise HTTPException(400, "Invalid EVM private key")
-    elif chain == "solana":
-        from solders.keypair import Keypair
-        try:
-            kp = Keypair.from_bytes(bytes.fromhex(req.private_key))
-            address = str(kp.pubkey())
-        except Exception:
-            raise HTTPException(400, "Invalid Solana private key (hex bytes expected)")
-    elif chain == "tron":
-        from app.chains.tron import import_wallet as tron_import
-        try:
-            address = tron_import(req.private_key)["address"]
-        except Exception:
-            raise HTTPException(400, "Invalid Tron private key (hex expected)")
     else:
-        raise HTTPException(400, "chain must be 'evm', 'solana', or 'tron'")
+        raise HTTPException(400, "Sara now supports EVM wallets only")
 
     try:
         encrypted = encrypt_key(req.private_key)
@@ -103,7 +83,7 @@ def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
 
 @router.get("")
 def list_wallets(db: Session = Depends(get_db)):
-    wallets = db.query(Wallet).all()
+    wallets = db.query(Wallet).filter(Wallet.chain == "evm").all()
     return [{"id": w.id, "name": w.name, "chain": w.chain, "address": w.address} for w in wallets]
 
 @router.patch("/{wallet_id}", dependencies=[Depends(require_session)])
@@ -138,11 +118,30 @@ def export_wallet(wallet_id: int, req: ExportWalletRequest, db: Session = Depend
         raise HTTPException(400, "Passphrase cannot be blank")
     if not verify_passphrase(req.passphrase):
         raise HTTPException(401, "Incorrect passphrase")
+    private_key = None
     try:
         private_key = decrypt_key(w.encrypted_key)
+        # JSONResponse serializes immediately, allowing this function to drop
+        # its plaintext-key reference before returning. Python strings cannot
+        # be reliably zeroized, so the real guarantees are no persistence, no
+        # logging, and the shortest practical lifetime.
+        return JSONResponse(
+            content={
+                "id": w.id,
+                "name": w.name,
+                "chain": w.chain,
+                "address": w.address,
+                "private_key": private_key,
+            },
+            headers={
+                "Cache-Control": "no-store, max-age=0",
+                "Pragma": "no-cache",
+            },
+        )
     except ValueError as e:
         raise HTTPException(500, str(e))
-    return {"id": w.id, "name": w.name, "chain": w.chain, "address": w.address, "private_key": private_key}
+    finally:
+        private_key = None
 
 @router.get("/{wallet_id}/balance")
 def wallet_balance(wallet_id: int, network: Optional[str] = None, db: Session = Depends(get_db)):

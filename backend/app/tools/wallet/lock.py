@@ -129,12 +129,18 @@ def _recover_pending_migration(passphrase: str) -> bytes | None:
         return None
 
     from app.db.session import SessionLocal
-    from app.db.models import Wallet
+    from app.db.models import Wallet, ProofRecord
     db = SessionLocal()
     try:
         try:
             for wallet in db.query(Wallet).all():
                 encrypt.decrypt_with_key(wallet.encrypted_key, key)
+            for proof in db.query(ProofRecord).all():
+                encrypt.decrypt_with_key(proof.encrypted_details, key)
+                if proof.encrypted_proof:
+                    encrypt.decrypt_with_key(proof.encrypted_proof, key)
+                if proof.encrypted_evidence:
+                    encrypt.decrypt_bytes_with_key(proof.encrypted_evidence, key)
         except Exception:
             # The DB never committed; current .env.local remains authoritative.
             encrypt.discard_pending_migration()
@@ -196,7 +202,7 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
     import logging
     from app.tools.wallet import encrypt
     from app.db.session import SessionLocal
-    from app.db.models import Wallet
+    from app.db.models import Wallet, ProofRecord
 
     new_salt = os.urandom(16)
     new_key = encrypt._scrypt_key(passphrase, new_salt)
@@ -213,6 +219,15 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
             for w in db.query(Wallet).all():
                 plaintext = encrypt.decrypt_with_key(w.encrypted_key, old_key)
                 w.encrypted_key = encrypt.encrypt_with_key(plaintext, new_key)
+            for proof in db.query(ProofRecord).all():
+                details = encrypt.decrypt_with_key(proof.encrypted_details, old_key)
+                proof.encrypted_details = encrypt.encrypt_with_key(details, new_key)
+                if proof.encrypted_proof:
+                    proof_json = encrypt.decrypt_with_key(proof.encrypted_proof, old_key)
+                    proof.encrypted_proof = encrypt.encrypt_with_key(proof_json, new_key)
+                if proof.encrypted_evidence:
+                    evidence = encrypt.decrypt_bytes_with_key(proof.encrypted_evidence, old_key)
+                    proof.encrypted_evidence = encrypt.encrypt_bytes_with_key(evidence, new_key)
             db.commit()
         finally:
             db.close()

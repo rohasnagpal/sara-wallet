@@ -25,6 +25,7 @@ cryptography==48.0.1
 curl_cffi==0.15.0
 cytoolz==1.1.0
 distro==1.9.0
+et-xmlfile==2.0.0
 eth_abi==5.2.0
 eth-account==0.13.7
 eth-hash==0.8.0
@@ -60,6 +61,7 @@ multidict==6.7.1
 multitasking==0.0.13
 numpy==2.5.1
 openai==2.45.0
+openpyxl==3.1.5
 packaging==26.2
 pandas==3.0.3
 parsimonious==0.10.0
@@ -76,6 +78,7 @@ pydantic_core==2.46.4
 Pygments==2.20.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+python-multipart==0.0.32
 pytz==2026.2
 pyunormalize==17.0.0
 PyYAML==6.0.3

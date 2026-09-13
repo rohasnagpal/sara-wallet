@@ -1,9 +1,7 @@
 """Cross-chain swaps via LI.FI (https://li.quest) — bridges + DEXs aggregated
 behind one API. This is a separate, independent integration from
-paraswap.py (same-chain EVM swaps) and jupiter.py (same-chain Solana swaps);
-it doesn't share code with either and doesn't touch them.
-
-LI.FI only supports EVM chains — no Solana route exists here.
+paraswap.py (same-chain EVM swaps). It doesn't share transaction-building
+code with that integration.
 """
 import requests
 from web3 import Web3
@@ -14,7 +12,7 @@ _BASE = "https://li.quest/v1"
 # public EVM chain IDs, not something LI.FI-specific.
 CHAIN_IDS = {
     "ethereum": 1, "polygon": 137, "arbitrum": 42161,
-    "base": 8453, "optimism": 10, "bsc": 56, "avalanche": 43114,
+    "base": 8453, "optimism": 10,
 }
 
 # LI.FI represents the native asset as the zero address — confirmed against
@@ -34,8 +32,6 @@ _ERC20_PROXIES = {
     "arbitrum": "0x5741A7FfE7c39Ca175546a54985fA79211290b51",
     "base": "0x74a55CaDb12501A3707E9F3C5dfd8b563C6A5940",
     "optimism": "0x314bE5fcf0A204837896e6028C47A9e1FC2919c7",
-    "bsc": "0x5741A7FfE7c39Ca175546a54985fA79211290b51",
-    "avalanche": "0x5741A7FfE7c39Ca175546a54985fA79211290b51",
 }
 _MAX_BRIDGE_GAS_LIMIT = 1_500_000
 _MAX_BRIDGE_FEE_WEI = 50_000_000_000_000_000  # 0.05 native asset
@@ -102,6 +98,9 @@ _ERC20_ABI = [
 
 def get_quote(from_network: str, to_network: str, from_token: str, to_token: str,
               amount_wei: int, from_address: str, slippage: float = 0.005) -> dict | None:
+    from app.core.assets import network_enabled
+    if not network_enabled(from_network) or not network_enabled(to_network):
+        return None
     from_chain = CHAIN_IDS.get(from_network.lower())
     to_chain = CHAIN_IDS.get(to_network.lower())
     if not from_chain or not to_chain:
@@ -280,8 +279,7 @@ def ensure_allowance(private_key: str, token_addr: str, spender: str, amount_wei
     current = contract.functions.allowance(account.address, spender_addr).call()
     if current == amount_wei:
         return None
-    # Some tokens (Tether's original contract, and several bridged/L2 USDT
-    # deployments that copy its behavior) revert if you approve a new
+    # Some ERC-20 contracts revert if you approve a new
     # non-zero value while the existing allowance is already non-zero — you
     # have to reset to 0 first. Also approve the exact amount needed rather
     # than an unlimited amount: safer for the user, and avoids a class of
@@ -312,8 +310,8 @@ def validate_bridge_transaction(w3, tx_request: dict, wallet_address: str, netwo
     )
 
     # Asset-change simulation is defense in depth after official deployment,
-    # value, allowance, gas and fee bounds. It is unavailable on BSC/AVAX and
-    # for installations without Alchemy, where those hard bounds still cap
+    # value, allowance, gas and fee bounds. For installations without Alchemy,
+    # those hard bounds still cap
     # the transaction to exactly the confirmed source amount.
     import os
     from app.chains.evm import ALCHEMY_NETWORK_SLUGS

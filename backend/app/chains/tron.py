@@ -79,6 +79,9 @@ def is_valid_address(address: str) -> bool:
 
 
 def generate_wallet() -> dict:
+    # Keep key creation inside tronpy's validated, CSPRNG-backed constructor.
+    # app.tools.wallet.keygen and its regression tests treat this as part of
+    # the wallet-generation security boundary.
     priv = PrivateKey.random()
     return {"address": priv.public_key.to_base58check_address(), "private_key": priv.hex()}
 

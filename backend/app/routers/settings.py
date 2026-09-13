@@ -17,8 +17,6 @@ ALLOWED_KEYS = {
     "COINGECKO_API_KEY":   "CoinGecko API Key (optional, higher rate limits)",
     "CRYPTOPANIC_API_KEY": "CryptoPanic API Key (news & sentiment)",
     "ALCHEMY_API_KEY":    "Alchemy API Key (token balances + faster RPCs)",
-    "HELIUS_RPC":         "Helius RPC URL (optional, Solana)",
-    "TRONGRID_API_KEY":   "TronGrid API Key (Tron token balances + sends)",
 }
 
 
@@ -45,6 +43,11 @@ class SettingBody(BaseModel):
     value: str
 
 
+class AssetSettingsBody(BaseModel):
+    enabled_networks: list[str]
+    usdc_networks: list[str]
+
+
 @router.post("", dependencies=[Depends(require_session)])
 def save_setting(body: SettingBody, db: Session = Depends(get_db)):
     if body.key not in ALLOWED_KEYS:
@@ -58,6 +61,41 @@ def save_setting(body: SettingBody, db: Session = Depends(get_db)):
     db.commit()
     os.environ[body.key] = value
     return {"status": "saved", "key": body.key}
+
+
+@router.get("/assets")
+def get_asset_settings():
+    from app.core.assets import serialize_preferences
+    return serialize_preferences()
+
+
+@router.post("/assets", dependencies=[Depends(require_session)])
+def save_asset_settings(body: AssetSettingsBody, db: Session = Depends(get_db)):
+    from app.core.assets import ALL_NETWORKS, serialize_preferences
+    allowed = set(ALL_NETWORKS)
+    enabled = set(body.enabled_networks)
+    usdc = set(body.usdc_networks)
+    if not enabled:
+        raise HTTPException(400, "Keep at least one network enabled")
+    unknown = (enabled | usdc) - allowed
+    if unknown:
+        raise HTTPException(400, f"Unsupported network: {sorted(unknown)[0]}")
+    if not usdc.issubset(enabled):
+        raise HTTPException(400, "USDC can only be enabled on an enabled network")
+
+    values = {
+        "SARA_ENABLED_NETWORKS": ",".join(n for n in ALL_NETWORKS if n in enabled),
+        "SARA_USDC_NETWORKS": ",".join(n for n in ALL_NETWORKS if n in usdc),
+    }
+    for key, value in values.items():
+        row = db.query(Config).filter(Config.key == key).first()
+        if row:
+            row.value = value
+        else:
+            db.add(Config(key=key, value=value))
+        os.environ[key] = value
+    db.commit()
+    return serialize_preferences()
 
 
 _models_cache: dict = {"data": None, "fetched_at": 0}

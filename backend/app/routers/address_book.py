@@ -16,7 +16,7 @@ class DirectoryEntry(BaseModel):
 
 @router.get("")
 def list_entries(db: Session = Depends(get_db)):
-    rows = db.query(AddressBook).order_by(AddressBook.nickname).all()
+    rows = db.query(AddressBook).filter(AddressBook.chain == "evm").order_by(AddressBook.nickname).all()
     return [{"id": r.id, "nickname": r.nickname, "address": r.address, "chain": r.chain} for r in rows]
 
 
@@ -25,12 +25,17 @@ def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
     nick = body.nickname.strip().lower()
     if not nick:
         raise HTTPException(400, "Nickname required")
+    if body.chain.lower() != "evm":
+        raise HTTPException(400, "Sara now supports EVM addresses only")
+    from web3 import Web3
+    if not Web3.is_address(body.address):
+        raise HTTPException(400, "Enter a valid EVM address")
     row = db.query(AddressBook).filter(AddressBook.nickname == nick).first()
     if row:
         row.address = body.address
-        row.chain = body.chain
+        row.chain = "evm"
     else:
-        db.add(AddressBook(nickname=nick, address=body.address, chain=body.chain))
+        db.add(AddressBook(nickname=nick, address=body.address, chain="evm"))
     db.commit()
     return {"status": "saved", "nickname": nick}
 

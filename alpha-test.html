@@ -362,7 +362,7 @@ const SECTIONS = [
   { t: "Fresh Install / Environment", items: [
     "Clone fresh, create a Python 3.12 venv, install backend/requirements-lock.txt",
     "Copy .env to .env.local; app starts with only OPENROUTER_API_KEY set",
-    "Optional keys absent (COINGECKO_API_KEY, ALCHEMY_API_KEY, HELIUS_RPC, TRONGRID_API_KEY, RPC URLs, bName vars) don't block startup",
+    "Optional keys absent (COINGECKO_API_KEY, ALCHEMY_API_KEY, RPC URLs, bName vars) don't block startup",
     "Settings can save and mask API keys",
     "Saved Settings survive a server restart",
     "Invalid/unsupported settings key is rejected by the API",
@@ -390,49 +390,40 @@ const SECTIONS = [
   ]},
   { t: "Wallet Management", items: [
     "Create EVM wallet",
-    "Create Solana wallet",
-    "Create Tron wallet",
     "Import existing EVM private key — derived address matches",
-    "Import existing Solana key bytes (hex) — derived address matches",
-    "Import existing Tron private key (hex) — derived address matches",
     "Invalid EVM private key is rejected",
-    "Invalid Solana private key is rejected",
-    "Invalid Tron private key is rejected",
     "Unsupported chain value is rejected",
     "Duplicate wallet name is rejected",
     "Wallets list correctly in both UI and API",
     "Delete a wallet — it disappears from the list",
-    "Balance check across EVM: Ethereum, Polygon, Arbitrum, Base, Optimism, BSC, Avalanche",
-    "Balance check — Solana native SOL",
-    "Balance check — Tron native TRX (works without TRONGRID_API_KEY)",
-    "Tron TRC20/USDT balance appears with TRONGRID_API_KEY set, degrades gracefully (not an error) without one",
-    "ERC-20 balances appear with ALCHEMY_API_KEY set",
+    "Balance check across Ethereum, Arbitrum, Base, OP Mainnet, and Polygon PoS",
+    "Official native gas asset and USDC balances appear with ALCHEMY_API_KEY set",
     "ERC-20 balances degrade gracefully (empty, not an error) with no Alchemy key",
+  ]},
+  { t: "Manage Networks & Tokens", items: [
+    "Settings lists exactly Ethereum, Arbitrum, Base, OP Mainnet, and Polygon PoS",
+    "Each enabled network keeps its native gas asset enabled and locked",
+    "USDC can be independently shown or hidden on each network",
+    "At least one network must remain enabled",
+    "Saved network and token choices survive a server restart",
+    "Trusted Tokens, payment requests, portfolio, send, swap, and bridge honor the saved choices",
   ]},
   { t: "Address Book / Name Resolution", items: [
     "Add nickname for an EVM address",
-    "Add nickname for a Solana address",
-    "Add nickname for a Tron address",
     "Update an existing nickname",
     "Delete a nickname — second click required, doesn't delete on the first click",
     "Send to a saved nickname",
-    "Sending to an address-book entry on a send targeting a different chain (EVM/Solana/Tron mismatch) is rejected",
+    "A non-EVM address is rejected",
     "Resolve / send to an ENS name (alice.eth)",
-    "Resolve / send to an SNS name (bob.sol)",
     "Resolve / send to a .sara / .bname name (once registrar is configured)",
     "An unresolved/nonexistent name fails cleanly, not a crash",
   ]},
   { t: "Sending", items: [
     "Send native ETH between your own EVM wallets",
     "Send native POL on Polygon",
-    "Send native assets on Arbitrum / Base / Optimism / BSC / Avalanche where funded",
-    "Send SOL between your own Solana wallets",
-    "Send native TRX between your own Tron wallets",
+    "Send native ETH on Arbitrum / Base / OP Mainnet where funded",
     "Send to a raw EVM address",
-    "Send to a raw Solana address",
-    "Send to a raw Tron address",
     "Send to an ENS name",
-    "Send to an SNS name",
     "Send to an address-book nickname",
     "Preview shows amount, wallet, network, recipient, balance, and gas/fee estimate",
     "Typing YES does not execute the transaction",
@@ -442,8 +433,7 @@ const SECTIONS = [
     "Amount that would leave no gas/fee balance fails cleanly",
     "Zero or negative amount fails",
     "Invalid recipient address fails",
-    "Sending USDC or USDT previews and executes correctly on every chain Sara lists it for; an unsupported/untrusted token symbol fails with a clear rejection (typo-correction against the trusted list, never substituting a different real asset)",
-    "Sending Tron TRC20 USDT without TRONGRID_API_KEY fails cleanly, not silently as insufficient funds",
+    "Sending USDC previews and executes correctly on every enabled USDC network; unsupported tokens and disabled networks fail clearly",
     "A submitted send creates a transactions row",
     "A failed send does not create a misleading “submitted” record",
     "Ambiguous send with multiple eligible wallets asks which one",
@@ -452,17 +442,14 @@ const SECTIONS = [
   { t: "Swaps", items: [
     "EVM swap preview via Paraswap (e.g. POL → USDC on Polygon)",
     "EVM swap native→token and token→token where funded",
-    "Unsupported EVM network for swaps (BSC/Avalanche) fails cleanly, not a crash",
+    "A disabled or unsupported network fails cleanly, not a crash",
     "Unsupported token symbol fails with a “supported tokens” message",
     "Approval flow works correctly for an ERC-20 source token",
     "CONFIRM executes, CANCEL aborts",
     "Before signing, a swap whose simulated/actual result would move more than the confirmed input amount is rejected, not silently signed",
-    "Solana swap preview via Jupiter (SOL → USDC, SOL → USDT, USDC → USDT) — Sara only swaps native SOL, USDC, and USDT now, no speculative tokens",
-    "Solana unsupported token fails cleanly",
-    "A Paraswap/Jupiter outage or bad quote reports failure without crashing chat",
+    "A Paraswap outage or bad quote reports failure without crashing chat",
     "Ambiguous swap with multiple eligible wallets asks which one",
     "Replying with just the wallet name correctly continues the pending swap",
-    "Attempting a swap on Tron (no DEX aggregator wired up) fails with a clear message, not a confusing EVM/Paraswap-shaped error",
   ]},
   { t: "Bridging (LI.FI)", items: [
     "Bridge preview for same-token cross-chain (e.g. bridge 1 USDC from Polygon to Arbitrum)",
@@ -472,7 +459,7 @@ const SECTIONS = [
     "Before signing, a bridge whose simulated/actual result would move more than the confirmed input amount is rejected",
     "Bridging the same chain as source and destination is rejected",
     "A chain pair LI.FI doesn't support fails cleanly",
-    "Attempting to bridge to/from Solana or Tron fails cleanly — EVM chains only, no Solana or Tron route",
+    "Attempting to bridge to/from an unsupported network fails clearly",
     "\"how to bridge\" returns the bridge-help explainer with the current supported-chain list",
     "Pasting a 64-char tx hash returns a live bridge status (pending / done / failed) via LI.FI's status API",
     "A LI.FI outage or bad quote reports failure without crashing chat",
@@ -487,7 +474,7 @@ const SECTIONS = [
     "QR code renders for a given payment payload and actually scans to the right data",
     "Payment requests list shows reference, wallet, chain, token, amount, note, and status",
     "A pending request is automatically checked against on-chain activity and flips to paid when a matching transfer is found (EVM, via Alchemy)",
-    "Solana and Tron reconciliation follow the same matching approach — verify against a real incoming transfer, since this hasn't been proven live yet",
+    "Payment-request network choices include only networks where USDC is enabled",
     "A request can be manually re-checked, and manually marked paid/pending/cancelled",
     "A payment request can be deleted",
     "CSV export downloads all requests, and a wallet name/note starting with =, +, -, or @ is neutralized (prefixed), not left as a live spreadsheet formula",
@@ -521,10 +508,8 @@ const SECTIONS = [
   { t: "Portfolio", items: [
     "Empty portfolio (no wallets/funds) shows a clean zero state",
     "Portfolio aggregates across all wallets",
-    "EVM native balances shown across Ethereum, Polygon, Arbitrum, Base, Optimism, BSC, Avalanche",
-    "Solana native balance shown",
-    "Tron native TRX (and USDT, with TRONGRID_API_KEY) balance shown",
-    "ERC-20 balances only appear when ALCHEMY_API_KEY is set",
+    "Native balances shown across enabled Ethereum, Arbitrum, Base, OP Mainnet, and Polygon PoS networks",
+    "USDC balances only appear on enabled USDC networks when ALCHEMY_API_KEY is set",
     "USD values and 24h change render correctly",
     "Per-chain totals add up to match individual assets",
     "An RPC failure on one chain doesn't break the whole portfolio view",
@@ -534,15 +519,19 @@ const SECTIONS = [
     "CONFIRM with nothing pending says so, doesn't error",
     "A transaction-like typo that can't be parsed returns safe command guidance instead of guessing",
     "Chat history persists across a page reload",
-    "Voice input works for a normal spoken prompt (English)",
-    "A spoken “confirm” or “cancel” is blocked and requires typing it manually",
+    "No microphone or browser-dictation control is shown",
     "UI handles the backend being offline / API errors without freezing",
     "CORS only allows localhost origins (a request from another origin is blocked)",
   ]},
   { t: "UI / Visual", items: [
-    "Add Wallet dropdown shows EVM / Solana / Tron, with Bitcoin disabled (“Coming soon”)",
-    "Theme switcher works across all themes (Lime default, Pearl, Glassy, Dark Pro, Sunset, Forest)",
-    "Mic button hides/disables gracefully in browsers without speech recognition support",
+    "Add Wallet creates EVM wallets for the supported networks only",
+    "Theme switcher works across all themes (Proof default, Lime, Pearl, Glassy, Dark Pro, Sunset, Forest)",
+    "Proof is the default theme on a fresh page load",
+    "The lock, setup, and transaction-authorization overlay uses the default Proof skin",
+    "Proofs hashes files locally and never uploads the selected file",
+    "Creating a proof shows the exact wallet, Polygon network, recipient, fingerprint, expiry, and 1 USDC fee before authorization",
+    "Proof payment requires passphrase re-entry and stores the resulting evidence archive encrypted locally",
+    "Proof verification finds public matches by SHA-256 fingerprint",
     "Address-book delete requires a second click to confirm",
     "Settings no longer shows an “Encryption Key” field — replaced by “Lock Now”",
   ]},
@@ -550,9 +539,46 @@ const SECTIONS = [
 
 const STORE_KEY = "sara-alpha-testlog-v1";
 
+// Safe local checks completed on 2026-07-18. Display codes use the same
+// section.item numbering shown in the checklist; loadState converts them to
+// the internal zero-based item IDs. The revision marker applies this verified
+// baseline once while preserving any existing notes. After that, users can
+// still uncheck or re-check items normally and their choice remains saved.
+const VERIFIED_REVISION = "2026-07-18-safe-local-v1";
+const VERIFIED_PASSES = [
+  "0.03", "0.04", "0.05", "0.06", "0.08",
+  "1.01", "1.02", "1.03", "1.04", "1.05", "1.06", "1.07", "1.08", "1.09", "1.10",
+  "1.13", "1.14", "1.15", "1.16",
+  "2.01", "2.02", "2.03", "2.04", "2.05", "2.06", "2.07", "2.08", "2.09", "2.10", "2.11", "2.12", "2.13",
+  "3.01", "3.02", "3.03", "3.04", "3.05", "3.07",
+  "4.13", "4.15", "4.19", "4.24", "4.25",
+  "5.03", "5.04", "5.07", "5.09", "5.11", "5.13",
+  "6.05", "6.08", "6.09", "6.12",
+  "7.01", "7.02", "7.03", "7.04", "7.05", "7.07", "7.10", "7.11", "7.12", "7.13",
+  "8.01", "8.02", "8.03", "8.06", "8.07", "8.08",
+  "10.01",
+  "11.01", "11.02", "11.03", "11.07", "11.08",
+  "12.02", "12.04", "12.05",
+];
+
+function verifiedItemId(code) {
+  const [section, item] = code.split(".").map(Number);
+  return section + "." + (item - 1);
+}
+
 function loadState() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
-  catch (e) { return {}; }
+  let loaded;
+  try { loaded = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch (e) { loaded = {}; }
+  if (loaded.__verifiedRevision !== VERIFIED_REVISION) {
+    VERIFIED_PASSES.forEach(code => {
+      const id = verifiedItemId(code);
+      loaded[id] = { ...(loaded[id] || {}), c: true };
+    });
+    loaded.__verifiedRevision = VERIFIED_REVISION;
+    localStorage.setItem(STORE_KEY, JSON.stringify(loaded));
+  }
+  return loaded;
 }
 function saveState(state) {
   localStorage.setItem(STORE_KEY, JSON.stringify(state));

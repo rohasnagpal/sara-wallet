@@ -47,12 +47,11 @@
     <input class="input" id="newWalletName" placeholder="e.g. Main ETH" maxlength="32">
     <label class="field-label">Chain</label>
     <select class="input" id="newWalletChain">
-      <option value="evm">EVM (7 chains)</option>
-      <option value="solana">Solana</option>
+      <option value="evm">EVM (5 networks)</option>
     </select>
     <div id="importKeyGroup" style="display:none">
       <label class="field-label">Private Key</label>
-      <input class="input" id="newWalletKey" type="password" placeholder="0x… (EVM) or hex secret key (Solana)">
+      <input class="input" id="newWalletKey" type="password" placeholder="0x… EVM private key">
     </div>
     <div class="status-msg" id="addWalletStatus"></div>
     <div class="btn-row">
@@ -98,7 +97,6 @@
         <input class="input" id="dirNick" placeholder="Nickname" maxlength="32">
         <select class="input" id="dirChain" style="max-width:78px">
           <option value="evm">EVM</option>
-          <option value="solana">Solana</option>
         </select>
       </div>
       <div class="add-row">

@@ -33,7 +33,6 @@ async function handleMessage(msg) {
         evmNetworks: Object.keys(SaraEvm.EVM_RPC),
         evmNativeSymbol: SaraEvm.EVM_NATIVE_SYMBOL,
         evmTokens: SaraEvm.EVM_TOKENS,
-        splTokens: SaraSolana.SPL_TOKENS,
       };
     }
     case "LOCK_STATUS": {
@@ -55,7 +54,7 @@ async function handleMessage(msg) {
 
     case "WALLET_LIST": {
       const wallets = await SaraStorage.getWallets();
-      return wallets.map(({ id, name, chain, address }) => ({ id, name, chain, address }));
+      return wallets.filter(w => w.chain === "evm").map(({ id, name, chain, address }) => ({ id, name, chain, address }));
     }
 
     case "WALLET_CREATE": {
@@ -63,8 +62,7 @@ async function handleMessage(msg) {
       const chain = msg.chain.toLowerCase();
       let generated;
       if (chain === "evm") generated = SaraEvm.createEvmWallet();
-      else if (chain === "solana") generated = SaraSolana.createSolanaWallet();
-      else throw new Error("chain must be 'evm' or 'solana'");
+      else throw new Error("Sara now supports EVM wallets only");
       const encrypted_key = await SaraCrypto.encryptString(key, generated.privateKey);
       const wallet = await SaraStorage.addWallet({
         name: msg.name, chain, address: generated.address, encrypted_key,
@@ -78,8 +76,7 @@ async function handleMessage(msg) {
       let imported;
       try {
         if (chain === "evm") imported = SaraEvm.importEvmWallet(msg.privateKey);
-        else if (chain === "solana") imported = SaraSolana.importSolanaWallet(msg.privateKey);
-        else throw new Error("chain must be 'evm' or 'solana'");
+        else throw new Error("Sara now supports EVM wallets only");
       } catch (e) {
         throw new Error("Invalid private key for " + chain);
       }
@@ -122,15 +119,8 @@ async function handleMessage(msg) {
         }
         const bal = await SaraEvm.getNativeBalance(network, wallet.address);
         return { balance: bal, symbol: SaraEvm.EVM_NATIVE_SYMBOL[network], network };
-      } else if (wallet.chain === "solana") {
-        if (msg.token) {
-          const bal = await SaraSolana.getSplBalance(wallet.address, msg.token);
-          return { balance: bal, symbol: msg.token };
-        }
-        const bal = await SaraSolana.getNativeBalance(wallet.address);
-        return { balance: bal, symbol: "SOL" };
       }
-      throw new Error("Unknown wallet chain");
+      throw new Error("This wallet uses a chain Sara no longer supports");
     }
 
     case "SEND_PREVIEW": {
@@ -141,13 +131,8 @@ async function handleMessage(msg) {
           return await SaraEvm.previewTokenSend(network, wallet.address, msg.token, msg.to, msg.amount);
         }
         return await SaraEvm.previewNativeSend(network, wallet.address, msg.to, msg.amount);
-      } else if (wallet.chain === "solana") {
-        if (msg.token) {
-          return await SaraSolana.previewSplSend(wallet.address, msg.token, msg.to, msg.amount);
-        }
-        return await SaraSolana.previewNativeSend(wallet.address, msg.to, msg.amount);
       }
-      throw new Error("Unknown wallet chain");
+      throw new Error("This wallet uses a chain Sara no longer supports");
     }
 
     case "SEND_EXECUTE": {
@@ -160,12 +145,8 @@ async function handleMessage(msg) {
         txHash = msg.token
           ? await SaraEvm.sendErc20(network, privateKey, msg.token, msg.to, msg.amount)
           : await SaraEvm.sendNative(network, privateKey, msg.to, msg.amount);
-      } else if (wallet.chain === "solana") {
-        txHash = msg.token
-          ? await SaraSolana.sendSpl(privateKey, msg.token, msg.to, msg.amount)
-          : await SaraSolana.sendNative(privateKey, msg.to, msg.amount);
       } else {
-        throw new Error("Unknown wallet chain");
+        throw new Error("This wallet uses a chain Sara no longer supports");
       }
       return { tx_hash: txHash };
     }

@@ -1,6 +1,6 @@
 <div align="center">
 
-**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending stablecoins as easy as sending a text message: Send 50 USDT to Maria.
+**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending USDC as easy as sending a text message: Send 50 USDC to Maria.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open-Source-e76f51?style=flat-square&logo=github)](https://github.com)
@@ -16,24 +16,25 @@
 
 ## ✦ What is Sara Wallet?
 
-**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending stablecoins as easy as sending a text message: Send 50 USDT to Maria.
+**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending USDC as easy as sending a text message: Send 50 USDC to Maria.
 
-Some of the things you can do with Sara Wallet:
+Sara now combines four product layers:
 
-1. Send stablecoins by typing or saying: `"send 100 usdc to zara"`
-2. Request payment with a shareable link and QR code: `"payment link for 100 usdc"`
-3. Bridge stablecoins across chains, like: `"bridge 100 usdc from polygon to arbitrum"`
-4. Swap tokens with a message like: `"swap 100 usdt for usdc"`
-5. Track payment requests automatically. Sara checks on-chain for a matching incoming transfer and reconciles your accounts.
-6. Send to ENS, SNS, and bNames instead of copying long wallet addresses.
-7. Analyze your portfolio across wallets, chains, tokens, and market moves.
-8. Create and import wallets across EVM chains, Solana, and Tron.
-9. Save addresses with easy-to-remember nicknames.
-10. Choose the AI model that powers your wallet.
-11. Use voice mode when you do not feel like typing.
-12. Keep full control of your private keys.
+- **Wallet and payments:** natural-language USDC/native sends, payment links and QR codes, invoices, automatic on-chain reconciliation, proof-of-payment receipts, swaps, bridges, batch payments, recurring payments and crypto payroll.
+- **Business and accounting:** an exact-base-unit transaction ledger, fiat valuation, tags and notes, counterparties, income/expense reporting, FIFO cost basis and P&L, CSV/XLSX exports, approval workflows and scoped spending controls.
+- **Token and safety tools:** fixed-supply or capped mintable/burnable ERC-20 creation, mint/burn/transfer management, airdrops, allowance inspection and revocation, transaction simulation, verified-contract interaction, address risk screening, treasury monitoring and stablecoin route comparison.
+- **Sara Names:** commit/reveal registration, renewals, transfers, subnames and EIP-712 signed multi-network address/payment-preference records backed by the Sara Names Polygon registry contract.
+
+The portfolio and wallet-intelligence views provide historical performance, exposure, top-payee, category, recurring-counterparty and unusual-activity analysis. Alerts can monitor payments, invoices, transactions and balance thresholds through Telegram, email or signed webhooks.
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
+
+Sara also includes a credential-free BlockchainProof evidence vault. A user can
+hash a file locally, review and authorize an exact 1 USDC Polygon checkout from
+their own Sara wallet, monitor proof creation, retain the encrypted evidence ZIP
+locally, and verify a file later. No BlockchainProof API key or shared billing
+account is required; see the `BLOCKCHAINPROOF_*` values in `.env` when pointing
+Sara at a compatible self-hosted service.
 
 Sara Wallet is not a broker, exchange, custodian, investment adviser, trading platform, or financial services provider. It is a self-custodial wallet and interface that helps users interact with third-party networks and protocols. Sara Wallet does not execute, clear, custody, intermediate, guarantee, or provide advice for any transaction. All actions are initiated by the user and performed through third-party systems at the user's own risk. See [`DISCLAIMER.md`](DISCLAIMER.md) for the full legal disclaimer.
 
@@ -43,30 +44,25 @@ Sara Wallet is not a broker, exchange, custodian, investment adviser, trading pl
 
 <!-- Icons: atomiclabs/cryptocurrency-icons (MIT), pinned to v0.18.1 via jsDelivr -->
 
-| Chain | Native crypto | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/usdc.svg" width="16" height="16" valign="middle" alt="USDC"/> USDC | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/usdt.svg" width="16" height="16" valign="middle" alt="USDT"/> USDT |
-|---|---|:---:|:---:|
-| Arbitrum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| Avalanche C-Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/avax.svg" width="16" height="16" valign="middle" alt="AVAX"/> AVAX | 🔜 Coming soon | 🔜 Coming soon |
-| Base | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | 🔜 Coming soon |
-| BNB Smart Chain | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/bnb.svg" width="16" height="16" valign="middle" alt="BNB"/> BNB | - | 🔜 Coming soon |
-| Ethereum | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| Optimism | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/eth.svg" width="16" height="16" valign="middle" alt="ETH"/> ETH | ✅ | ✅ |
-| Polygon | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/matic.svg" width="16" height="16" valign="middle" alt="POL"/> POL | ✅ | ✅ |
-| Solana | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/sol.svg" width="16" height="16" valign="middle" alt="SOL"/> SOL | ✅ | ✅ |
-| Tron | <img src="https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@0.18.1/svg/color/trx.svg" width="16" height="16" valign="middle" alt="TRX"/> TRX | - | ✅ |
+| Network | Native gas asset | USDC |
+|---|---|:---:|
+| Ethereum | ETH | ✅ |
+| Arbitrum | ETH | ✅ |
+| Base | ETH | ✅ |
+| OP Mainnet | ETH | ✅ |
+| Polygon PoS | POL | ✅ |
+
+USDC contract addresses come from [Circle's official contract-address list](https://developers.circle.com/stablecoins/usdc-contract-addresses). Users can enable or hide these networks and USDC per network under **Settings → Manage Networks & Tokens**. Native gas assets remain enabled whenever their network is enabled.
 
 ---
 
-## 🛣️ Roadmap
+## 🛣️ Release Status and Roadmap
 
-Here's what's coming to Sara:
+Stages 0–5 are implemented locally. The Sara Names contract, client, signed records, indexer and deployment tooling are implemented and tested, but the registry has **not yet been broadcast to Polygon Amoy**. Sara Names remains unavailable until `SARA_NAME_REGISTRAR_ADDRESS` points to a verified deployment.
 
-| Feature | Description |
-|---|---|
-| 📊 **Balance Monitoring** | Automate routine balance checks and get alerts on Telegram |
-| 🔁 **Battle-test Solana & Tron reconciliation** | Automatic on-chain payment-request matching is built and live-verified for EVM (Alchemy); Solana and Tron use the same approach but haven't yet been proven against a real incoming transfer in the wild |
-| 🛡️ **Send Limits** | Set max send limits as a safety guardrail |
-| 🌍 **Multi-language commands & voice** | Chat commands and voice mode are English-only for now - this is a deliberate v1 scope choice, not an oversight |
+Before any mainnet launch, the project still requires an independent smart-contract audit, a hardware-controlled multisig, authoritative reconfirmation of network/token addresses and a low-value canary deployment. See [`contracts/MAINNET_READINESS.md`](contracts/MAINNET_READINESS.md).
+
+Longer-term work includes broader live reconciliation coverage, realtime voice where supported and additional command languages.
 
 ---
 
@@ -130,13 +126,41 @@ Then go to **Settings** and add your OpenRouter API key, and pick any model from
 ```env
 COINGECKO_API_KEY
 ALCHEMY_API_KEY
-HELIUS_RPC
-TRONGRID_API_KEY
 ```
 
-`TRONGRID_API_KEY` is required for Tron TRC20 (USDT) balance checks, sends, and payment-request reconciliation - get a free key at [trongrid.io](https://www.trongrid.io). Native TRX sends and TRX reconciliation work without one. `ALCHEMY_API_KEY` also enables automatic reconciliation for EVM payment requests (checks your wallet's real on-chain transfer history for a match instead of requiring a manual "mark paid").
+`ALCHEMY_API_KEY` enables USDC balance discovery and automatic EVM payment-request reconciliation (instead of requiring a manual "mark paid").
 
-At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a full feature list plus your current configuration status - which keys are set, whether bNames are ready, your AI model, and more.
+**Optional — alerts, contract intelligence, risk screening and Sara Names:**
+
+```env
+POLYGONSCAN_API_KEY=
+RISK_SCREENING_PROVIDER=
+RISK_SCREENING_API_URL=
+RISK_SCREENING_API_KEY=
+RISK_SCREENING_MANDATORY=false
+SARA_NAME_REGISTRAR_ADDRESS=
+SARA_NAME_SERVICE_URL=
+```
+
+Risk screening is provider-neutral and reports `unavailable` unless a provider, HTTPS API URL and API key are configured. Setting `RISK_SCREENING_MANDATORY=true` makes sends fail closed when screening is flagged or unavailable. Sara Names should only be configured after the Amoy deployment is source-verified; the off-chain record service is optional and its records are always signature-checked against current registry state.
+
+### Invoices and merchant API
+
+The **Invoices** screen creates persistent Polygon USDC invoices and public payment pages. Sara checks active invoices in the background, links a matching on-chain transfer, and exposes a proof-of-payment receipt.
+
+Create a merchant client in that screen, save the API key when shown, then use `X-Sara-Merchant-Key` with `POST /api/payments/merchant/invoices` and `GET /api/payments/merchant/invoices/{reference}`. An optional HTTPS webhook receives `payment_request.paid`; verify the exact request body using HMAC-SHA256 and the `X-Sara-Signature-256` header. Failed webhook deliveries use Sara's bounded retry queue.
+
+### Business payments and approvals
+
+The **Business** view manages counterparties, payment/airdrop batches, schedules, payroll runs, spending policies and accounting. Batch amounts remain integers in token base units through validation and signing. Transactions are signed and durably recorded before broadcast so an interrupted run can retry the same transaction without signing a duplicate.
+
+When a policy requires dual control, create a checker credential in the Business view and give it to the authorised approver. Checker keys are shown once and stored only as SHA-256 hashes; caller-supplied names are not treated as identities.
+
+### Token, safety and contract tools
+
+The **Tools** view provides pinned and tested ERC-20 templates, treasury and wallet intelligence, stablecoin routing, allowance management, address screening and verified-contract calls. Contract writes are restricted to allowlisted methods, reject unverified/proxy contracts and unlimited approvals, and are rebuilt and simulated immediately before signing.
+
+At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a feature list and current configuration status, including configured keys, Sara Names availability and the selected AI model.
 
 ---
 
@@ -147,13 +171,16 @@ Sara is designed as a local-first wallet and AI assistant.
 ```
 sara-wallet/
 ├── index.html              # Frontend app
+├── contracts/              # Foundry token templates and Sara Names registry
+├── docs/                   # Protocol and operational documentation
 └── backend/
     ├── main.py             # FastAPI entrypoint
     ├── requirements.txt    # Developer dependency inputs
     ├── requirements-lock.txt # Reviewed, pinned release dependencies
     └── app/
         ├── routers/        # API routes
-        ├── tools/          # Wallet, market, trading, and utility tools
+        ├── services/       # Batches, accounting, alerts, schedules and monitoring
+        ├── tools/          # Wallet, market, names, tokens, risk and contract tools
         ├── chains/         # Chain-specific transaction logic
         ├── db/             # SQLite models and session setup
         ├── llm/            # AI provider integration
@@ -173,14 +200,19 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Address book entries
 - Chat commands
 - Transaction preparation and confirmation
-- Payment links, QR codes, and automatic reconciliation
+- Payment links, invoices, receipts, merchant API and automatic reconciliation
+- Batch/recurring payments, payroll and authenticated approvals
+- Accounting, fiat valuation, FIFO cost basis, reporting and exports
+- Token creation/management, allowance controls and transaction simulation
+- Treasury, wallet intelligence, risk screening and alerts
+- Sara Names registration, resolution, signed records and indexing
 - Market data requests
 - AI provider integration
 - Local SQLite persistence
 
 ### Database
 
-Sara uses SQLite by default at `backend/sara.db`. The main tables are `wallets`, `address_book`, `transactions`, `payment_requests`, `chat_messages`, and `config`.
+Sara uses SQLite by default at `backend/sara.db`. Versioned startup migrations preserve existing local databases. In addition to wallets and transactions, the schema stores invoices, receipts, counterparties, batches and approvals, schedules and payroll, spending policies, accounting classifications and cost lots, alert/outbox records, token deployments, risk checks and Sara Names state.
 
 ### Wallet Encryption & Locking
 
@@ -202,9 +234,11 @@ Sara's tools live in `backend/app/tools/`, organized into:
 
 - Wallet tools
 - Market data tools
-- Name resolution tools
+- Sara Names and name-resolution tools
+- Token creation and management tools
+- Contract simulation, allowance and risk tools
 - Trading integrations (swaps & cross-chain bridging)
-- Payment links & reconciliation tools
+- Payment, invoicing, receipt and reconciliation tools
 
 The chat interface routes user messages into these tools when a command can be handled deterministically.
 
@@ -219,6 +253,12 @@ Sara is built on a simple principle:
 - Private keys are encrypted and stored locally
 - Sara locks like a normal wallet - passphrase required to unlock, auto-locks after 1 hour of inactivity
 - Swaps and bridges are verified before signing: Sara simulates the transaction (or checks the aggregator's own quote/result) and refuses to sign if it would move more than the confirmed input amount - it doesn't trust calldata blindly
+- Batch and token amounts are signed from exact integer base units; crash recovery reuses persisted signed transaction bytes instead of creating a second payment
+- Spending limits are enforced immediately before chat, token, batch and supported contract sends; time windows use the policy's configured IANA timezone
+- Dual-control approvals use independently generated, hashed checker credentials rather than self-declared actor names
+- Risk screening can be configured to fail closed, and provider evidence is stored as bounded identifiers rather than allegation text
+- Verified contract writes are allowlisted, confirmation-bound, re-simulated before signing and reject proxies and unlimited approvals
+- Sara Names records use EIP-712 signatures, content hashes, sequence/epoch replay protection and live on-chain ownership checks
 - Token symbols only ever resolve to a hardcoded, developer-verified contract address list - never an arbitrary on-chain lookup
 - No telemetry, no cloud sync, no external key custody
 - Open source - read every line, audit everything

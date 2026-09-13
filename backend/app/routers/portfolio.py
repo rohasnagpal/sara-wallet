@@ -2,22 +2,19 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.db.session import get_db
-from app.db.models import Wallet
-from app.chains import evm as evm_chain, solana as sol_chain, tron as tron_chain
+from app.db.models import Wallet, PortfolioSnapshot
+from datetime import datetime, timedelta
+import json
+from app.chains import evm as evm_chain
+from app.core.assets import enabled_networks
 from app.tools.wallet.tokens import get_erc20_balances
 from app.tools.market.coingecko import get_multi_price, SYMBOL_TO_ID
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
-EVM_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism", "bsc", "avalanche"]
-# Only the networks Alchemy's token-balance API actually supports (see
-# app/tools/wallet/tokens.py's _ALCHEMY_SLUGS) — bsc/avalanche aren't in
-# there, and would silently fall back to Ethereum's token list if queried.
-ERC20_NETWORKS = ["ethereum", "polygon", "arbitrum", "base", "optimism"]
-
 NATIVE_SYMBOLS = {
     "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
-    "polygon": "POL", "bsc": "BNB", "avalanche": "AVAX",
+    "polygon": "POL",
 }
 
 COLORS = ["#f59e0b","#6366f1","#10b981","#8b5cf6","#94a3b8","#ef4444","#14b8a6"]
@@ -31,30 +28,11 @@ def get_portfolio(db: Session = Depends(get_db)):
             "assets": [], "by_chain": {}, "allocation": [],
         }
 
-    # Gather native balances across all EVM networks + Solana
+    # Gather native gas assets and Circle-issued USDC on enabled networks.
     holdings: list[dict] = []
+    networks = list(enabled_networks())
     for w in wallets:
-        if w.chain == "solana":
-            try:
-                b = sol_chain.get_balance(w.address)
-                if b["balance"] > 0:
-                    holdings.append({"wallet": w.name, "chain": "solana", "symbol": "SOL", "balance": b["balance"]})
-            except Exception:
-                pass
-        elif w.chain == "tron":
-            try:
-                b = tron_chain.get_balance(w.address)
-                if b["balance"] > 0:
-                    holdings.append({"wallet": w.name, "chain": "tron", "symbol": "TRX", "balance": b["balance"]})
-            except Exception:
-                pass
-            try:
-                usdt = tron_chain.get_trc20_balance(w.address, "USDT")
-                if usdt["balance"] > 0:
-                    holdings.append({"wallet": w.name, "chain": "tron", "symbol": "USDT", "balance": usdt["balance"]})
-            except Exception:
-                pass
-        else:
+        if w.chain == "evm":
             def _fetch(net, addr=w.address, wname=w.name):
                 try:
                     b = evm_chain.get_balance(addr, net)
@@ -65,7 +43,7 @@ def get_portfolio(db: Session = Depends(get_db)):
                     pass
                 return None
             with ThreadPoolExecutor(max_workers=5) as ex:
-                for result in as_completed({ex.submit(_fetch, net): net for net in EVM_NETWORKS}, timeout=10):
+                for result in as_completed({ex.submit(_fetch, net): net for net in networks}, timeout=10):
                     r = result.result()
                     if r:
                         holdings.append(r)
@@ -80,7 +58,7 @@ def get_portfolio(db: Session = Depends(get_db)):
                 except Exception:
                     return []
             with ThreadPoolExecutor(max_workers=5) as ex:
-                futures = {ex.submit(_fetch_tokens, net): net for net in ERC20_NETWORKS}
+                futures = {ex.submit(_fetch_tokens, net): net for net in networks}
                 for fut in as_completed(futures, timeout=10):
                     net = futures[fut]
                     for tok in fut.result():
@@ -121,10 +99,22 @@ def get_portfolio(db: Session = Depends(get_db)):
 
     weighted_change = sum(a["change_24h"] * a["usd_value"] for a in assets) / total_usd if total_usd else 0
 
-    return {
+    result = {
         "total_usd": round(total_usd, 2),
         "change_24h_pct": round(weighted_change, 2),
         "assets": assets,
         "by_chain": {k: round(v, 2) for k, v in by_chain.items()},
         "allocation": allocation,
     }
+    latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.captured_at.desc()).first()
+    if latest is None or latest.captured_at < datetime.utcnow() - timedelta(hours=1):
+        db.add(PortfolioSnapshot(total_usd=str(result["total_usd"]), holdings=json.dumps(assets, default=str)))
+        db.commit()
+    return result
+
+
+@router.get("/history")
+def portfolio_history(days: int = 30, db: Session = Depends(get_db)):
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 365)))
+    rows = db.query(PortfolioSnapshot).filter(PortfolioSnapshot.captured_at >= since).order_by(PortfolioSnapshot.captured_at).all()
+    return {"history": [{"timestamp": row.captured_at.isoformat(), "total_usd": row.total_usd} for row in rows]}

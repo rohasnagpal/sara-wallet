@@ -1,13 +1,20 @@
 import io
 import csv
-from fastapi import APIRouter, HTTPException, Query, Depends
-from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel
+import hashlib
+import html
+import json
+import secrets
+from datetime import datetime, timezone
+from decimal import Decimal
+from urllib.parse import quote
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
+from fastapi.responses import Response, StreamingResponse, HTMLResponse
+from pydantic import BaseModel, Field
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db.models import Wallet, PaymentRequest
-from app.tools.payments.links import decode_payload, create_payment_request
+from app.db.models import Wallet, PaymentRequest, MerchantClient, AlertDestination, Transaction
+from app.tools.payments.links import decode_payload, create_payment_request, encode_payload
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
 
@@ -22,15 +29,203 @@ class CreateLinkRequest(BaseModel):
     note: Optional[str] = None
 
 
+class CreateInvoiceRequest(BaseModel):
+    wallet_id: int | None = None
+    customer_name: str = Field("", max_length=120)
+    customer_email: str = Field("", max_length=254)
+    amount: Decimal
+    token: str = "USDC"
+    network: str = "polygon"
+    due_date: datetime | None = None
+    description: str = Field("", max_length=1000)
+    note: str = Field("", max_length=200)
+
+
+def _invoice_dict(row: PaymentRequest, wallet_name: str | None = None, *, public: bool = False, db: Session | None = None) -> dict:
+    if row.status == "pending" and row.due_date and row.due_date < datetime.utcnow():
+        row.status = "overdue"
+    data = {
+        "id": row.id, "reference": row.reference, "wallet_name": wallet_name,
+        "customer_name": row.customer_name, "amount": str(Decimal(row.amount_raw) / (Decimal(10) ** row.decimals)) if row.amount_raw and row.decimals is not None else str(row.amount),
+        "amount_raw": row.amount_raw, "decimals": row.decimals, "token": row.token,
+        "chain": row.chain, "network": row.network, "payment_address": row.payment_address,
+        "description": row.description, "note": row.note, "due_date": row.due_date.isoformat() if row.due_date else None,
+        "status": row.status, "matched_tx_hash": row.matched_tx_hash,
+        "created_at": row.created_at.isoformat(),
+    }
+    if not public: data["customer_email"] = row.customer_email
+    if db is not None:
+        # Reverse lookup: "Pay to rohas" alongside the raw address, when the
+        # receiving wallet owns a live Sara Name (Stage 7.5's product
+        # completion — a purely local-index read, no on-chain round trip).
+        from app.db.models import SaraName
+        name_row = (
+            db.query(SaraName)
+            .filter(SaraName.wallet_id == row.wallet_id, SaraName.status.in_(("registered", "renewed")))
+            .first()
+        )
+        data["sara_name"] = name_row.label if name_row else None
+    return data
+
+
+def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest, merchant_id: int | None = None):
+    if body.network != "polygon" or body.token.upper() != "USDC":
+        raise HTTPException(400, "Merchant invoices currently support USDC on Polygon")
+    due_date = body.due_date
+    if due_date and due_date.tzinfo:
+        due_date = due_date.astimezone(timezone.utc).replace(tzinfo=None)
+    if body.customer_email and ("@" not in body.customer_email or body.customer_email.startswith("@")):
+        raise HTTPException(400, "Invalid customer email")
+    row, payload = create_payment_request(
+        db, wallet, body.network, body.token, body.amount, body.note,
+        customer_name=body.customer_name, customer_email=body.customer_email,
+        description=body.description, due_date=due_date, merchant_client_id=merchant_id,
+    )
+    if row is None: raise HTTPException(400, payload)
+    return row, payload
+
+
+@router.post("/invoices", dependencies=[Depends(require_session)])
+def create_invoice(body: CreateInvoiceRequest, db: Session = Depends(get_db)):
+    if body.wallet_id is None: raise HTTPException(400, "wallet_id is required")
+    wallet = db.query(Wallet).filter(Wallet.id == body.wallet_id, Wallet.chain == "evm").first()
+    if not wallet: raise HTTPException(404, "EVM wallet not found")
+    row, payload = _create_invoice(db, wallet, body)
+    data = _invoice_dict(row, wallet.name)
+    data.update({"payload": payload, "payment_page": f"/api/payments/page/{row.reference}"})
+    return data
+
+
+@router.get("/invoices", dependencies=[Depends(require_session)])
+def list_invoices(check: bool = True, db: Session = Depends(get_db)):
+    rows = db.query(PaymentRequest).order_by(PaymentRequest.created_at.desc()).all()
+    wallets = {w.id: w.name for w in db.query(Wallet).all()}
+    for row in rows:
+        if check and row.status in ("pending", "overdue"): check_payment_request(db, row)
+    result = [_invoice_dict(row, wallets.get(row.wallet_id)) for row in rows]
+    db.commit()
+    return result
+
+
+@router.get("/public/{reference}")
+def public_invoice(reference: str, db: Session = Depends(get_db)):
+    row = db.query(PaymentRequest).filter(PaymentRequest.reference == reference).first()
+    if not row: raise HTTPException(404, "Invoice not found")
+    if row.status in ("pending", "overdue"): check_payment_request(db, row)
+    data = _invoice_dict(row, public=True, db=db)
+    db.commit()
+    payload = encode_payload({"v":1,"ref":row.reference,"to":row.payment_address,"chain":row.chain,
+                              "network":row.network,"token":row.token,"amount":data["amount"],"note":row.note})
+    return {**data, "payload": payload}
+
+
+@router.get("/page/{reference}", response_class=HTMLResponse)
+def payment_page(reference: str, db: Session = Depends(get_db)):
+    data = public_invoice(reference, db)
+    payload = data["payload"]
+    qr_url = "/api/payments/qr?data=" + quote("/?pay=" + payload, safe="")
+    status = html.escape(data["status"])
+    return HTMLResponse(f"""<!doctype html><html><head><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Invoice {html.escape(reference)}</title><style>body{{font-family:system-ui;background:#f5f3ee;color:#1d1b17;display:grid;place-items:center;min-height:100vh}}main{{background:white;padding:28px;border-radius:16px;max-width:420px;text-align:center;box-shadow:0 8px 30px #0001}}img{{width:220px}}code{{word-break:break-all}}a{{display:inline-block;padding:11px 18px;background:#254f3d;color:white;border-radius:8px;text-decoration:none}}</style></head><body><main><h1>{html.escape(reference)}</h1><p>{html.escape(data.get('customer_name') or '')}</p><h2>{html.escape(data['amount'])} {html.escape(data['token'])}</h2><p>{html.escape(data.get('description') or '')}</p><img src='{qr_url}' alt='Payment QR'><p><code>{html.escape(data['payment_address'] or '')}</code></p><p>Status: <strong>{status}</strong></p>{'' if status in ('paid','cancelled') else f"<a href='/?pay={payload}'>Pay with Sara</a>"}</main></body></html>""", headers={"Cache-Control":"no-store"})
+
+
+@router.get("/invoices/{reference}/receipt", dependencies=[Depends(require_session)])
+def invoice_receipt(reference: str, db: Session = Depends(get_db)):
+    row = db.query(PaymentRequest).filter(PaymentRequest.reference == reference).first()
+    if not row: raise HTTPException(404, "Invoice not found")
+    if row.status != "paid" or not row.matched_tx_hash: raise HTTPException(409, "Invoice is not paid")
+    tx = db.query(Transaction).filter(Transaction.network == row.network, Transaction.tx_hash == row.matched_tx_hash).first()
+    return {"receipt_type":"invoice_payment","reference":row.reference,"status":"paid",
+            "amount":_invoice_dict(row, public=True)["amount"],"amount_raw":row.amount_raw,"decimals":row.decimals,
+            "token":row.token,"network":row.network,"from":tx.from_address if tx else None,
+            "to":row.payment_address,"timestamp":tx.timestamp.isoformat() if tx and tx.timestamp else None,
+            "transaction_hash":row.matched_tx_hash,"customer_name":row.customer_name}
+
+
+class MerchantClientBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+    wallet_id: int
+    webhook_url: str | None = None
+
+
+@router.post("/merchant/clients", dependencies=[Depends(require_session)])
+def create_merchant_client(body: MerchantClientBody, db: Session = Depends(get_db)):
+    wallet = db.query(Wallet).filter(Wallet.id == body.wallet_id, Wallet.chain == "evm").first()
+    if not wallet: raise HTTPException(404, "EVM wallet not found")
+    if db.query(MerchantClient).filter(MerchantClient.name == body.name).first(): raise HTTPException(409, "Merchant client name exists")
+    key = "sara_live_" + secrets.token_urlsafe(32)
+    client = MerchantClient(name=body.name, wallet_id=wallet.id, api_key_prefix=key[:16], api_key_hash=hashlib.sha256(key.encode()).hexdigest())
+    db.add(client); db.flush()
+    webhook_secret = None
+    if body.webhook_url:
+        from app.services.alerts import validate_webhook_url
+        try: validate_webhook_url(body.webhook_url)
+        except ValueError as exc: raise HTTPException(400, str(exc))
+        webhook_secret = secrets.token_urlsafe(32)
+        destination = AlertDestination(kind="webhook", target=body.webhook_url,
+            secret=json.dumps({"signing_secret":webhook_secret,"event_types":["payment_request.paid"],"merchant_client_id":client.id}))
+        db.add(destination); db.flush(); client.alert_destination_id = destination.id
+    db.commit()
+    return {"id":client.id,"name":client.name,"api_key":key,"api_key_prefix":client.api_key_prefix,
+            "webhook_signing_secret":webhook_secret,"warning":"The API key and webhook secret are shown only once."}
+
+
+def _merchant(key: str, db: Session) -> MerchantClient:
+    if not key:
+        raise HTTPException(401, "Merchant API key is required")
+    digest = hashlib.sha256(key.encode()).hexdigest()
+    client = db.query(MerchantClient).filter(
+        MerchantClient.api_key_prefix == key[:16], MerchantClient.enabled.is_(True)
+    ).first()
+    if client and not secrets.compare_digest(client.api_key_hash, digest):
+        client = None
+    if not client: raise HTTPException(401, "Invalid merchant API key")
+    return client
+
+
+@router.get("/merchant/clients", dependencies=[Depends(require_session)])
+def list_merchant_clients(db: Session = Depends(get_db)):
+    rows = db.query(MerchantClient).order_by(MerchantClient.created_at.desc()).all()
+    return [{"id":r.id, "name":r.name, "wallet_id":r.wallet_id,
+             "api_key_prefix":r.api_key_prefix, "webhook_configured":bool(r.alert_destination_id),
+             "enabled":r.enabled, "created_at":r.created_at.isoformat()} for r in rows]
+
+
+@router.delete("/merchant/clients/{client_id}", dependencies=[Depends(require_session)])
+def disable_merchant_client(client_id: int, db: Session = Depends(get_db)):
+    client = db.query(MerchantClient).filter(MerchantClient.id == client_id).first()
+    if not client: raise HTTPException(404, "Merchant client not found")
+    client.enabled = False
+    if client.alert_destination_id:
+        destination = db.query(AlertDestination).filter(AlertDestination.id == client.alert_destination_id).first()
+        if destination: destination.enabled = False
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/merchant/invoices")
+def merchant_create_invoice(body: CreateInvoiceRequest, x_sara_merchant_key: str = Header(""), db: Session = Depends(get_db)):
+    client = _merchant(x_sara_merchant_key, db)
+    wallet = db.query(Wallet).filter(Wallet.id == client.wallet_id).first()
+    row, payload = _create_invoice(db, wallet, body, client.id)
+    return {**_invoice_dict(row), "payment_page":f"/api/payments/page/{row.reference}", "payload":payload}
+
+
+@router.get("/merchant/invoices/{reference}")
+def merchant_invoice(reference: str, x_sara_merchant_key: str = Header(""), db: Session = Depends(get_db)):
+    client = _merchant(x_sara_merchant_key, db)
+    row = db.query(PaymentRequest).filter(PaymentRequest.reference == reference, PaymentRequest.merchant_client_id == client.id).first()
+    if not row: raise HTTPException(404, "Invoice not found")
+    if row.status in ("pending", "overdue"): check_payment_request(db, row)
+    data = _invoice_dict(row)
+    db.commit()
+    return data
+
+
 class UpdateRequestStatus(BaseModel):
     status: str  # "pending" | "paid" | "cancelled"
 
 
 def _default_network(wallet: Wallet) -> str:
-    if wallet.chain == "solana":
-        return "solana"
-    if wallet.chain == "tron":
-        return "tron"
     return "ethereum"
 
 
@@ -39,7 +234,12 @@ def create_link(req: CreateLinkRequest, db: Session = Depends(get_db)):
     w = db.query(Wallet).filter(Wallet.name.ilike(req.wallet_name)).first()
     if not w:
         raise HTTPException(404, f"Wallet '{req.wallet_name}' not found")
+    if w.chain != "evm":
+        raise HTTPException(400, "This wallet uses a chain Sara no longer supports")
     network = (req.network or _default_network(w)).lower()
+    from app.core.assets import network_enabled
+    if not network_enabled(network):
+        raise HTTPException(400, f"Network is disabled or unsupported: {network}")
     row, result = create_payment_request(db, w, network, req.token, req.amount, req.note or "")
     if row is None:
         raise HTTPException(400, result)
@@ -79,7 +279,7 @@ def list_requests(check: bool = Query(default=True), db: Session = Depends(get_d
     rows = db.query(PaymentRequest).order_by(PaymentRequest.created_at.desc()).all()
     if check:
         for r in rows:
-            if r.status == "pending":
+            if r.status in ("pending", "overdue"):
                 check_payment_request(db, r)
     wallets = {w.id: w.name for w in db.query(Wallet).all()}
     return [{
@@ -106,7 +306,19 @@ def update_request(request_id: int, req: UpdateRequestStatus, db: Session = Depe
         raise HTTPException(404, "Payment request not found")
     if req.status not in ("pending", "paid", "cancelled"):
         raise HTTPException(400, "status must be pending, paid, or cancelled")
+    old_status = row.status
     row.status = req.status
+    from app.core.audit import append_audit
+    from app.core.events import publish
+    details = {"reference": row.reference, "old_status": old_status, "new_status": req.status}
+    publish(
+        db, "payment_request.status_changed", details,
+        aggregate_type="payment_request", aggregate_id=str(row.id),
+    )
+    append_audit(
+        db, "payment_request.status_changed", "payment_request",
+        resource_id=str(row.id), details=details,
+    )
     db.commit()
     return {"id": row.id, "status": row.status}
 

@@ -1,0 +1,5 @@
+{
+  "detectors_to_exclude": "solc-version,pragma,assembly,cache-array-length,incorrect-equality",
+  "filter_paths": "lib/",
+  "foundry_out_directory": "out"
+}

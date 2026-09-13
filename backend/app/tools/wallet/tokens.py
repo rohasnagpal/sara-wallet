@@ -1,4 +1,5 @@
 import os, requests
+from app.core.assets import NETWORKS, token_enabled
 
 _ALCHEMY_SLUGS = {
     "ethereum": "eth-mainnet",
@@ -9,6 +10,9 @@ _ALCHEMY_SLUGS = {
 }
 
 def get_erc20_balances(address: str, network: str = "ethereum") -> list[dict]:
+    network = network.lower()
+    if not token_enabled("USDC", network):
+        return []
     api_key = os.getenv("ALCHEMY_API_KEY", "").strip()
     if not api_key:
         return []
@@ -18,7 +22,7 @@ def get_erc20_balances(address: str, network: str = "ethereum") -> list[dict]:
         r = requests.post(url, json={
             "jsonrpc": "2.0", "id": 1,
             "method": "alchemy_getTokenBalances",
-            "params": [address, "DEFAULT_TOKENS"],
+            "params": [address, [NETWORKS[network]["usdc"]]],
         }, timeout=10)
         balances_raw = r.json().get("result", {}).get("tokenBalances", [])
     except Exception:
@@ -37,24 +41,14 @@ def get_erc20_balances(address: str, network: str = "ethereum") -> list[dict]:
 
     tokens = []
     for h in held:
-        try:
-            meta_r = requests.post(url, json={
-                "jsonrpc": "2.0", "id": 1,
-                "method": "alchemy_getTokenMetadata",
-                "params": [h["contract"]],
-            }, timeout=10)
-            meta = meta_r.json().get("result", {}) or {}
-        except Exception:
+        if h["contract"].lower() != NETWORKS[network]["usdc"].lower():
             continue
-        decimals = meta.get("decimals")
-        if decimals is None:
-            continue
-        balance = h["raw"] / (10 ** decimals)
+        balance = h["raw"] / (10 ** 6)
         if balance < 0.000001:
             continue
         tokens.append({
-            "symbol":  meta.get("symbol") or "?",
-            "name":    meta.get("name") or "Unknown",
+            "symbol":  "USDC",
+            "name":    "USD Coin",
             "balance": balance,
             "network": network,
         })

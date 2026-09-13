@@ -1,121 +1,181 @@
-// ═══════════════════════════════════════════════════════════════════════
-// SARA — marketing one-pager interactions
-// Nav scroll state, mobile menu, scroll-reveal, and the hero chat demo.
-// No frameworks — this is a static one-pager, plain DOM APIs are enough.
-// ═══════════════════════════════════════════════════════════════════════
+// ============================================================
+// Sara Wallet — Marketing Site interactions
+// ============================================================
 
-(function () {
-  'use strict';
+document.addEventListener('DOMContentLoaded', () => {
+  initNav();
+  initReveal();
+  initCounters();
+  initBars();
+  initPhoneChats();
+  initFaq();
+});
 
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// ---------- Nav scroll state + mobile toggle ----------
 
-  // ── Footer year ─────────────────────────────────────────────────────
-  const yearEl = document.getElementById('year');
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
+function initNav() {
+  const nav = document.querySelector('.nav');
+  const toggle = document.querySelector('.nav-toggle');
+  const links = document.querySelector('.nav-links');
 
-  // ── Nav: scrolled state + mobile toggle ────────────────────────────
-  const nav = document.getElementById('nav');
-  const navToggle = document.getElementById('navToggle');
-
-  function updateNavScrollState() {
-    if (!nav) return;
-    nav.classList.toggle('is-scrolled', window.scrollY > 12);
+  if (nav) {
+    const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
-  updateNavScrollState();
-  window.addEventListener('scroll', updateNavScrollState, { passive: true });
 
-  if (navToggle && nav) {
-    navToggle.addEventListener('click', () => {
-      const isOpen = nav.classList.toggle('is-menu-open');
-      navToggle.classList.toggle('is-open', isOpen);
-      navToggle.setAttribute('aria-expanded', String(isOpen));
+  if (toggle && links) {
+    toggle.addEventListener('click', () => {
+      const open = links.style.display === 'flex';
+      links.style.display = open ? 'none' : 'flex';
+      links.style.flexDirection = 'column';
+      links.style.position = 'absolute';
+      links.style.top = '100%';
+      links.style.left = '0';
+      links.style.right = '0';
+      links.style.background = 'rgba(246,244,236,0.98)';
+      links.style.padding = '24px 28px';
+      links.style.gap = '18px';
+      links.style.borderBottom = '1px solid rgba(20,20,15,0.1)';
     });
+  }
+}
 
-    // Close the mobile menu after tapping a link, so navigating actually
-    // shows the destination section instead of the menu staying pinned open.
-    nav.querySelectorAll('.nav-links a, .nav-cta a').forEach((link) => {
-      link.addEventListener('click', () => {
-        nav.classList.remove('is-menu-open');
-        navToggle.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
+// ---------- Scroll reveal ----------
+
+function initReveal() {
+  const els = document.querySelectorAll('.reveal');
+  if (!els.length) return;
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
       });
-    });
-  }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
+  );
 
-  // ── Scroll reveal ────────────────────────────────────────────────────
-  // Elements marked [data-reveal] fade/slide in once they enter the
-  // viewport. Reduced-motion users get everything visible immediately
-  // instead of waiting on an observer that mostly just delays content.
-  const revealTargets = document.querySelectorAll('[data-reveal]');
-  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
-    revealTargets.forEach((el) => el.classList.add('is-visible'));
-  } else {
-    const revealObserver = new IntersectionObserver(
+  els.forEach((el, i) => {
+    el.style.transitionDelay = `${(i % 4) * 70}ms`;
+    io.observe(el);
+  });
+}
+
+// ---------- Animated stat counters ----------
+
+function initCounters() {
+  const els = document.querySelectorAll('[data-count]');
+  if (!els.length) return;
+
+  const animate = (el) => {
+    const target = parseFloat(el.dataset.count);
+    const decimals = el.dataset.decimals ? parseInt(el.dataset.decimals, 10) : 0;
+    const duration = 1600;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const value = target * eased;
+      el.textContent = decimals ? value.toFixed(decimals) : Math.round(value).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = decimals ? target.toFixed(decimals) : target.toLocaleString();
+    };
+    requestAnimationFrame(tick);
+  };
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animate(entry.target);
+          io.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  els.forEach((el) => io.observe(el));
+}
+
+// ---------- Comparison bar fills ----------
+
+function initBars() {
+  const bars = document.querySelectorAll('.bar-fill');
+  if (!bars.length) return;
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.width = entry.target.dataset.width;
+          io.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.4 }
+  );
+
+  bars.forEach((bar) => io.observe(bar));
+}
+
+// ---------- Phone mockup chat sequencing ----------
+
+function initPhoneChats() {
+  const phones = document.querySelectorAll('.phone-chat');
+  if (!phones.length) return;
+
+  phones.forEach((chat) => {
+    const bubbles = Array.from(chat.querySelectorAll('.p-bubble'));
+
+    const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            revealObserver.unobserve(entry.target);
+            bubbles.forEach((b, i) => {
+              setTimeout(() => {
+                b.style.opacity = '1';
+                b.style.transform = 'translateY(0)';
+              }, i * 550);
+            });
+            io.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.14, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.4 }
     );
-    revealTargets.forEach((el) => revealObserver.observe(el));
-  }
 
-  // ── Hero chat demo: reveal bubbles one at a time, then loop ─────────
-  // Purely decorative — shows the "send 50 USDT to maria" exchange
-  // typing itself out so the hero communicates the product in motion,
-  // not just in a static screenshot.
-  const thread = document.getElementById('demoThread');
-  if (thread) {
-    const lines = Array.from(thread.querySelectorAll('[data-line]'));
-    const caret = document.getElementById('typeCaret');
-    const caretDefaultText = 'Type or say a command…';
-    let cycleTimer = null;
+    io.observe(chat);
+  });
+}
 
-    function resetLines() {
-      lines.forEach((el) => el.classList.remove('is-in'));
-    }
+// ---------- FAQ accordion ----------
 
-    function runCycle() {
-      resetLines();
-      if (caret) caret.textContent = caretDefaultText;
+function initFaq() {
+  const items = document.querySelectorAll('.faq-item');
+  if (!items.length) return;
 
-      if (prefersReducedMotion) {
-        lines.forEach((el) => el.classList.add('is-in'));
-        return;
-      }
+  items.forEach((item) => {
+    const q = item.querySelector('.faq-q');
+    const toggle = item.querySelector('.faq-toggle');
 
-      const stepDelay = 900;
-      lines.forEach((el, i) => {
-        setTimeout(() => el.classList.add('is-in'), 500 + i * stepDelay);
+    q.addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+
+      items.forEach((other) => {
+        other.classList.remove('open');
+        other.querySelector('.faq-toggle').textContent = '+';
       });
 
-      const pauseAfterFinish = 3400;
-      const totalRunTime = 500 + lines.length * stepDelay + pauseAfterFinish;
-      cycleTimer = setTimeout(runCycle, totalRunTime);
-    }
-
-    // Only run the animated loop once the hero card is actually on screen,
-    // so it's not silently burning timers/layout while scrolled past.
-    if ('IntersectionObserver' in window) {
-      const heroObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              runCycle();
-            } else if (cycleTimer) {
-              clearTimeout(cycleTimer);
-            }
-          });
-        },
-        { threshold: 0.3 }
-      );
-      heroObserver.observe(thread);
-    } else {
-      runCycle();
-    }
-  }
-})();
+      if (!isOpen) {
+        item.classList.add('open');
+        toggle.textContent = '−';
+      }
+    });
+  });
+}

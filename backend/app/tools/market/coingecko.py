@@ -10,6 +10,7 @@ SYMBOL_TO_ID = {
     "UNI": "uniswap", "AAVE": "aave", "ARB": "arbitrum",
     "OP": "optimism", "LTC": "litecoin", "ATOM": "cosmos",
     "NEAR": "near", "FTM": "fantom", "INJ": "injective-protocol",
+    "USDC": "usd-coin", "USDT": "tether", "DAI": "dai",
     "TIA": "celestia", "SUI": "sui", "SEI": "sei-network",
     "TON": "the-open-network", "PEPE": "pepe", "WIF": "dogwifcoin",
 }
@@ -97,6 +98,34 @@ def get_price(coin: str, vs: str = "usd") -> dict | None:
         pass
 
     return None
+
+
+def get_historical_price(coin: str, occurred_at, vs: str = "usd") -> dict | None:
+    """Return the daily historical spot value used for durable ledger snapshots.
+
+    CoinGecko's public history endpoint is daily rather than intraday. The
+    source and observation time are stored with the transaction so a later
+    accounting layer can replace this with a more granular provider without
+    silently changing provenance.
+    """
+    cid = _resolve_id(coin)
+    date = occurred_at.strftime("%d-%m-%Y")
+    key = f"history:{cid}:{date}:{vs}"
+    cached = _cached(key, ttl=86400)
+    if cached is not None:
+        return cached
+    data = _get(f"/coins/{cid}/history", {"date": date, "localization": "false"})
+    price = (((data or {}).get("market_data") or {}).get("current_price") or {}).get(vs.lower())
+    if price is None:
+        return None
+    return _store(key, {
+        "coin_id": cid,
+        "symbol": coin.upper(),
+        "price": price,
+        "currency": vs.lower(),
+        "source": "coingecko_daily_history",
+        "date": date,
+    })
 
 def get_trending() -> list:
     key = "trending"

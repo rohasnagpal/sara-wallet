@@ -228,6 +228,43 @@
 .theme-lime .msg.user .msg-bubble { color: var(--accent-text); font-weight: 500; }
 
 /* ══════════════════════════════════════
+   PROOF (BlockchainProof-inspired)
+══════════════════════════════════════ */
+.theme-proof {
+  --bg-app-start: #deffe9;
+  --bg-app-end: #ccff9f;
+  --bg-sidebar1: rgba(248,255,249,0.76);
+  --bg-sidebar2: rgba(248,255,249,0.64);
+  --bg-card: rgba(250,255,251,0.82);
+  --bg-card2: rgba(255,255,255,0.62);
+  --bg-chat: rgba(248,255,249,0.48);
+  --bg-input: rgba(255,255,255,0.86);
+  --bg-msg-user: #10251b;
+  --bg-msg-bot: rgba(250,255,251,0.9);
+  --text-primary: #10251b;
+  --text-secondary: #486356;
+  --text-muted: rgba(72,99,86,0.68);
+  --accent: #08763a;
+  --accent2: #23df75;
+  --green: #08763a;
+  --red: #911717;
+  --border: rgba(16,37,27,0.17);
+  --border-dark: rgba(16,37,27,0.14);
+  --card-shadow: 0 24px 75px rgba(20,91,51,0.13), inset 0 1px 0 rgba(255,255,255,0.78);
+  --sidebar-nav-active: rgba(35,223,117,0.18);
+  --sidebar-nav-hover: rgba(255,255,255,0.58);
+  --pill-bg: rgba(35,223,117,0.14);
+  --chart-line: #08763a;
+  --chart-bg1: rgba(35,223,117,0.25);
+  --chart-bg2: rgba(35,223,117,0);
+  --upgrade-bg: linear-gradient(135deg, rgba(189,255,215,0.72), rgba(204,255,159,0.52));
+  --scrollbar: rgba(16,37,27,0.12);
+  --is-light: 1;
+  --accent-text: #ffffff;
+  --topbar-bg: rgba(222,255,233,0.72);
+}
+
+/* ══════════════════════════════════════
    BASE STYLES
 ══════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -258,6 +295,23 @@ body {
 .app-bg.theme-sunset { background: linear-gradient(135deg, #1a0a00, #2d1200); }
 .app-bg.theme-forest { background: linear-gradient(135deg, #071410, #0a1f18); }
 .app-bg.theme-lime { background: linear-gradient(135deg, #060606, #0a0a0a); }
+.app-bg.theme-proof {
+  background:
+    radial-gradient(circle at 8% 3%, rgba(255,255,255,0.98), transparent 24%),
+    radial-gradient(circle at 92% 10%, rgba(35,223,117,0.52), transparent 30%),
+    linear-gradient(135deg, #deffe9, #9dffc1 48%, #ccff9f);
+}
+.app-bg.theme-proof::after {
+  content: "";
+  position: absolute; inset: 0;
+  opacity: 0.17;
+  background-image:
+    linear-gradient(rgba(16,37,27,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,37,27,0.14) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: linear-gradient(#000, transparent 92%);
+  mask-image: linear-gradient(#000, transparent 92%);
+}
 
 .app-shell {
   position: relative; z-index: 1;
@@ -346,6 +400,13 @@ select.settings-input { text-overflow: ellipsis; }
 .settings-save-btn:hover { opacity: 0.85; }
 .settings-status { font-size: 11px; color: var(--green); margin-top: 3px; height: 14px; }
 .settings-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-dark); }
+.asset-settings-list { display: flex; flex-direction: column; gap: 7px; }
+.asset-settings-row { border: 1px solid var(--border-dark); border-radius: 9px; padding: 8px 10px; background: var(--bg-input); }
+.asset-settings-main, .asset-settings-token { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.asset-settings-main { font-size: 11.5px; font-weight: 600; color: var(--text-primary); }
+.asset-settings-token { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-dark); font-size: 10.5px; color: var(--text-secondary); }
+.asset-settings-row input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+.gas-required { font-size: 9px; color: var(--text-muted); border: 1px solid var(--border-dark); border-radius: 5px; padding: 1px 5px; }
 
 /* Directory inline view */
 .dir-add-form { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
@@ -493,7 +554,25 @@ select.settings-input { text-overflow: ellipsis; }
 .theme-dot[data-theme="sunset"] { background: linear-gradient(135deg, #f59e0b, #ef4444); }
 .theme-dot[data-theme="forest"] { background: linear-gradient(135deg, #10b981, #34d399); }
 .theme-dot[data-theme="lime"] { background: linear-gradient(135deg, #0a0a0a, #d7ff3f); }
+.theme-dot[data-theme="proof"] { background: linear-gradient(135deg, #10251b 0 46%, #23df75 46% 72%, #ccff9f 72%); }
 .theme-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-body); }
+
+/* Proof vault */
+.proof-form { display: grid; gap: 9px; }
+.proof-file { display: grid; min-height: 78px; place-items: center; padding: 12px; border: 1.5px dashed var(--accent); border-radius: 12px; background: var(--pill-bg); color: var(--text-secondary); font-size: 11.5px; text-align: center; cursor: pointer; }
+.proof-file strong { display: block; color: var(--text-primary); font-size: 12.5px; }
+.proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.proof-preview { padding: 11px; border: 1px solid var(--border-dark); border-radius: 11px; background: var(--bg-card2); font-size: 11px; line-height: 1.55; }
+.proof-preview code, .proof-hash { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.proof-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.proof-list { display: flex; flex-direction: column; gap: 8px; }
+.proof-entry { padding: 11px; border: 1px solid var(--border-dark); border-radius: 12px; background: var(--bg-card2); }
+.proof-entry-head { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
+.proof-status { flex-shrink: 0; padding: 2px 7px; border: 1px solid currentColor; border-radius: 999px; color: var(--accent); font: 700 9px var(--font-mono); text-transform: uppercase; }
+.proof-status.failed { color: var(--red); }
+.proof-status.complete { color: var(--green); }
+.proof-meta { margin-top: 5px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
+@media (max-width: 700px) { .proof-grid { grid-template-columns: 1fr; } }
 
 .focus-btn {
   font-size: 11.5px; font-weight: 600; font-family: var(--font-body);
@@ -734,20 +813,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 .chat-send:active { transform: scale(0.92); }
 .chat-send svg { width: 14px; height: 14px; fill: var(--accent-text); }
 
-.chat-mic {
-  width: 38px; height: 38px; border-radius: 12px;
-  border: 1px solid var(--border-dark); background: var(--bg-card);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; transition: all 0.2s;
-}
-.chat-mic:hover { border-color: var(--accent); }
-.chat-mic svg { width: 15px; height: 15px; stroke: var(--text-secondary); fill: none; stroke-width: 2; }
-.chat-mic:hover svg { stroke: var(--accent); }
-.chat-mic.listening { background: var(--red); border-color: var(--red); animation: micPulse 1.2s infinite; }
-.chat-mic.listening svg { stroke: #fff; }
-.chat-mic.unsupported { display: none; }
-@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
-
 /* Stats bottom card */
 .stats-card {
   margin: 0 16px 14px;
@@ -861,37 +926,54 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 /* ── Lock Overlay ── */
 .lock-overlay {
   display: none; position: fixed; inset: 0; z-index: 2000;
-  background: var(--bg-app-start, #060606); background: #060606;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 8% 3%, rgba(255,255,255,0.98), transparent 24%),
+    radial-gradient(circle at 92% 10%, rgba(35,223,117,0.52), transparent 30%),
+    linear-gradient(135deg, #deffe9, #9dffc1 48%, #ccff9f);
   align-items: center; justify-content: center;
+}
+.lock-overlay::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.17;
+  background-image:
+    linear-gradient(rgba(16,37,27,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,37,27,0.14) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: linear-gradient(#000, transparent 92%);
+  mask-image: linear-gradient(#000, transparent 92%);
 }
 .lock-overlay.open { display: flex; }
 .lock-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 16px; padding: 28px; width: 340px; max-width: 90vw;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center;
+  background: rgba(250,255,251,0.88); border: 1px solid var(--text-primary);
+  border-radius: 24px; padding: 30px; width: 360px; max-width: 90vw;
+  box-shadow: 0 24px 75px rgba(20,91,51,0.18); text-align: center;
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
 }
-.lock-icon { font-size: 32px; margin-bottom: 10px; }
+.lock-icon { display: grid; width: 46px; height: 46px; margin: 0 auto 14px; place-items: center; border-radius: 13px; background: var(--text-primary); color: #bdffd7; font-size: 23px; box-shadow: 5px 5px 0 rgba(35,223,117,0.3); }
 .lock-title { font-family: var(--font-body); font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
 .lock-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.4; }
 .lock-input {
-  width: 100%; padding: 10px 12px; border-radius: 8px;
-  border: 1.5px solid var(--border-dark); background: var(--bg-input);
+  width: 100%; min-height: 48px; padding: 10px 12px; border-radius: 11px;
+  border: 1px solid var(--border-dark); background: rgba(255,255,255,0.9);
   color: var(--text-primary); font-size: 13px; font-family: var(--font-body);
   box-sizing: border-box; outline: none; margin-bottom: 10px; text-align: center;
 }
-.lock-input:focus { border-color: var(--accent); }
+.lock-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(8,118,58,0.13); }
 .lock-btn {
-  width: 100%; padding: 10px; border-radius: 8px; border: none;
-  background: var(--accent); color: var(--accent-text); cursor: pointer;
+  width: 100%; min-height: 48px; padding: 10px; border-radius: 11px; border: 1px solid var(--text-primary);
+  background: var(--text-primary); color: #fff; cursor: pointer;
   font-size: 13px; font-weight: 600;
+  box-shadow: 4px 4px 0 var(--accent2); transition: transform 0.15s, box-shadow 0.15s;
 }
-.lock-btn:hover { opacity: 0.88; }
+.lock-btn:hover { transform: translate(-1px,-1px); box-shadow: 6px 6px 0 var(--accent2); }
+#lockCancelBtn { box-shadow: none; }
+#lockCancelBtn:hover { transform: none; box-shadow: none; }
 .lock-status { font-size: 11.5px; color: var(--red); margin-top: 10px; min-height: 14px; }
 </style>
 </head>
 <body>
 
-<div class="lock-overlay open" id="lockOverlay">
+<div class="lock-overlay theme-proof open" id="lockOverlay">
   <div class="lock-card">
     <div class="lock-icon">🔒</div>
     <div class="lock-title" id="lockTitle">Unlock Sara</div>
@@ -904,9 +986,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   </div>
 </div>
 
-<div class="app-bg theme-lime" id="appBg"></div>
+<div class="app-bg theme-proof" id="appBg"></div>
 
-<div class="app-shell theme-lime" id="appShell">
+<div class="app-shell theme-proof" id="appShell">
 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
@@ -940,12 +1022,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <button class="focus-btn" id="focusBtn" onclick="toggleFocus()">Focus</button>
         <span class="theme-label">Theme</span>
         <div class="theme-switcher">
-          <div class="theme-dot active" data-theme="lime" title="Lime"></div>
+          <div class="theme-dot" data-theme="lime" title="Lime"></div>
           <div class="theme-dot" data-theme="default" title="Pearl (Default)"></div>
           <div class="theme-dot" data-theme="glassy" title="Glassy"></div>
           <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
           <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
           <div class="theme-dot" data-theme="forest" title="Forest"></div>
+          <div class="theme-dot active" data-theme="proof" title="Proof — inspired by BlockchainProof"></div>
         </div>
       </div>
     </div>
@@ -957,6 +1040,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- Col2 panel nav (hidden on asset view) -->
         <div class="col2-panel-nav" id="col2Nav">
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
+          <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
+          <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
+          <button class="col2-nav-btn" id="col2BtnBusiness" onclick="showCol2('business')">Business</button>
+          <button class="col2-nav-btn" id="col2BtnTools" onclick="showCol2('tools')">Tools</button>
+          <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
+          <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')">Proofs</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
         </div>
@@ -1010,6 +1099,481 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         </div><!-- /assetView -->
 
+        <div id="ledgerView" style="display:none">
+          <div class="card">
+            <div style="font-size:15px;font-weight:600">Transaction ledger</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Confirmed status, fiat snapshots, fees, tags, notes and proof-of-payment receipts.</div>
+            <div id="ledgerList"><div style="font-size:11px;color:var(--text-muted)">Loading…</div></div>
+          </div>
+        </div>
+
+        <div id="invoicesView" style="display:none">
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:15px;font-weight:600">Create USDC invoice</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Polygon payment page with automatic on-chain reconciliation.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+              <select class="settings-input" id="invoiceWallet"></select>
+              <input class="settings-input" id="invoiceAmount" type="number" min="0" step="0.000001" placeholder="Amount (USDC)">
+              <input class="settings-input" id="invoiceCustomer" maxlength="120" placeholder="Customer name">
+              <input class="settings-input" id="invoiceEmail" type="email" maxlength="254" placeholder="Customer email">
+              <input class="settings-input" id="invoiceDue" type="datetime-local">
+              <input class="settings-input" id="invoiceDescription" maxlength="1000" placeholder="Description">
+            </div>
+            <button class="settings-save-btn" style="margin-top:8px" onclick="createInvoice()">Create invoice</button>
+            <div class="settings-status" id="invoiceStatus"></div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Invoices</strong><button class="settings-save-btn" onclick="loadInvoices()">Refresh</button></div>
+            <div id="invoiceList" style="font-size:11px;margin-top:8px">Loading…</div>
+          </div>
+          <div class="card">
+            <div style="font-size:13px;font-weight:600">Merchant API</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Create a scoped API key and optional signed payment webhook.</div>
+            <div style="display:flex;gap:6px"><input class="settings-input" id="merchantName" maxlength="80" placeholder="Client name"><input class="settings-input" id="merchantWebhook" placeholder="https://… webhook"><button class="settings-save-btn" onclick="createMerchantClient()">Create key</button></div>
+            <div id="merchantResult" style="font-size:11px;word-break:break-all;margin-top:8px"></div>
+            <div id="merchantList" style="font-size:11px;margin-top:8px"></div>
+          </div>
+        </div>
+
+        <!-- ── Business View (counterparties / batches / schedules / payroll / policies) ── -->
+        <div id="businessView" style="display:none">
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="col2-nav-btn active" id="bizTabCounterparties" onclick="showBizTab('counterparties')">Counterparties</button>
+                <button class="col2-nav-btn" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
+                <button class="col2-nav-btn" id="bizTabSchedules" onclick="showBizTab('schedules')">Schedules</button>
+                <button class="col2-nav-btn" id="bizTabPayroll" onclick="showBizTab('payroll')">Payroll</button>
+                <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
+                <button class="col2-nav-btn" id="bizTabAccounting" onclick="showBizTab('accounting')">Accounting</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-secondary)">
+                Checker key
+                <input class="settings-input" id="bizApproverKey" type="password" autocomplete="off" placeholder="optional" style="width:150px;font-size:11px">
+                <button class="settings-save-btn" onclick="createApproverCredential()">Create key</button>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Dual-control approval requires a separately generated checker key. Keys are shown once and stored only as hashes.</div>
+          </div>
+
+          <div id="bizCounterpartiesPane">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Counterparties</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Vendors, employees and contractors — separate from your address book.</div>
+              <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr;gap:7px">
+                <input class="settings-input" id="cpName" maxlength="160" placeholder="Display name">
+                <select class="settings-input" id="cpType"><option value="vendor">Vendor</option><option value="employee">Employee</option><option value="contractor">Contractor</option></select>
+                <select class="settings-input" id="cpNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="cpAddress" placeholder="Wallet address (0x…)">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createCounterparty()">Add counterparty</button>
+              <div class="settings-status" id="cpStatus"></div>
+            </div>
+            <div class="card"><div id="cpList" style="font-size:11px">Loading…</div></div>
+          </div>
+
+          <div id="bizBatchesPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">New payment batch</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially — never one atomic transaction.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px">
+                <select class="settings-input" id="batchKind"><option value="payment">Payment</option><option value="airdrop">Airdrop</option></select>
+                <select class="settings-input" id="batchWallet"></select>
+                <select class="settings-input" id="batchNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="batchToken" value="USDC" maxlength="20" placeholder="Token symbol">
+              </div>
+              <input class="settings-input" id="batchMemo" style="margin-top:7px" maxlength="500" placeholder="Memo (optional)">
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createBatch()">Create draft batch</button>
+              <div class="settings-status" id="batchCreateStatus"></div>
+            </div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Batches</strong><button class="settings-save-btn" onclick="loadBatches()">Refresh</button></div>
+              <div id="batchList" style="font-size:11px;margin-top:8px">Loading…</div>
+            </div>
+            <div class="card" id="batchDetailCard" style="display:none;margin-top:10px"></div>
+          </div>
+
+          <div id="bizSchedulesPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">New recurring payment</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Materializes a reviewable batch each time it's due — it never signs by itself.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <select class="settings-input" id="schedWallet"></select>
+                <select class="settings-input" id="schedNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="schedToken" value="USDC" maxlength="20" placeholder="Token symbol">
+                <input class="settings-input" id="schedRecipient" placeholder="Recipient address (0x…)">
+                <input class="settings-input" id="schedAmount" placeholder="Amount">
+                <select class="settings-input" id="schedFreq">
+                  <option value="FREQ=MONTHLY;INTERVAL=1">Monthly</option>
+                  <option value="FREQ=WEEKLY;INTERVAL=1">Weekly</option>
+                  <option value="FREQ=DAILY;INTERVAL=1">Daily</option>
+                </select>
+                <input class="settings-input" id="schedStart" type="datetime-local">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createSchedule()">Create schedule</button>
+              <div class="settings-status" id="schedCreateStatus"></div>
+            </div>
+            <div class="card"><div id="schedList" style="font-size:11px">Loading…</div></div>
+          </div>
+
+          <div id="bizPayrollPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Add payroll person</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor counterparty. Creates a monthly recurring salary instruction — it's only ever paid through an explicit payroll run below, never automatically.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <select class="settings-input" id="prollCounterparty"></select>
+                <select class="settings-input" id="prollWallet"></select>
+                <select class="settings-input" id="prollNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="prollToken" value="USDC" maxlength="20" placeholder="Token symbol">
+                <input class="settings-input" id="prollAmount" placeholder="Salary amount">
+                <input class="settings-input" id="prollStart" type="datetime-local">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="addPayrollPerson()">Add person</button>
+              <div class="settings-status" id="prollAddStatus"></div>
+            </div>
+            <div class="card" style="margin-bottom:10px"><div id="prollPeopleList" style="font-size:11px">Loading…</div></div>
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Run payroll</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-top:8px">
+                <select class="settings-input" id="prollRunWallet"></select>
+                <select class="settings-input" id="prollRunNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="prollRunToken" value="USDC" maxlength="20" placeholder="Token symbol">
+                <input class="settings-input" id="prollRunPeriod" maxlength="40" placeholder="Period label (e.g. 2026-01)">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createPayrollRun()">Create payroll run</button>
+              <div class="settings-status" id="prollRunStatus"></div>
+            </div>
+            <div class="card" style="margin-top:10px"><div id="prollRunsList" style="font-size:11px">Loading…</div></div>
+          </div>
+
+          <div id="bizPoliciesPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">New spending policy</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Evaluated when a batch is approved and again immediately before each item is signed.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <input class="settings-input" id="polName" maxlength="160" placeholder="Policy name">
+                <select class="settings-input" id="polNetwork"><option value="">Any network</option><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="polToken" maxlength="20" placeholder="Token (blank = any)">
+                <input class="settings-input" id="polMaxAmount" placeholder="Max per payment (blank = no cap)">
+                <select class="settings-input" id="polPeriod"><option value="">No cumulative cap</option><option value="day">Per day</option><option value="week">Per week</option><option value="month">Per month</option></select>
+                <input class="settings-input" id="polPeriodLimit" placeholder="Cumulative cap for period">
+              </div>
+              <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text-secondary)">
+                <input type="checkbox" id="polDualControl"> Require a different approver than the preparer
+              </label>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createSpendingPolicy()">Add policy</button>
+              <div class="settings-status" id="polCreateStatus"></div>
+            </div>
+            <div class="card"><div id="polList" style="font-size:11px">Loading…</div></div>
+          </div>
+
+          <div id="bizAccountingPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Reconcile</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Links internal transfers and swap legs that share the same on-chain transaction hash — never a fuzzy guess.</div>
+              <button class="settings-save-btn" onclick="runAccountingMatch()">Match transfers &amp; swaps</button>
+              <span id="matchStatus" style="font-size:10.5px;color:var(--text-secondary);margin-left:8px"></span>
+            </div>
+
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Cost-basis lots (FIFO)</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Not tax advice. Rebuild is a full, deterministic recompute for one token/network.</div>
+              <div style="display:flex;gap:6px">
+                <input class="settings-input" id="lotsToken" value="USDC" maxlength="20" placeholder="Token">
+                <select class="settings-input" id="lotsNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <button class="settings-save-btn" onclick="rebuildLots()">Rebuild lots</button>
+              </div>
+              <div id="lotsRebuildStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+              <div id="lotsList" style="font-size:11px;margin-top:8px"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600">P&amp;L report</div>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <input class="settings-input" id="pnlToken" value="USDC" maxlength="20" placeholder="Token">
+                <select class="settings-input" id="pnlNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="pnlStart" type="date">
+                <input class="settings-input" id="pnlEnd" type="date">
+                <button class="settings-save-btn" onclick="loadPnlReport()">Run</button>
+              </div>
+              <div id="pnlResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600">Income &amp; expense report</div>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <input class="settings-input" id="ieStart" type="date">
+                <input class="settings-input" id="ieEnd" type="date">
+                <button class="settings-save-btn" onclick="loadIncomeExpenseReport()">Run</button>
+              </div>
+              <div id="ieResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600">Data quality</div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="loadDataQuality()">Check</button>
+              <div id="dqResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Exports</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Exact amounts, fiat values, fees, classifications, references and a per-row content hash.</div>
+              <div style="display:flex;gap:8px">
+                <button class="settings-save-btn" onclick="downloadAccountingExport('csv')">Download CSV</button>
+                <button class="settings-save-btn" onclick="downloadAccountingExport('xlsx')">Download XLSX</button>
+              </div>
+            </div>
+          </div>
+        </div><!-- /businessView -->
+
+        <!-- ── Tools View (token creator / treasury / intelligence / risk / contracts) ── -->
+        <div id="toolsView" style="display:none">
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="col2-nav-btn active" id="toolsTabTokens" onclick="showToolsTab('tokens')">Token Creator</button>
+              <button class="col2-nav-btn" id="toolsTabTreasury" onclick="showToolsTab('treasury')">Treasury</button>
+              <button class="col2-nav-btn" id="toolsTabIntel" onclick="showToolsTab('intel')">Intelligence</button>
+              <button class="col2-nav-btn" id="toolsTabRisk" onclick="showToolsTab('risk')">Risk</button>
+              <button class="col2-nav-btn" id="toolsTabContracts" onclick="showToolsTab('contracts')">Contracts</button>
+              <button class="col2-nav-btn" id="toolsTabNames" onclick="showToolsTab('names')">Names</button>
+            </div>
+          </div>
+
+          <div id="toolsTokensPane">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Create an ERC-20 token</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only — never arbitrary Solidity.</div>
+              <div id="tokenTemplateList" style="font-size:11px;margin-bottom:8px">Loading templates…</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <select class="settings-input" id="tokTemplate"></select>
+                <select class="settings-input" id="tokWallet"></select>
+                <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="tokName" maxlength="64" placeholder="Token name">
+                <input class="settings-input" id="tokSymbol" maxlength="16" placeholder="Symbol">
+                <input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="Decimals">
+                <input class="settings-input" id="tokSupply" placeholder="Initial supply">
+                <input class="settings-input" id="tokCap" placeholder="Cap (mintable template only)">
+                <input class="settings-input" id="tokOwner" placeholder="Owner address (blank = deploying wallet)">
+              </div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="settings-save-btn" onclick="previewTokenDeployment()">Preview deployment</button>
+                <button class="settings-save-btn" onclick="deployToken()">Deploy</button>
+              </div>
+              <div id="tokenPreview" style="font-size:11px;margin-top:8px"></div>
+              <div id="tokenDeployStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
+            <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><strong>Deployed tokens</strong><button class="settings-save-btn" onclick="loadTokenDeployments()">Refresh</button></div><div id="tokenDeploymentsList" style="font-size:11px;margin-top:8px">Loading…</div></div>
+          </div>
+
+          <div id="toolsTreasuryPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Treasury overview</strong><button class="settings-save-btn" onclick="loadTreasuryOverview()">Refresh</button></div>
+              <div id="treasuryOverview" style="font-size:11px;margin-top:8px">Loading…</div>
+            </div>
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Compare stablecoin routes</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-top:8px">
+                <select class="settings-input" id="routeFromNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <select class="settings-input" id="routeToNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="routeFromToken" value="USDC" maxlength="20">
+                <input class="settings-input" id="routeToToken" value="USDC" maxlength="20">
+                <input class="settings-input" id="routeAmount" placeholder="Amount">
+                <select class="settings-input" id="routeWallet"></select>
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
+              <div id="routeResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div id="toolsIntelPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="settings-save-btn" onclick="loadIntel('top-payees')">Largest payees</button>
+                <button class="settings-save-btn" onclick="loadIntel('spend-by-category')">Spend by category</button>
+                <button class="settings-save-btn" onclick="loadIntel('recurring-counterparties')">Recurring counterparties</button>
+                <button class="settings-save-btn" onclick="loadIntel('unusual-activity')">Unusual activity</button>
+              </div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Deterministic ledger queries — every figure links back to source transactions.</div>
+            </div>
+            <div class="card"><div id="intelResult" style="font-size:11px">Pick a query above.</div></div>
+          </div>
+
+          <div id="toolsRiskPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Screen an address</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <input class="settings-input" id="riskAddress" placeholder="Address (0x…)">
+                <select class="settings-input" id="riskNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <button class="settings-save-btn" onclick="screenAddress()">Screen</button>
+              </div>
+              <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Manual review</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Records an audited override decision — never an invisible bypass.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <input class="settings-input" id="reviewAddress" placeholder="Address (0x…)">
+                <select class="settings-input" id="reviewDecision"><option value="approved">Approve</option><option value="rejected">Reject</option></select>
+                <input class="settings-input" id="reviewReason" maxlength="1000" placeholder="Reason">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="submitRiskReview()">Record review</button>
+              <div id="reviewStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
+          </div>
+
+          <div id="toolsContractsPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Read a verified contract</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only verified, non-proxy contracts and allowlisted methods (name, symbol, decimals, totalSupply, balanceOf, owner, allowance, cap, paused).</div>
+              <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:7px">
+                <input class="settings-input" id="ciAddress" placeholder="Contract address (0x…)">
+                <select class="settings-input" id="ciNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="ciMethod" placeholder="Method (e.g. balanceOf)">
+              </div>
+              <input class="settings-input" id="ciArgs" style="margin-top:7px" placeholder="Args, comma-separated (optional)">
+              <button class="settings-save-btn" style="margin-top:8px" onclick="readContract()">Read</button>
+              <div id="ciReadResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600">Prepare and execute a reviewed call</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only approve, transfer and transferFrom. Sara rebuilds and re-simulates the exact reviewed call before signing.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <select class="settings-input" id="ciWriteWallet"></select>
+                <input class="settings-input" id="ciWriteAddress" placeholder="Contract address">
+                <select class="settings-input" id="ciWriteNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <select class="settings-input" id="ciWriteMethod"><option value="transfer">transfer</option><option value="approve">approve</option><option value="transferFrom">transferFrom</option></select>
+                <input class="settings-input" id="ciWriteArgs" placeholder="Args, comma-separated">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="prepareContractCall()">Prepare and simulate</button>
+              <button class="settings-save-btn" style="margin-top:8px" id="ciExecuteBtn" onclick="executeContractCall()" disabled>Execute reviewed call</button>
+              <div id="ciWriteResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Simulate a call</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px">
+                <select class="settings-input" id="ciSimNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                <input class="settings-input" id="ciSimFrom" placeholder="From address">
+                <input class="settings-input" id="ciSimTo" placeholder="To address">
+              </div>
+              <input class="settings-input" id="ciSimData" style="margin-top:7px" value="0x" placeholder="Calldata (0x…)">
+              <button class="settings-save-btn" style="margin-top:8px" onclick="simulateCall()">Simulate</button>
+              <div id="ciSimResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div id="toolsNamesPane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Sara Names</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Polygon Amoy testnet. Registration is a two-step commit → wait ~60s → reveal process, priced in USDC by name length.</div>
+              <div style="display:flex;gap:6px">
+                <input class="settings-input" id="nameSearch" placeholder="Search a name (e.g. rohas)">
+                <button class="settings-save-btn" onclick="checkNameAvailability()">Check</button>
+              </div>
+              <div id="nameAvailabilityResult" style="font-size:11px;margin-top:8px"></div>
+            </div>
+
+            <div class="card" id="nameRegisterCard" style="margin-bottom:10px;display:none">
+              <div style="font-size:13px;font-weight:600">Register</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <select class="settings-input" id="nameWallet"></select>
+                <button class="settings-save-btn" onclick="commitName()">1. Commit</button>
+                <button class="settings-save-btn" onclick="revealName()" id="nameRevealBtn" disabled>2. Complete (after ~60s)</button>
+              </div>
+              <div id="nameRegisterStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600">Manage a name</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <input class="settings-input" id="nameManage" placeholder="Name you own (e.g. rohas)">
+                <select class="settings-input" id="nameManageWallet"></select>
+                <button class="settings-save-btn" onclick="loadNameDetail()">Load</button>
+              </div>
+              <div id="nameDetailResult" style="font-size:11px;margin-top:8px"></div>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button class="settings-save-btn" onclick="renewName()">Renew 1yr</button>
+                <input class="settings-input" id="nameTransferTo" placeholder="Transfer to address" style="max-width:220px">
+                <button class="settings-save-btn" onclick="transferName()">Transfer</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="font-size:13px;font-weight:600">Publish a signed record</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Off-chain, EIP-712 signed. Only the current on-chain owner can publish.</div>
+              <input class="settings-input" id="recordAddresses" placeholder='Addresses JSON, e.g. [{"network":"eip155:137","addr":"0x..."}]'>
+              <div style="display:flex;gap:6px;margin-top:7px">
+                <input class="settings-input" id="recordPreferredNetwork" placeholder="Preferred network (CAIP-2)">
+                <input class="settings-input" id="recordPreferredToken" placeholder="Preferred token">
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="publishRecord()">Publish record</button>
+              <div id="recordPublishStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
+          </div>
+        </div><!-- /toolsView -->
+
+        <div id="safetyView" style="display:none">
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:15px;font-weight:600">Wallet safety</div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <select class="settings-input" id="safetyWallet"></select>
+              <select class="settings-input" id="safetyNetwork"><option>polygon</option><option>ethereum</option><option>arbitrum</option><option>base</option><option>optimism</option></select>
+              <button class="settings-save-btn" onclick="loadAllowances()">Check allowances</button>
+            </div>
+            <div id="allowanceList" style="font-size:11px;margin-top:9px"></div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:13px;font-weight:600">Balance monitoring</div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select>
+              <input class="settings-input" id="monitorThreshold" placeholder="USDC threshold">
+              <button class="settings-save-btn" onclick="createBalanceMonitor()">Add monitor</button>
+            </div>
+            <div id="monitorList" style="font-size:11px;margin-top:9px"></div>
+          </div>
+          <div class="card">
+            <div style="font-size:13px;font-weight:600">Alerts</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Telegram, email and signed HTTPS webhook destinations.</div>
+            <button class="settings-save-btn" onclick="addAlertDestination()">Add destination</button>
+            <div id="alertList" style="font-size:11px;margin-top:9px"></div>
+          </div>
+        </div>
+
+        <!-- ── Proofs View ── -->
+        <div id="proofsView" style="display:none">
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary)">Create a file proof</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 12px">The file is hashed on this device. Only its SHA-256 fingerprint is sent to BlockchainProof. A proof records that fingerprint by a particular time; it does not by itself prove authorship or ownership.</div>
+            <div class="proof-form">
+              <label class="proof-file" for="proofFile"><span><strong id="proofFileTitle">Choose a file</strong><span id="proofFileHelp">The file never leaves Sara</span></span></label>
+              <input id="proofFile" type="file" hidden onchange="hashProofFile(this, 'proofHash', 'proofFileTitle')">
+              <input class="settings-input proof-hash" id="proofHash" maxlength="64" placeholder="SHA-256 fingerprint">
+              <div class="proof-grid">
+                <select class="settings-input" id="proofWallet"><option value="">Select wallet</option></select>
+                <input class="settings-input" id="proofDescription" maxlength="300" placeholder="Private description (optional)">
+              </div>
+              <button class="settings-save-btn" id="proofPrepareBtn" onclick="prepareProofCheckout()">Prepare 1 USDC proof</button>
+              <div class="settings-status" id="proofCreateStatus" style="height:auto;min-height:14px"></div>
+              <div id="proofCheckoutPreview"></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:9px">My proofs</div>
+            <div class="proof-list" id="proofList"><div style="font-size:11px;color:var(--text-muted)">Loading…</div></div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Verify a file</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 9px">Hash locally and check BlockchainProof for matching public records.</div>
+            <div class="proof-form">
+              <input id="proofVerifyFile" type="file" onchange="hashProofFile(this, 'proofVerifyHash')">
+              <input class="settings-input proof-hash" id="proofVerifyHash" maxlength="64" placeholder="SHA-256 fingerprint">
+              <button class="settings-save-btn" onclick="verifyProofHash()">Verify fingerprint</button>
+              <div id="proofVerifyResult" style="font-size:11px;color:var(--text-secondary)"></div>
+            </div>
+          </div>
+        </div><!-- /proofsView -->
+
         <!-- ── Settings View ── -->
         <div id="settingsView" style="display:none">
           <div class="card">
@@ -1059,22 +1623,15 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="sstatus-ALCHEMY_API_KEY"></div>
             </div>
 
-            <div class="settings-row" id="srow-HELIUS_RPC">
-              <div class="settings-label">Helius RPC URL</div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-HELIUS_RPC" type="password" placeholder="https://… (optional)" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('HELIUS_RPC')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-HELIUS_RPC"></div>
+            <!-- Networks & Tokens -->
+            <div class="settings-section-title">Manage Networks &amp; Tokens</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
+              Choose where Sara operates. Native assets stay enabled for gas; USDC uses Circle's official contract on each network.
             </div>
-
-            <div class="settings-row" id="srow-TRONGRID_API_KEY">
-              <div class="settings-label">TronGrid API Key</div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="sinput-TRONGRID_API_KEY" type="password" placeholder="(needed for Tron USDT balances/sends)" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveSetting('TRONGRID_API_KEY')">Save</button>
-              </div>
-              <div class="settings-status" id="sstatus-TRONGRID_API_KEY"></div>
+            <div class="asset-settings-list" id="assetSettingsList"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <button class="settings-save-btn" onclick="saveAssetSettings()">Save Networks</button>
+              <div class="settings-status" id="assetSettingsStatus" style="height:auto;margin:0"></div>
             </div>
 
             <!-- Security -->
@@ -1105,8 +1662,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <input class="dir-input" id="dirNick" placeholder="Nickname (e.g. rohas)" maxlength="32" style="max-width:130px">
                 <select class="dir-input" id="dirChain" style="max-width:90px">
                   <option value="evm">EVM</option>
-                  <option value="solana">Solana</option>
-                  <option value="tron">Tron</option>
                 </select>
               </div>
               <div class="dir-add-row">
@@ -1137,24 +1692,23 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-suggestions" id="chatSuggestions">
           <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
+          <div class="chat-chip" onclick="showSampleMessage('send 10 USDC to 0x...')">Send</div>
           <div class="chat-chip" onclick="showSampleMessage('bridge 1 USDC from polygon to arbitrum')">Bridge</div>
-          <div class="chat-chip" onclick="sendChip(this)">My wallets</div>
-          <div class="chat-chip" onclick="sendChip(this)">My portfolio</div>
           <div class="chat-chip" onclick="showSampleMessage('swap 1 POL for USDC')">Swap</div>
+          <div class="chat-chip" onclick="sendMessage('My wallets')">Wallets</div>
+          <div class="chat-chip" onclick="sendChip(this)">Portfolio</div>
         </div>
 
         <div class="chat-suggestions" id="chatToolPills" style="padding-top:0">
           <div class="chat-chip" onclick="showTrustedTokensInChat()" title="View every contract address Sara trusts">🛡️ Trusted Tokens</div>
-          <div class="chat-chip" onclick="showPaymentLinkFormInChat()" title="Request a payment via link or QR code">🔗 Payment Links</div>
+          <div class="chat-chip" onclick="showPaymentLinkFormInChat()" title="Create a shareable payment link or QR code">🔗 Request Payment</div>
           <div class="chat-chip" id="scanPayPill" onclick="openScanPayModal()" title="Scan a Sara payment QR code">📷 Scan to Pay</div>
-          <div class="chat-chip" onclick="showPaymentRequestsInChat()" title="Track and reconcile requests you've sent">📋 Payment Requests</div>
+          <div class="chat-chip" onclick="showPaymentRequestsInChat()" title="Track and reconcile payment requests you've sent">📋 Track Requests</div>
+          <div class="chat-chip" onclick="showCol2('proofs')" title="Create, retain, and verify BlockchainProof evidence"># File Proofs</div>
         </div>
 
         <div class="chat-input-wrap">
           <textarea class="chat-input" id="chatInput" placeholder="Ask Sara anything…" rows="1"></textarea>
-          <button class="chat-mic" id="chatMic" title="Speak (English only)">
-            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </button>
           <button class="chat-send" id="chatSend">
             <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
           </button>
@@ -1182,14 +1736,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     <div class="wallet-form-group">
       <div class="wallet-form-label">Chain</div>
       <select class="wallet-form-select" id="walletChain">
-        <option value="evm">EVM (Ethereum, Arbitrum, Base, Polygon, Optimism, BSC, Avalanche)</option>
-        <option value="solana">Solana</option>
-        <option value="tron">Tron</option>
+        <option value="evm">EVM (Ethereum, Arbitrum, Base, OP Mainnet, Polygon PoS)</option>
       </select>
     </div>
     <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
       <div class="wallet-form-label">Private Key (hex)</div>
-      <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" />
+      <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" autocomplete="off" spellcheck="false" />
     </div>
     <div class="wallet-modal-actions">
       <button class="wallet-btn-cancel" onclick="closeWalletModal()">Cancel</button>
@@ -1373,7 +1925,7 @@ async function lockWalletNow() {
 // ══════════════════════════════════════
 // THEME SWITCHER
 // ══════════════════════════════════════
-const themes = ['default','glassy','darkpro','sunset','forest','lime'];
+const themes = ['default','glassy','darkpro','sunset','forest','lime','proof'];
 const shell = document.getElementById('appShell');
 const appBg = document.getElementById('appBg');
 
@@ -1446,9 +1998,7 @@ function addMsg(text, role) {
     // in Chat" flow, which are unsigned/attacker-craftable data from a
     // scanned or pasted link, not something the user composed themselves.
     // Escaping here (rather than trusting every caller to do it) closes
-    // that whole class regardless of where the text originated — e.g. the
-    // voice-dictation transcript at the other addMsg(text, 'user') call
-    // site gets the same protection for free.
+    // that whole class regardless of where the text originated.
     div.innerHTML = `<div class="msg-avatar user-av">👤</div><div><div class="msg-bubble">${_escapeHtml(text)}</div><div class="msg-time">${time}</div></div>`;
   }
   chatMessages.appendChild(div);
@@ -1584,51 +2134,12 @@ chatInput.addEventListener('input', () => {
 });
 
 // ══════════════════════════════════════
-// VOICE MODE (English only)
-// ══════════════════════════════════════
-const chatMic = document.getElementById('chatMic');
-const _SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let _recognizer = null;
-let _listening = false;
-
-if (!_SpeechRecognition) {
-  chatMic.classList.add('unsupported');
-} else {
-  _recognizer = new _SpeechRecognition();
-  _recognizer.lang = 'en-US';
-  _recognizer.interimResults = false;
-  _recognizer.maxAlternatives = 1;
-
-  _recognizer.onstart = () => { _listening = true; chatMic.classList.add('listening'); };
-  _recognizer.onend = () => { _listening = false; chatMic.classList.remove('listening'); };
-  _recognizer.onerror = () => { _listening = false; chatMic.classList.remove('listening'); };
-
-  _recognizer.onresult = (event) => {
-    const transcript = event.results[0][0].transcript.trim();
-    const bare = transcript.toLowerCase().replace(/[.!?]+$/, '').trim();
-    // Safety: CONFIRM (and CANCEL) must always be typed, never spoken —
-    // never let a voice transcription authorize a money-moving action.
-    if (bare === 'confirm' || bare === 'cancel') {
-      addMsg(`🎤 "${transcript}"`, 'user');
-      addMsg('For your safety, please type CONFIRM (or CANCEL) manually rather than speaking it.', 'bot');
-      return;
-    }
-    sendMessage(transcript);
-  };
-
-  chatMic.addEventListener('click', () => {
-    if (_listening) { _recognizer.stop(); return; }
-    try { _recognizer.start(); } catch(e) {}
-  });
-}
-
-// ══════════════════════════════════════
 // PORTFOLIO BALANCE VIEW
 // ══════════════════════════════════════
 
-const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'ETH', polygon:'POL', bsc:'BNB', avalanche:'AVAX', solana:'SOL', tron:'TRX' };
-const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'Optimism', polygon:'Polygon', bsc:'BNB Chain', avalanche:'Avalanche', solana:'Solana', tron:'Tron' };
-const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', MATIC:'🟣', BNB:'🟡', AVAX:'🔴', SOL:'🟠', TRX:'🟤', USDT:'🟢', USDC:'🔵' };
+const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'ETH', polygon:'POL' };
+const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'OP Mainnet', polygon:'Polygon PoS' };
+const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', USDC:'🔵' };
 
 function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '—'); }
 function _symbolIcon(sym) { return SYMBOL_ICONS[sym] || (sym ? sym.charAt(0) : '?'); }
@@ -1798,7 +2309,7 @@ async function showTrustedTokensInChat() {
     const chains = (data && data.chains) || [];
     if (!chains.length) { addMsg('Could not load the trusted token list.', 'bot'); return; }
     let html = '<div style="font-size:11.5px;line-height:1.6"><strong>🛡️ Trusted Tokens</strong><br>' +
-      'Sara only ever sends, swaps, or bridges tokens on this list — a scam token sharing a symbol (like a fake USDT) can never be substituted in.<br><br>';
+      'Sara only uses Circle-issued USDC and native gas assets on enabled networks. Contract addresses are verified rather than resolved by symbol.<br><br>';
     chains.forEach(c => {
       html += `<strong>${_escapeHtml(_chainLabel(c.chain))}</strong><br>`;
       c.tokens.forEach(t => {
@@ -1824,18 +2335,27 @@ async function showTrustedTokensInChat() {
 // PAYMENT LINKS + QR (rendered inline in chat)
 // ══════════════════════════════════════
 
-function showPaymentLinkFormInChat() {
+async function showPaymentLinkFormInChat() {
   const bubbleId = 'pl-' + Date.now();
-  const wallets = _portfolioWallets || [];
+  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
+  let assetData = _assetSettings;
+  if (!assetData) {
+    try { assetData = await fetch('/api/settings/assets').then(r => r.json()); } catch(e) { assetData = {networks:[]}; }
+  }
+  const usdcNetworks = (assetData.networks || []).filter(n => n.enabled && n.usdc_enabled);
   const walletOptions = wallets.length
-    ? wallets.map(w => `<option value="${_escapeHtml(w.name)}">${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})</option>`).join('')
+    ? wallets.map(w => `<option value="${_escapeHtml(w.name)}">${_escapeHtml(w.name)}</option>`).join('')
     : '<option value="">No wallets yet</option>';
+  const networkOptions = usdcNetworks.length
+    ? usdcNetworks.map(n => `<option value="${_escapeHtml(n.id)}">${_escapeHtml(n.label)}</option>`).join('')
+    : '<option value="">No USDC networks enabled</option>';
   const html = `
     <div style="font-size:11.5px;margin-bottom:8px"><strong>🔗 Request a Payment</strong></div>
     <div style="display:flex;flex-direction:column;gap:6px;max-width:260px">
       <select class="wallet-form-select" id="${bubbleId}-wallet" style="font-size:11.5px;padding:6px">${walletOptions}</select>
+      <select class="wallet-form-select" id="${bubbleId}-network" style="font-size:11.5px;padding:6px">${networkOptions}</select>
       <input class="wallet-form-input" id="${bubbleId}-amount" type="number" min="0" step="any" placeholder="Amount, e.g. 10" style="font-size:11.5px;padding:6px">
-      <input class="wallet-form-input" id="${bubbleId}-token" placeholder="Token, e.g. USDC" style="font-size:11.5px;padding:6px">
+      <input class="wallet-form-input" value="USDC" readonly style="font-size:11.5px;padding:6px">
       <input class="wallet-form-input" id="${bubbleId}-note" placeholder="Note (optional)" style="font-size:11.5px;padding:6px">
       <button class="wallet-btn-create" style="font-size:11.5px;padding:6px" onclick="_chatGenerateLink('${bubbleId}')">Generate</button>
       <div style="font-size:10.5px;color:var(--red);min-height:13px" id="${bubbleId}-status"></div>
@@ -1845,18 +2365,19 @@ function showPaymentLinkFormInChat() {
 
 async function _chatGenerateLink(bubbleId) {
   const wallet_name = document.getElementById(bubbleId + '-wallet').value;
+  const network = document.getElementById(bubbleId + '-network').value;
   const amount = parseFloat(document.getElementById(bubbleId + '-amount').value);
-  const token = document.getElementById(bubbleId + '-token').value.trim();
+  const token = 'USDC';
   const note = document.getElementById(bubbleId + '-note').value.trim();
   const statusEl = document.getElementById(bubbleId + '-status');
   if (!wallet_name) { statusEl.textContent = 'Add a wallet first.'; return; }
+  if (!network) { statusEl.textContent = 'Enable USDC on a network in Settings first.'; return; }
   if (!amount || amount <= 0) { statusEl.textContent = 'Enter an amount greater than zero.'; return; }
-  if (!token) { statusEl.textContent = 'Enter a token symbol, e.g. USDC.'; return; }
   statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Working…';
   try {
     const resp = await fetch('/api/payments/link', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wallet_name, amount, token, note }),
+      body: JSON.stringify({ wallet_name, network, amount, token, note }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || 'Failed to create link');
@@ -2000,9 +2521,9 @@ async function showPaymentRequestsInChat() {
 
 function _paymentRequestsRowsHtml(rows, bubbleId) {
   if (!rows.length) {
-    return '<div style="font-size:11.5px"><strong>📋 Payment Requests</strong><br>No payment requests yet — try 🔗 Payment Links to create one.</div>';
+    return '<div style="font-size:11.5px"><strong>📋 Track Requests</strong><br>No payment requests yet — try 🔗 Request Payment to create one.</div>';
   }
-  let html = '<div style="font-size:11px;font-weight:600;margin-bottom:6px">📋 Payment Requests</div>';
+  let html = '<div style="font-size:11px;font-weight:600;margin-bottom:6px">📋 Track Requests</div>';
   html += rows.map(r => {
     const shortRaw = r.matched_tx_hash ? (r.matched_tx_hash.length > 14 ? r.matched_tx_hash.slice(0, 8) + '…' + r.matched_tx_hash.slice(-6) : r.matched_tx_hash) : '';
     const short = _escapeHtml(shortRaw);
@@ -2082,6 +2603,9 @@ function openWalletModal() {
 function closeWalletModal(event) {
   if (!event || event.target === document.getElementById('walletModalOverlay')) {
     document.getElementById('walletModalOverlay').classList.remove('open');
+    // Imported keys are needed only for the request. Never leave one in the
+    // DOM after the modal closes (including the successful-import path).
+    document.getElementById('walletPrivKey').value = '';
   }
 }
 
@@ -2143,23 +2667,36 @@ function copyAddr(el) {
 // ══════════════════════════════════════
 // COLUMN 2 PANEL SWITCHER
 // ══════════════════════════════════════
-const SETTING_KEYS = ['COINGECKO_API_KEY','ALCHEMY_API_KEY','HELIUS_RPC'];
+const SETTING_KEYS = ['COINGECKO_API_KEY','ALCHEMY_API_KEY'];
 let _openrouterModels = [];
 let _col2Mode = 'asset';
+let _assetSettings = null;
 
 async function showCol2(mode) {
   _col2Mode = mode;
 
   // Show/hide the views
   document.getElementById('assetView').style.display      = mode === 'asset'     ? '' : 'none';
+  document.getElementById('ledgerView').style.display     = mode === 'ledger'    ? '' : 'none';
+  document.getElementById('invoicesView').style.display   = mode === 'invoices'  ? '' : 'none';
+  document.getElementById('businessView').style.display   = mode === 'business'  ? '' : 'none';
+  document.getElementById('toolsView').style.display      = mode === 'tools'     ? '' : 'none';
+  document.getElementById('safetyView').style.display     = mode === 'safety'    ? '' : 'none';
+  document.getElementById('proofsView').style.display     = mode === 'proofs'    ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'  ? '' : 'none';
   document.getElementById('directoryView').style.display  = mode === 'directory' ? '' : 'none';
 
   // Highlight active nav buttons (panel nav)
-  ['col2BtnAsset','col2BtnDir','col2BtnSettings'].forEach(id => {
+  ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBusiness','col2BtnTools','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')     document.getElementById('col2BtnAsset')?.classList.add('active');
+  if (mode === 'ledger')    document.getElementById('col2BtnLedger')?.classList.add('active');
+  if (mode === 'invoices')  document.getElementById('col2BtnInvoices')?.classList.add('active');
+  if (mode === 'business')  document.getElementById('col2BtnBusiness')?.classList.add('active');
+  if (mode === 'tools')     document.getElementById('col2BtnTools')?.classList.add('active');
+  if (mode === 'safety')    document.getElementById('col2BtnSafety')?.classList.add('active');
+  if (mode === 'proofs')    document.getElementById('col2BtnProofs')?.classList.add('active');
   if (mode === 'directory') document.getElementById('col2BtnDir')?.classList.add('active');
   if (mode === 'settings')  document.getElementById('col2BtnSettings')?.classList.add('active');
 
@@ -2168,8 +2705,1061 @@ async function showCol2(mode) {
   document.getElementById('s1BtnSettings')?.classList.toggle('active', mode === 'settings');
 
   if (mode === 'asset') await loadPortfolioView();
+  if (mode === 'ledger') await loadLedger();
+  if (mode === 'invoices') await loadInvoices();
+  if (mode === 'business') await loadBusinessView();
+  if (mode === 'tools') await loadToolsView();
+  if (mode === 'safety') await loadSafety();
+  if (mode === 'proofs') await loadProofsView();
   if (mode === 'settings') await _loadSettingsView();
   if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
+}
+
+async function loadInvoices() {
+  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
+  const walletSelect = document.getElementById('invoiceWallet');
+  if (!walletSelect.options.length) walletSelect.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+  const [invoices, clients] = await Promise.all([
+    fetch('/api/payments/invoices').then(r => r.ok ? r.json() : Promise.reject()),
+    fetch('/api/payments/merchant/clients').then(r => r.ok ? r.json() : []).catch(() => [])
+  ]).catch(() => [[], []]);
+  document.getElementById('invoiceList').innerHTML = invoices.length ? invoices.map(i => `<div style="padding:8px 0;border-bottom:1px solid var(--border-dark)">
+    <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(i.reference)}</strong><span>${_escapeHtml(i.status)}</span></div>
+    <div>${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
+    <div style="color:var(--text-muted)">${_escapeHtml(i.description || '')}${i.due_date ? ' · due ' + _escapeHtml(i.due_date) : ''}</div>
+    <button class="dir-del" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button>${i.status === 'paid' ? `<button class="dir-del" onclick="window.open('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','_blank')">Receipt</button>` : ''}
+  </div>`).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
+  document.getElementById('merchantList').innerHTML = clients.map(c => `<div>${_escapeHtml(c.name)} · ${_escapeHtml(c.api_key_prefix)}… · ${c.enabled ? 'active' : 'disabled'}${c.enabled ? ` <button class="dir-del" onclick="disableMerchantClient(${Number(c.id)})">Disable</button>` : ''}</div>`).join('');
+}
+
+async function createInvoice() {
+  const status = document.getElementById('invoiceStatus'); status.textContent = 'Creating…';
+  const due = document.getElementById('invoiceDue').value;
+  const body = {wallet_id:Number(document.getElementById('invoiceWallet').value), customer_name:document.getElementById('invoiceCustomer').value,
+    customer_email:document.getElementById('invoiceEmail').value, amount:document.getElementById('invoiceAmount').value,
+    token:'USDC', network:'polygon', due_date:due ? new Date(due).toISOString() : null, description:document.getElementById('invoiceDescription').value};
+  const r = await fetch('/api/payments/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) { status.textContent = data.detail || 'Could not create invoice.'; return; }
+  status.innerHTML = `Created ${_escapeHtml(data.reference)} · <a href="${_escapeHtml(data.payment_page)}" target="_blank">open payment page</a>`;
+  await loadInvoices();
+}
+
+async function createMerchantClient() {
+  const body = {name:document.getElementById('merchantName').value, wallet_id:Number(document.getElementById('invoiceWallet').value), webhook_url:document.getElementById('merchantWebhook').value || null};
+  const r = await fetch('/api/payments/merchant/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data = await r.json().catch(()=>({})); const box = document.getElementById('merchantResult');
+  if (!r.ok) { box.textContent = data.detail || 'Could not create key.'; return; }
+  box.innerHTML = `<strong>Save now — shown once.</strong><br>API key: <code>${_escapeHtml(data.api_key)}</code>${data.webhook_signing_secret ? `<br>Webhook secret: <code>${_escapeHtml(data.webhook_signing_secret)}</code>` : ''}`;
+  await loadInvoices();
+}
+
+async function disableMerchantClient(id) {
+  await fetch('/api/payments/merchant/clients/' + id,{method:'DELETE'}); await loadInvoices();
+}
+
+// ══════════════════════════════════════
+// BUSINESS: counterparties / batches / schedules / payroll / policies
+// ══════════════════════════════════════
+let _bizTab = 'counterparties';
+let _bizCounterparties = [];
+
+function _bizApproverKey() { return (document.getElementById('bizApproverKey').value || '').trim(); }
+
+async function createApproverCredential() {
+  const name = prompt('Checker name'); if (!name) return;
+  const r = await fetch('/api/payment-batches/approvers/credentials', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { alert(data.detail || 'Could not create checker key.'); return; }
+  document.getElementById('bizApproverKey').value = data.api_key;
+  alert('Save this checker key now; it is shown only once.');
+}
+
+function _fillWalletSelects(ids) {
+  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
+  const opts = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+  ids.forEach(id => { const el = document.getElementById(id); if (el && !el.dataset.filled) { el.innerHTML = opts; el.dataset.filled = '1'; } });
+}
+
+async function loadBusinessView() {
+  _fillWalletSelects(['batchWallet', 'schedWallet', 'prollWallet', 'prollRunWallet']);
+  return showBizTab(_bizTab);
+}
+
+function showBizTab(tab) {
+  _bizTab = tab;
+  ['counterparties', 'batches', 'schedules', 'payroll', 'policies', 'accounting'].forEach(t => {
+    const cap = t.charAt(0).toUpperCase() + t.slice(1);
+    const pane = document.getElementById('biz' + cap + 'Pane');
+    if (pane) pane.style.display = t === tab ? '' : 'none';
+    document.getElementById('bizTab' + cap)?.classList.toggle('active', t === tab);
+  });
+  if (tab === 'counterparties') return loadCounterparties();
+  if (tab === 'batches') return loadBatches();
+  if (tab === 'schedules') return loadSchedules();
+  if (tab === 'payroll') return loadPayrollPeople().then(loadPayrollRuns);
+  if (tab === 'policies') return loadSpendingPolicies();
+  if (tab === 'accounting') return Promise.resolve();
+}
+
+// ---- Counterparties ----
+async function loadCounterparties() {
+  const data = await fetch('/api/counterparties').then(r => r.json()).catch(() => ({counterparties: []}));
+  _bizCounterparties = data.counterparties || [];
+  document.getElementById('cpList').innerHTML = _bizCounterparties.length ? _bizCounterparties.map(c => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark)">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(c.display_name)}</strong><span>${_escapeHtml(c.type)}${c.active ? '' : ' · inactive'}</span></div>
+      <div style="color:var(--text-muted)">${Object.entries(c.addresses || {}).map(([n, a]) => `${_escapeHtml(n)}: ${_escapeHtml(a)}`).join(' · ') || 'No addresses on file'}</div>
+      ${c.active ? `<button class="dir-del" onclick="deactivateCounterparty(${c.id})">Deactivate</button>` : ''}
+    </div>`).join('') : '<div style="color:var(--text-muted)">No counterparties yet.</div>';
+  _fillCounterpartySelects();
+}
+
+function _fillCounterpartySelects() {
+  const employees = _bizCounterparties.filter(c => c.active && (c.type === 'employee' || c.type === 'contractor'));
+  const el = document.getElementById('prollCounterparty');
+  if (el) el.innerHTML = employees.length
+    ? employees.map(c => `<option value="${c.id}">${_escapeHtml(c.display_name)} (${_escapeHtml(c.type)})</option>`).join('')
+    : '<option value="">No employee/contractor counterparties yet</option>';
+}
+
+async function createCounterparty() {
+  const network = document.getElementById('cpNetwork').value;
+  const address = document.getElementById('cpAddress').value.trim();
+  const body = {
+    display_name: document.getElementById('cpName').value.trim(),
+    type: document.getElementById('cpType').value,
+    addresses: address ? {[network]: address} : {},
+  };
+  const r = await fetch('/api/counterparties', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('cpStatus').textContent = r.ok ? 'Added.' : (data.detail || 'Could not add counterparty.');
+  if (r.ok) { document.getElementById('cpName').value = ''; document.getElementById('cpAddress').value = ''; await loadCounterparties(); }
+}
+
+async function deactivateCounterparty(id) {
+  await fetch('/api/counterparties/' + id, {method: 'DELETE'});
+  await loadCounterparties();
+}
+
+// ---- Payment batches ----
+async function loadBatches() {
+  const data = await fetch('/api/payment-batches').then(r => r.json()).catch(() => ({batches: []}));
+  const rows = data.batches || [];
+  document.getElementById('batchList').innerHTML = rows.length ? rows.map(b => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id})">
+      <div style="display:flex;justify-content:space-between"><strong>#${b.id} ${_escapeHtml(b.kind)}</strong><span>${_escapeHtml(b.status)}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}${b.payroll_period ? ' · ' + _escapeHtml(b.payroll_period) : ''}</div>
+    </div>`).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
+}
+
+async function createBatch() {
+  const body = {
+    kind: document.getElementById('batchKind').value,
+    wallet_id: Number(document.getElementById('batchWallet').value),
+    network: document.getElementById('batchNetwork').value,
+    token: document.getElementById('batchToken').value.trim().toUpperCase(),
+    memo: document.getElementById('batchMemo').value.trim() || null,
+  };
+  const r = await fetch('/api/payment-batches', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('batchCreateStatus').textContent = r.ok ? 'Draft batch #' + data.id + ' created.' : (data.detail?.message || data.detail || 'Could not create batch.');
+  if (r.ok) { await loadBatches(); await openBatch(data.id); }
+}
+
+let _openBatchId = null;
+
+async function openBatch(id) {
+  _openBatchId = id;
+  const card = document.getElementById('batchDetailCard');
+  card.style.display = '';
+  const b = await fetch('/api/payment-batches/' + id).then(r => r.json());
+  const items = b.items || [];
+  card.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Batch #${b.id}</strong> · ${_escapeHtml(b.kind)} · ${_escapeHtml(b.status)}</div>
+      <button class="dir-del" onclick="closeBatch()">Close</button>
+    </div>
+    <div style="color:var(--text-muted);font-size:10.5px;margin:4px 0 10px">wallet #${_escapeHtml(b.wallet_id)} · ${_escapeHtml(b.network)} · ${_escapeHtml(b.token)} · total ${_escapeHtml(b.total_amount)}${b.approved_by ? ' · approved by ' + _escapeHtml(b.approved_by) : ''}</div>
+    <div id="batchItemsList">${items.length ? items.map(i => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+        <div style="display:flex;justify-content:space-between"><span>${_escapeHtml(i.recipient_address)}</span><span>${_escapeHtml(i.status)}</span></div>
+        <div style="color:var(--text-muted)">${_escapeHtml(i.amount)} ${_escapeHtml(b.token)}${i.reference ? ' · ' + _escapeHtml(i.reference) : ''}${i.failure_reason ? ' · ' + _escapeHtml(i.failure_reason) : ''}${i.tx_hash ? ' · ' + _escapeHtml(i.tx_hash) : ''}</div>
+        ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${i.id})">Remove</button>` : ''}
+      </div>`).join('') : '<div style="color:var(--text-muted)">No items yet.</div>'}</div>
+    ${b.status === 'draft' ? `
+    <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;margin-top:10px">
+      <input class="settings-input" id="itemRecipient" placeholder="Recipient address (0x…)">
+      <input class="settings-input" id="itemAmount" placeholder="Amount">
+      <input class="settings-input" id="itemReference" placeholder="Reference (optional)">
+    </div>
+    <button class="settings-save-btn" style="margin-top:6px" onclick="addBatchItem()">Add item</button>
+    ${b.kind === 'airdrop' ? `<div style="margin-top:8px"><input type="file" id="csvFile" accept=".csv"><button class="settings-save-btn" onclick="importBatchCsv()">Import CSV</button></div>` : ''}
+    ` : ''}
+    <div id="batchValidation" style="font-size:10.5px;color:#c0392b;margin-top:8px"></div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="settings-save-btn" onclick="validateBatch(${b.id})">Validate</button>
+      ${b.status === 'draft' ? `<button class="settings-save-btn" onclick="approveBatch(${b.id})">Approve</button>` : ''}
+      ${b.status === 'approved' ? `<button class="settings-save-btn" onclick="executeBatch(${b.id})">Execute</button>` : ''}
+      ${['draft', 'approved'].includes(b.status) ? `<button class="dir-del" onclick="cancelBatch(${b.id})">Cancel batch</button>` : ''}
+    </div>
+  `;
+}
+
+function closeBatch() { _openBatchId = null; document.getElementById('batchDetailCard').style.display = 'none'; }
+
+async function addBatchItem() {
+  const body = {
+    recipient_address: document.getElementById('itemRecipient').value.trim(),
+    amount: document.getElementById('itemAmount').value.trim(),
+    reference: document.getElementById('itemReference').value.trim() || null,
+  };
+  const r = await fetch(`/api/payment-batches/${_openBatchId}/items`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) { alert((await r.json().catch(() => ({}))).detail || 'Could not add item'); return; }
+  await openBatch(_openBatchId); await loadBatches();
+}
+
+async function deleteBatchItem(itemId) {
+  await fetch(`/api/payment-batches/${_openBatchId}/items/${itemId}`, {method: 'DELETE'});
+  await openBatch(_openBatchId); await loadBatches();
+}
+
+async function importBatchCsv() {
+  const fileInput = document.getElementById('csvFile');
+  if (!fileInput.files.length) { alert('Choose a CSV file first'); return; }
+  const form = new FormData(); form.append('file', fileInput.files[0]);
+  const r = await fetch(`/api/payment-batches/${_openBatchId}/items/import-csv`, {method: 'POST', body: form});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { alert(data.detail || 'CSV import failed'); return; }
+  alert(`Imported ${data.imported} row(s)${data.errors.length ? `, ${data.errors.length} row error(s) — see console` : ''}.`);
+  if (data.errors.length) console.warn('CSV row errors', data.errors);
+  await openBatch(_openBatchId); await loadBatches();
+}
+
+async function validateBatch(id) {
+  const r = await fetch(`/api/payment-batches/${id}/validate`, {method: 'POST'});
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('batchValidation');
+  const errors = [...(data.batch_errors || []), ...Object.values(data.item_errors || {}).flat()];
+  box.textContent = errors.length ? errors.join(' · ') : (data.ok ? 'Batch is valid and ready to approve.' : 'Validation failed.');
+}
+
+async function approveBatch(id) {
+  const key = _bizApproverKey();
+  const headers = {'Content-Type': 'application/json'}; if (key) headers['X-Sara-Approver-Key'] = key;
+  const r = await fetch(`/api/payment-batches/${id}/approve`, {method: 'POST', headers, body: JSON.stringify({})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { alert(data.detail?.message || data.detail || 'Approval failed'); return; }
+  await openBatch(id); await loadBatches();
+}
+
+async function executeBatch(id) {
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch(`/api/payment-batches/${id}/execute`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { alert(data.detail || 'Execution failed'); return; }
+  alert(`Executed: ${data.submitted} submitted, ${data.failed} failed.`);
+  await openBatch(id); await loadBatches();
+}
+
+async function cancelBatch(id) {
+  if (!confirm('Cancel this batch?')) return;
+  await fetch(`/api/payment-batches/${id}/cancel`, {method: 'POST'});
+  await openBatch(id); await loadBatches();
+}
+
+// ---- Schedules ----
+async function loadSchedules() {
+  const data = await fetch('/api/schedules?kind=recurring_payment').then(r => r.json()).catch(() => ({schedules: []}));
+  const rows = data.schedules || [];
+  document.getElementById('schedList').innerHTML = rows.length ? rows.map(s => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(s.recipient_address || ('counterparty #' + s.counterparty_id))}</strong><span>${s.active ? 'active' : 'inactive'}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(s.token)} on ${_escapeHtml(s.network)} · ${_escapeHtml(s.rrule)} · next ${s.next_run_at ? new Date(s.next_run_at).toLocaleString() : '—'}</div>
+      ${s.active ? `<button class="dir-del" onclick="deactivateSchedule(${s.id})">Deactivate</button>` : ''}
+    </div>`).join('') : '<div style="color:var(--text-muted)">No recurring payments yet.</div>';
+}
+
+async function createSchedule() {
+  const start = document.getElementById('schedStart').value;
+  const body = {
+    kind: 'recurring_payment',
+    wallet_id: Number(document.getElementById('schedWallet').value),
+    network: document.getElementById('schedNetwork').value,
+    token: document.getElementById('schedToken').value.trim().toUpperCase(),
+    recipient_address: document.getElementById('schedRecipient').value.trim(),
+    amount: document.getElementById('schedAmount').value.trim(),
+    rrule: document.getElementById('schedFreq').value,
+    start_date: start ? new Date(start).toISOString() : new Date().toISOString(),
+  };
+  const r = await fetch('/api/schedules', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('schedCreateStatus').textContent = r.ok ? 'Schedule created.' : (data.detail || 'Could not create schedule.');
+  if (r.ok) await loadSchedules();
+}
+
+async function deactivateSchedule(id) {
+  await fetch('/api/schedules/' + id, {method: 'DELETE'});
+  await loadSchedules();
+}
+
+// ---- Payroll ----
+async function loadPayrollPeople() {
+  const data = await fetch('/api/payroll/people').then(r => r.json()).catch(() => ({people: []}));
+  const rows = data.people || [];
+  document.getElementById('prollPeopleList').innerHTML = rows.length ? rows.map(p => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.display_name || ('#' + p.counterparty_id))}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(p.type || '')} · ${p.fiat_amount ? _escapeHtml(p.fiat_amount) + ' ' + _escapeHtml(p.fiat_currency || '') : (p.amount_raw ? p.amount_raw + ' base units' : '')} ${_escapeHtml(p.token || '')} on ${_escapeHtml(p.network || '')}</div>
+      ${p.active ? `<button class="dir-del" onclick="deactivatePayrollPerson(${p.id})">Remove</button>` : ''}
+    </div>`).join('') : '<div style="color:var(--text-muted)">No payroll people yet.</div>';
+}
+
+async function addPayrollPerson() {
+  const start = document.getElementById('prollStart').value;
+  const body = {
+    counterparty_id: Number(document.getElementById('prollCounterparty').value),
+    wallet_id: Number(document.getElementById('prollWallet').value),
+    network: document.getElementById('prollNetwork').value,
+    token: document.getElementById('prollToken').value.trim().toUpperCase(),
+    amount: document.getElementById('prollAmount').value.trim(),
+    rrule: 'FREQ=MONTHLY;INTERVAL=1',
+    start_date: start ? new Date(start).toISOString() : new Date().toISOString(),
+  };
+  const r = await fetch('/api/payroll/people', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('prollAddStatus').textContent = r.ok ? 'Added.' : (data.detail || 'Could not add payroll person.');
+  if (r.ok) await loadPayrollPeople();
+}
+
+async function deactivatePayrollPerson(id) {
+  await fetch('/api/payroll/people/' + id, {method: 'DELETE'});
+  await loadPayrollPeople();
+}
+
+async function loadPayrollRuns() {
+  const data = await fetch('/api/payroll/runs').then(r => r.json()).catch(() => ({runs: []}));
+  const rows = data.runs || [];
+  document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showBizTab('batches'); openBatch(${b.id})">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(b.payroll_period || ('#' + b.id))}</strong><span>${_escapeHtml(b.status)}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} people · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</div>
+    </div>`).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';
+}
+
+async function createPayrollRun() {
+  const body = {
+    wallet_id: Number(document.getElementById('prollRunWallet').value),
+    network: document.getElementById('prollRunNetwork').value,
+    token: document.getElementById('prollRunToken').value.trim().toUpperCase(),
+    period_label: document.getElementById('prollRunPeriod').value.trim(),
+  };
+  const r = await fetch('/api/payroll/runs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('prollRunStatus').textContent = r.ok ? `Run created: batch #${data.batch_id}, ${data.items} item(s)${data.skipped.length ? ', ' + data.skipped.length + ' skipped' : ''}.` : (data.detail || 'Could not create payroll run.');
+  if (r.ok) await loadPayrollRuns();
+}
+
+// ---- Spending policies ----
+async function loadSpendingPolicies() {
+  const data = await fetch('/api/spending-policies').then(r => r.json()).catch(() => ({policies: []}));
+  const rows = data.policies || [];
+  document.getElementById('polList').innerHTML = rows.length ? rows.map(p => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.name)}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(p.network || 'any network')} · ${_escapeHtml(p.token || 'any token')}${p.max_amount_raw ? ' · max ' + _escapeHtml(p.max_amount_raw) + ' base units' : ''}${p.period ? ' · ' + _escapeHtml(p.period_limit_raw) + ' base units/' + _escapeHtml(p.period) : ''}${p.require_dual_control ? ' · dual control' : ''}</div>
+      <button class="dir-del" onclick="deleteSpendingPolicy(${p.id})">Delete</button>
+    </div>`).join('') : '<div style="color:var(--text-muted)">No spending policies yet — nothing is restricted.</div>';
+}
+
+async function createSpendingPolicy() {
+  const body = {
+    name: document.getElementById('polName').value.trim(),
+    network: document.getElementById('polNetwork').value || null,
+    token: document.getElementById('polToken').value.trim() || null,
+    max_amount: document.getElementById('polMaxAmount').value.trim() || null,
+    period: document.getElementById('polPeriod').value || null,
+    period_limit: document.getElementById('polPeriodLimit').value.trim() || null,
+    require_dual_control: document.getElementById('polDualControl').checked,
+  };
+  const r = await fetch('/api/spending-policies', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('polCreateStatus').textContent = r.ok ? 'Policy added.' : (data.detail || 'Could not add policy.');
+  if (r.ok) await loadSpendingPolicies();
+}
+
+async function deleteSpendingPolicy(id) {
+  await fetch('/api/spending-policies/' + id, {method: 'DELETE'});
+  await loadSpendingPolicies();
+}
+
+// ---- Accounting ----
+async function runAccountingMatch() {
+  const el = document.getElementById('matchStatus');
+  el.textContent = 'Matching…';
+  const r = await fetch('/api/accounting/transactions/match', {method: 'POST'});
+  const data = await r.json().catch(() => ({}));
+  el.textContent = r.ok ? `Matched ${data.matched_pairs} pair(s).` : (data.detail || 'Match failed.');
+}
+
+async function rebuildLots() {
+  const body = {token: document.getElementById('lotsToken').value.trim().toUpperCase(), network: document.getElementById('lotsNetwork').value};
+  const r = await fetch('/api/accounting/lots/rebuild', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  const status = document.getElementById('lotsRebuildStatus');
+  status.textContent = r.ok
+    ? `${data.lots_created} lot(s), ${data.disposals_created} disposal(s) rebuilt.${data.warnings.length ? ' ' + data.warnings.length + ' warning(s) — see console.' : ''}`
+    : (data.detail || 'Rebuild failed.');
+  if (data.warnings && data.warnings.length) console.warn('Lot rebuild warnings', data.warnings);
+  if (r.ok) await loadLots(body.token, body.network);
+}
+
+async function loadLots(token, network) {
+  const params = new URLSearchParams({token, network, open_only: 'true'});
+  const data = await fetch('/api/accounting/lots?' + params).then(r => r.json()).catch(() => ({lots: []}));
+  document.getElementById('lotsList').innerHTML = data.lots.length ? data.lots.map(l => `
+    <div style="padding:5px 0;border-bottom:1px solid var(--border-dark)">
+      wallet #${_escapeHtml(l.wallet_id)} · ${_escapeHtml(l.remaining)} ${_escapeHtml(token)} remaining (of ${_escapeHtml(l.quantity)}) · cost $${_escapeHtml(l.acquisition_cost_usd)} · ${_escapeHtml(l.source)} · ${new Date(l.acquired_at).toLocaleDateString()}
+    </div>`).join('') : '<div style="color:var(--text-muted)">No open lots.</div>';
+}
+
+function _dateParam(id) {
+  const v = document.getElementById(id).value;
+  return v ? new Date(v).toISOString() : '';
+}
+
+async function loadPnlReport() {
+  const params = new URLSearchParams({token: document.getElementById('pnlToken').value.trim().toUpperCase(), network: document.getElementById('pnlNetwork').value});
+  const start = _dateParam('pnlStart'); if (start) params.set('start_date', start);
+  const end = _dateParam('pnlEnd'); if (end) params.set('end_date', end);
+  const r = await fetch('/api/accounting/reports/pnl?' + params);
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('pnlResult');
+  if (!r.ok) { box.textContent = data.detail || 'Could not load report.'; return; }
+  box.innerHTML = `
+    <div>Realized: <strong>$${_escapeHtml(data.realized_gain_usd)}</strong> over ${_escapeHtml(data.disposal_count)} disposal(s)</div>
+    <div>Unrealized: <strong>${data.unrealized_gain_usd !== null ? '$' + _escapeHtml(data.unrealized_gain_usd) : '—'}</strong> across ${_escapeHtml(data.open_lot_count)} open lot(s)</div>
+    ${data.warnings.length ? `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>` : ''}
+    <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.disclaimer)}</div>
+  `;
+}
+
+async function loadIncomeExpenseReport() {
+  const params = new URLSearchParams();
+  const start = _dateParam('ieStart'); if (start) params.set('start_date', start);
+  const end = _dateParam('ieEnd'); if (end) params.set('end_date', end);
+  const r = await fetch('/api/accounting/reports/income-expense?' + params);
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('ieResult');
+  if (!r.ok) { box.textContent = data.detail || 'Could not load report.'; return; }
+  box.innerHTML = `
+    <div>Income: <strong>$${_escapeHtml(data.income_total_usd)}</strong> · Expense: <strong>$${_escapeHtml(data.expense_total_usd)}</strong> · Net: <strong>$${_escapeHtml(data.net_usd)}</strong></div>
+    <div style="margin-top:6px;color:var(--text-muted)">${Object.entries(data.by_classification).map(([k, v]) => `${_escapeHtml(k)}: $${_escapeHtml(v)}`).join(' · ')}</div>
+    ${data.warnings.length ? `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>` : ''}
+  `;
+}
+
+async function loadDataQuality() {
+  const data = await fetch('/api/accounting/reports/data-quality').then(r => r.json()).catch(() => null);
+  const box = document.getElementById('dqResult');
+  if (!data) { box.textContent = 'Could not load data-quality report.'; return; }
+  const c = data.counts;
+  box.innerHTML = `Unpriced: ${c.unpriced} · Uncategorised: ${c.uncategorised} · Failed: ${c.failed} · Incomplete: ${c.incomplete} · Duplicate groups: ${c.duplicated_groups}`;
+}
+
+async function downloadAccountingExport(format) {
+  const r = await fetch('/api/accounting/exports/transactions.' + format);
+  if (!r.ok) { alert('Export failed'); return; }
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sara-transactions.' + format;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════
+// TOOLS: token creator / treasury / intelligence / risk / contracts
+// ══════════════════════════════════════
+let _toolsTab = 'tokens';
+
+async function loadToolsView() {
+  _fillWalletSelects(['tokWallet', 'routeWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet']);
+  return showToolsTab(_toolsTab);
+}
+
+function showToolsTab(tab) {
+  _toolsTab = tab;
+  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', contracts: 'toolsContractsPane', names: 'toolsNamesPane'};
+  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', contracts: 'toolsTabContracts', names: 'toolsTabNames'};
+  Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
+  Object.entries(tabs).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab));
+  if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
+  if (tab === 'treasury') loadTreasuryOverview();
+}
+
+// ---- Token creator ----
+async function loadTokenTemplates() {
+  const data = await fetch('/api/tokens/templates').then(r => r.json()).catch(() => ({templates: []}));
+  const templates = data.templates || [];
+  document.getElementById('tokTemplate').innerHTML = templates.map(t => `<option value="${t.template_id}">${_escapeHtml(t.label)}</option>`).join('');
+  document.getElementById('tokenTemplateList').innerHTML = templates.map(t => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
+      <strong>${_escapeHtml(t.label)}</strong> — ${_escapeHtml(t.description)}
+      ${t.centralisation_risks.length ? `<div style="color:var(--text-muted);margin-top:3px">${t.centralisation_risks.map(r => '⚠ ' + _escapeHtml(r)).join('<br>')}</div>` : ''}
+    </div>`).join('');
+}
+
+function _tokenDeployBody() {
+  return {
+    template_id: document.getElementById('tokTemplate').value,
+    wallet_id: Number(document.getElementById('tokWallet').value),
+    network: document.getElementById('tokNetwork').value,
+    name: document.getElementById('tokName').value.trim(),
+    symbol: document.getElementById('tokSymbol').value.trim(),
+    decimals: Number(document.getElementById('tokDecimals').value || 18),
+    initial_supply: document.getElementById('tokSupply').value.trim(),
+    cap: document.getElementById('tokCap').value.trim() || null,
+    owner_address: document.getElementById('tokOwner').value.trim() || null,
+  };
+}
+
+async function previewTokenDeployment() {
+  const r = await fetch('/api/tokens/deployments/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_tokenDeployBody())});
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('tokenPreview');
+  if (!r.ok) { box.textContent = data.detail || 'Preview failed.'; return; }
+  box.innerHTML = `
+    <div><strong>${_escapeHtml(data.name)} (${_escapeHtml(data.symbol)})</strong> on ${_escapeHtml(data.network)} — owner ${_escapeHtml(data.owner_address)}</div>
+    <div>Estimated fee: ${_escapeHtml(data.estimated_fee_native)} · gas ${_escapeHtml(data.estimated_gas)}</div>
+    <div style="color:var(--text-muted)">${_escapeHtml(data.description)}</div>
+    ${data.centralisation_risks.length ? `<div style="color:var(--text-muted)">${data.centralisation_risks.map(x => '⚠ ' + _escapeHtml(x)).join('<br>')}</div>` : ''}
+  `;
+}
+
+async function deployToken() {
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const body = {..._tokenDeployBody(), passphrase};
+  const r = await fetch('/api/tokens/deployments', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('tokenDeployStatus').textContent = r.ok
+    ? `Submitted — tx ${data.deployment_tx_hash}, status ${data.status}.`
+    : (data.detail || 'Deployment failed.');
+  if (r.ok) await loadTokenDeployments();
+}
+
+async function loadTokenDeployments() {
+  const data = await fetch('/api/tokens/deployments').then(r => r.json()).catch(() => ({deployments: []}));
+  const rows = data.deployments || [];
+  document.getElementById('tokenDeploymentsList').innerHTML = rows.length ? rows.map(d => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark)">
+      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(d.name)} (${_escapeHtml(d.symbol)})</strong><span>${_escapeHtml(d.status)}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(d.network)} · ${d.contract_address ? _escapeHtml(d.contract_address) : 'pending confirmation'} · ${_escapeHtml(d.template_id)}</div>
+      ${d.status === 'confirmed' ? `
+        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
+          <button class="dir-del" onclick="viewTokenSupply(${d.id})">Supply</button>
+          <button class="dir-del" onclick="mintToken(${d.id})">Mint</button>
+          <button class="dir-del" onclick="burnToken(${d.id})">Burn</button>
+          <button class="dir-del" onclick="transferToken(${d.id})">Transfer</button>
+        </div>
+        <div id="tokAction${d.id}" style="font-size:10.5px;color:var(--text-secondary);margin-top:4px"></div>
+      ` : ''}
+    </div>`).join('') : '<div style="color:var(--text-muted)">No tokens deployed yet.</div>';
+}
+
+async function viewTokenSupply(id) {
+  const box = document.getElementById('tokAction' + id);
+  const data = await fetch(`/api/tokens/deployments/${id}/supply`).then(r => r.json()).catch(() => null);
+  box.textContent = data ? `Supply: ${data.total_supply}${data.cap ? ' / cap ' + data.cap : ''}${data.on_chain_owner ? ' · owner ' + data.on_chain_owner : ''}` : 'Could not load supply.';
+}
+
+async function mintToken(id) {
+  const to = prompt('Mint to address:'); if (!to) return;
+  const amount = prompt('Amount:'); if (!amount) return;
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch('/api/tokens/mint', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, to_address: to, amount, passphrase})});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('tokAction' + id).textContent = r.ok ? `Minted — tx ${data.tx_hash}` : (data.detail || 'Mint failed.');
+}
+
+async function burnToken(id) {
+  const amount = prompt('Amount to burn:'); if (!amount) return;
+  const from = prompt('Burn from address (blank = your own balance):') || null;
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch('/api/tokens/burn', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, amount, from_address: from, passphrase})});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('tokAction' + id).textContent = r.ok ? `Burned — tx ${data.tx_hash}` : (data.detail || 'Burn failed.');
+}
+
+async function transferToken(id) {
+  const to = prompt('Transfer to address:'); if (!to) return;
+  const amount = prompt('Amount:'); if (!amount) return;
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch('/api/tokens/transfer', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, to_address: to, amount, passphrase})});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('tokAction' + id).textContent = r.ok ? `Transferred — tx ${data.tx_hash}` : (data.detail || 'Transfer failed.');
+}
+
+// ---- Treasury ----
+async function loadTreasuryOverview() {
+  const data = await fetch('/api/treasury/overview').then(r => r.json()).catch(() => null);
+  const box = document.getElementById('treasuryOverview');
+  if (!data) { box.textContent = 'Could not load treasury overview.'; return; }
+  box.innerHTML = `
+    <div>Total: <strong>$${_escapeHtml(data.total_usd)}</strong></div>
+    <div style="margin-top:6px">${(data.proposals || []).map(p => `<div>⚠ ${_escapeHtml(p.description)}</div>`).join('') || 'No proposals — nothing flagged.'}</div>
+    <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.note)}</div>
+  `;
+}
+
+async function compareRoutes() {
+  const params = new URLSearchParams({
+    from_network: document.getElementById('routeFromNetwork').value, to_network: document.getElementById('routeToNetwork').value,
+    from_token: document.getElementById('routeFromToken').value.trim().toUpperCase(), to_token: document.getElementById('routeToToken').value.trim().toUpperCase(),
+    amount: document.getElementById('routeAmount').value.trim(),
+  });
+  const walletId = document.getElementById('routeWallet').value;
+  const wallet = (_portfolioWallets || []).find(w => String(w.id) === String(walletId));
+  if (wallet) params.set('from_address', wallet.address);
+  const r = await fetch('/api/treasury/routes?' + params);
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('routeResult');
+  if (!r.ok) { box.textContent = data.detail || 'Could not compare routes.'; return; }
+  box.innerHTML = (data.routes || []).map(rt => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
+      <strong>${_escapeHtml(rt.provider)}</strong>${rt.recommended ? ' ⭐' : ''} — delivers ${_escapeHtml(rt.delivered_amount)} ${_escapeHtml(data.to_token)}
+      ${rt.fee_usd ? ` · fee $${_escapeHtml(rt.fee_usd)}` : ''}${rt.gas_cost_usd ? ` · gas $${_escapeHtml(rt.gas_cost_usd)}` : ''}
+      <div style="color:var(--text-muted);font-size:10px">${_escapeHtml(rt.expiry)}</div>
+    </div>`).join('') || '<div style="color:var(--text-muted)">No routes found.</div>';
+  if (data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
+}
+
+// ---- Wallet intelligence ----
+async function loadIntel(kind) {
+  const box = document.getElementById('intelResult');
+  box.textContent = 'Loading…';
+  const data = await fetch('/api/intelligence/wallet/' + kind).then(r => r.json()).catch(() => null);
+  if (!data) { box.textContent = 'Could not load.'; return; }
+  if (kind === 'top-payees') {
+    box.innerHTML = (data.payees || []).map(p => `<div>${_escapeHtml(p.payee)} — $${_escapeHtml(p.total_usd)} (${p.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
+  } else if (kind === 'spend-by-category') {
+    box.innerHTML = (data.categories || []).map(c => `<div>${_escapeHtml(c.category)} — $${_escapeHtml(c.total_usd)} (${c.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
+  } else if (kind === 'recurring-counterparties') {
+    box.innerHTML = (data.recurring_counterparties || []).map(c => `<div>${_escapeHtml(c.payee)} — ${c.occurrences} payments</div>`).join('') || 'No recurring counterparties yet.';
+  } else if (kind === 'unusual-activity') {
+    box.innerHTML = (data.unusual_transactions || []).map(u => `<div>Tx #${u.transaction_id} — $${_escapeHtml(u.amount_usd)} to ${_escapeHtml(u.counterparty || '?')} (${u.deviations_above_mean}σ above mean)</div>`).join('') || (data.note ? _escapeHtml(data.note) : 'Nothing unusual.');
+  }
+}
+
+// ---- Risk screening ----
+async function screenAddress() {
+  const body = {address: document.getElementById('riskAddress').value.trim(), network: document.getElementById('riskNetwork').value};
+  const r = await fetch('/api/risk/screen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  const box = document.getElementById('riskResult');
+  if (!r.ok) { box.textContent = data.detail || 'Screening failed.'; return; }
+  box.innerHTML = `
+    <div>Result: <strong>${_escapeHtml(data.result)}</strong> (${_escapeHtml(data.provider)})</div>
+    ${data.reason ? `<div style="color:var(--text-muted)">${_escapeHtml(data.reason)}</div>` : ''}
+    ${data.mandatory ? '<div style="color:var(--text-muted)">Mandatory screening is enabled — a flagged/unavailable result blocks batch sends.</div>' : ''}
+  `;
+}
+
+async function submitRiskReview() {
+  const body = {
+    address: document.getElementById('reviewAddress').value.trim(), network: document.getElementById('riskNetwork').value,
+    decision: document.getElementById('reviewDecision').value, reason: document.getElementById('reviewReason').value.trim(),
+  };
+  const r = await fetch('/api/risk/reviews', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('reviewStatus').textContent = r.ok ? 'Review recorded.' : (data.detail || 'Could not record review.');
+}
+
+// ---- Contract interaction assistant ----
+function _parseArgs(raw) {
+  return raw.trim() ? raw.split(',').map(a => a.trim()) : [];
+}
+
+async function readContract() {
+  const body = {
+    address: document.getElementById('ciAddress').value.trim(), network: document.getElementById('ciNetwork').value,
+    method: document.getElementById('ciMethod').value.trim(), args: _parseArgs(document.getElementById('ciArgs').value),
+  };
+  const r = await fetch('/api/contracts/read', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('ciReadResult').textContent = r.ok ? `${data.contract_name}.${data.method}(${data.args.join(', ')}) = ${data.result}` : (data.detail || 'Read failed.');
+}
+
+async function simulateCall() {
+  const body = {
+    network: document.getElementById('ciSimNetwork').value, from_address: document.getElementById('ciSimFrom').value.trim(),
+    to_address: document.getElementById('ciSimTo').value.trim(), data: document.getElementById('ciSimData').value.trim() || '0x',
+  };
+  const r = await fetch('/api/contracts/simulate', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('ciSimResult').innerHTML = r.ok
+    ? (data.summary.map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'No asset changes detected.')
+    : (data.detail || 'Simulation failed.');
+}
+
+let _preparedContractCall = null;
+
+async function prepareContractCall() {
+  const walletId = Number(document.getElementById('ciWriteWallet').value);
+  const wallet = (_portfolioWallets || []).find(w => Number(w.id) === walletId);
+  const body = {
+    address: document.getElementById('ciWriteAddress').value.trim(),
+    network: document.getElementById('ciWriteNetwork').value,
+    from_address: wallet?.address || '', method: document.getElementById('ciWriteMethod').value,
+    args: _parseArgs(document.getElementById('ciWriteArgs').value), value_wei: 0,
+  };
+  const box = document.getElementById('ciWriteResult');
+  const r = await fetch('/api/contracts/prepare', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = data.detail || 'Preparation failed.'; return; }
+  const sim = await fetch('/api/contracts/simulate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({network:body.network, from_address:body.from_address, to_address:data.address, data:data.data, value_wei:0})});
+  const simData = await sim.json().catch(() => ({}));
+  if (!sim.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = simData.detail || 'Simulation failed.'; return; }
+  _preparedContractCall = {...body, wallet_id:walletId, confirmation_token:data.confirmation_token};
+  document.getElementById('ciExecuteBtn').disabled = false;
+  box.innerHTML = (simData.summary || []).map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'Simulation found no asset changes. Review carefully.';
+}
+
+async function executeContractCall() {
+  if (!_preparedContractCall) return;
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const body = {..._preparedContractCall, passphrase}; delete body.from_address;
+  const r = await fetch('/api/contracts/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById('ciWriteResult').textContent = r.ok ? `Broadcast ${data.tx_hash}` : (data.detail || 'Execution failed.');
+  if (r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; }
+}
+
+// ---- Sara Names ----
+let _nameCommitState = null;
+
+async function checkNameAvailability() {
+  const name = document.getElementById('nameSearch').value.trim().toLowerCase();
+  const box = document.getElementById('nameAvailabilityResult');
+  const registerCard = document.getElementById('nameRegisterCard');
+  if (!name) { box.textContent = 'Enter a name to check.'; return; }
+  const r = await fetch('/api/names/availability?name=' + encodeURIComponent(name));
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { box.textContent = data.detail || 'Could not check availability.'; registerCard.style.display = 'none'; return; }
+  if (data.available) {
+    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is available — ${_escapeHtml(data.price_1yr)} USDC/year.`;
+    registerCard.style.display = '';
+    registerCard.dataset.name = name;
+  } else {
+    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is already registered.`;
+    registerCard.style.display = 'none';
+  }
+}
+
+async function commitName() {
+  const name = document.getElementById('nameRegisterCard').dataset.name;
+  const walletId = Number(document.getElementById('nameWallet').value);
+  const status = document.getElementById('nameRegisterStatus');
+  const r = await fetch('/api/names/commit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = data.detail || 'Commit failed.'; return; }
+  _nameCommitState = {name, walletId, secret: data.secret, committedAt: Date.now()};
+  status.textContent = `Committed (tx ${data.tx_hash}). Wait ~60s, then click "Complete".`;
+  document.getElementById('nameRevealBtn').disabled = true;
+  setTimeout(() => { document.getElementById('nameRevealBtn').disabled = false; }, 61000);
+}
+
+async function revealName() {
+  if (!_nameCommitState) { alert('Commit first.'); return; }
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const status = document.getElementById('nameRegisterStatus');
+  const body = {
+    wallet_id: _nameCommitState.walletId, label: _nameCommitState.name, duration_seconds: 365 * 86400,
+    secret: _nameCommitState.secret, passphrase,
+  };
+  const r = await fetch('/api/names/register', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  status.textContent = r.ok ? `Registered! Tx: ${data.tx_hash}` : (data.detail || 'Registration failed.');
+  if (r.ok) _nameCommitState = null;
+}
+
+async function loadNameDetail() {
+  const name = document.getElementById('nameManage').value.trim().toLowerCase();
+  const box = document.getElementById('nameDetailResult');
+  if (!name) { box.textContent = 'Enter a name.'; return; }
+  const r = await fetch('/api/names/' + encodeURIComponent(name));
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { box.textContent = data.detail || 'Could not load.'; return; }
+  if (!data.on_chain) { box.innerHTML = 'Not registered on-chain.'; return; }
+  const expiryDate = new Date(data.on_chain.expiry * 1000);
+  const daysLeft = Math.round((expiryDate - Date.now()) / 86400000);
+  box.innerHTML = `
+    Owner: <code>${_escapeHtml(data.on_chain.owner)}</code><br>
+    Expires: ${expiryDate.toLocaleDateString()} (${daysLeft} day(s))<br>
+    ${daysLeft < 30 ? '<span style="color:#c0392b">⚠ Expiring soon</span>' : ''}
+  `;
+}
+
+async function renewName() {
+  const name = document.getElementById('nameManage').value.trim().toLowerCase();
+  const walletId = Number(document.getElementById('nameManageWallet').value);
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch('/api/names/renew', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, duration_seconds: 365 * 86400, passphrase})});
+  const data = await r.json().catch(() => ({}));
+  alert(r.ok ? `Renewed — tx ${data.tx_hash}` : (data.detail || 'Renewal failed.'));
+  if (r.ok) await loadNameDetail();
+}
+
+async function transferName() {
+  const name = document.getElementById('nameManage').value.trim().toLowerCase();
+  const walletId = Number(document.getElementById('nameManageWallet').value);
+  const newOwner = document.getElementById('nameTransferTo').value.trim();
+  if (!newOwner) { alert('Enter the new owner address'); return; }
+  if (!confirm(`Transfer ${name} to ${newOwner}? This cannot be undone.`)) return;
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch('/api/names/transfer', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, new_owner: newOwner, passphrase})});
+  const data = await r.json().catch(() => ({}));
+  alert(r.ok ? `Transferred — tx ${data.tx_hash}` : (data.detail || 'Transfer failed.'));
+  if (r.ok) await loadNameDetail();
+}
+
+async function publishRecord() {
+  const name = document.getElementById('nameManage').value.trim().toLowerCase();
+  const walletId = Number(document.getElementById('nameManageWallet').value);
+  const status = document.getElementById('recordPublishStatus');
+  let addresses = [];
+  const raw = document.getElementById('recordAddresses').value.trim();
+  if (raw) {
+    try { addresses = JSON.parse(raw); } catch (e) { status.textContent = 'Addresses must be valid JSON.'; return; }
+  }
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const body = {
+    wallet_id: walletId, addresses, preferred_network: document.getElementById('recordPreferredNetwork').value.trim(),
+    preferred_token: document.getElementById('recordPreferredToken').value.trim(), passphrase,
+  };
+  const r = await fetch(`/api/names/${encodeURIComponent(name)}/records`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  status.textContent = r.ok
+    ? `Published (sequence ${data.sequence})${data.published_externally ? ', synced to the record service' : ', cached locally only'}.`
+    : (data.detail || 'Publish failed.');
+}
+
+async function loadLedger() {
+  const box = document.getElementById('ledgerList');
+  try {
+    const data = await fetch('/api/ledger?limit=200').then(r => r.json());
+    box.innerHTML = data.transactions.length ? data.transactions.map(t => `<div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div style="display:flex;justify-content:space-between;gap:6px"><strong>${_escapeHtml(t.category || t.direction || 'transaction')}</strong><span>${_escapeHtml(t.status)}</span></div>
+      <div>${_escapeHtml(t.amount)} ${_escapeHtml(t.token || '')} · ${_escapeHtml(t.network || t.chain || '')}${t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''}</div>
+      <div style="color:var(--text-muted)">${_escapeHtml(t.counterparty || t.to || '')}${t.note ? ' · ' + _escapeHtml(t.note) : ''}</div>
+      <button class="dir-del" onclick="editLedger(${t.id})">Tag / note</button><button class="dir-del" onclick="window.open('/api/ledger/${t.id}/receipt','_blank')">Receipt</button>
+    </div>`).join('') : '<div style="font-size:11px;color:var(--text-muted)">No recorded transactions yet.</div>';
+  } catch(e) { box.textContent = 'Could not load the ledger.'; }
+}
+
+async function editLedger(id) {
+  const note = prompt('Transaction note (leave blank to clear):');
+  if (note === null) return;
+  const tags = prompt('Comma-separated tags:') ?? '';
+  await fetch('/api/ledger/' + id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note, tags:tags.split(',').map(x=>x.trim()).filter(Boolean)})});
+  await loadLedger();
+}
+
+async function loadSafety() {
+  const select = document.getElementById('safetyWallet');
+  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
+  select.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+  await Promise.all([loadBalanceMonitors(), loadAlertDestinations()]);
+}
+
+async function loadAllowances() {
+  const wid = document.getElementById('safetyWallet').value;
+  const net = document.getElementById('safetyNetwork').value;
+  const box = document.getElementById('allowanceList');
+  try {
+    const data = await fetch(`/api/safety/allowances/${wid}?network=${encodeURIComponent(net)}`).then(r => r.json());
+    box.innerHTML = data.allowances?.length ? data.allowances.map(a => `<div>${_escapeHtml(a.spender_label)} · ${_escapeHtml(a.allowance)} USDC <button class="dir-del" onclick="revokeAllowance('${_escapeHtml(a.spender)}')">Revoke</button></div>`).join('') : 'No active Sara-supported allowances.';
+  } catch(e) { box.textContent = 'Could not check allowances.'; }
+}
+
+async function revokeAllowance(spender) {
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', spender, passphrase};
+  const r = await fetch('/api/safety/allowances/revoke', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!r.ok) alert((await r.json().catch(()=>({}))).detail || 'Revocation failed'); else await loadAllowances();
+}
+
+async function createBalanceMonitor() {
+  const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', condition:document.getElementById('monitorCondition').value, threshold:document.getElementById('monitorThreshold').value};
+  const r = await fetch('/api/safety/monitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!r.ok) alert((await r.json().catch(()=>({}))).detail || 'Could not create monitor'); else await loadBalanceMonitors();
+}
+
+async function loadBalanceMonitors() {
+  const rows = await fetch('/api/safety/monitors').then(r=>r.json()).catch(()=>[]);
+  document.getElementById('monitorList').innerHTML = rows.map(m=>`<div>${_escapeHtml(m.token)} ${_escapeHtml(m.condition)} ${_escapeHtml(m.threshold_raw)} base units · ${m.triggered?'triggered':'watching'} <button class="dir-del" onclick="deleteMonitor(${m.id})">×</button></div>`).join('') || 'No monitors.';
+}
+async function deleteMonitor(id){await fetch('/api/safety/monitors/'+id,{method:'DELETE'});await loadBalanceMonitors();}
+
+async function addAlertDestination() {
+  const kind = (prompt('Destination type: telegram, email, or webhook') || '').toLowerCase(); if (!kind) return;
+  const target = prompt(kind === 'telegram' ? 'Telegram chat ID:' : kind === 'email' ? 'Recipient email:' : 'HTTPS webhook URL:'); if (!target) return;
+  const raw = prompt(kind === 'telegram' ? 'Config JSON, e.g. {"bot_token":"..."}' : kind === 'email' ? 'Config JSON with smtp_host, smtp_port, from_address, username and password:' : 'Config JSON, e.g. {"signing_secret":"..."}', '{}');
+  let config; try { config=JSON.parse(raw||'{}'); } catch(e) { alert('Invalid JSON'); return; }
+  const r=await fetch('/api/safety/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,target,config})});
+  if(!r.ok) alert((await r.json().catch(()=>({}))).detail||'Could not add destination'); else await loadAlertDestinations();
+}
+async function loadAlertDestinations(){const rows=await fetch('/api/safety/alerts').then(r=>r.json()).catch(()=>[]);document.getElementById('alertList').innerHTML=rows.map(d=>`<div>${_escapeHtml(d.kind)} · ${_escapeHtml(d.target)} <button class="dir-del" onclick="deleteAlert(${d.id})">×</button></div>`).join('')||'No alert destinations.';}
+async function deleteAlert(id){await fetch('/api/safety/alerts/'+id,{method:'DELETE'});await loadAlertDestinations();}
+
+// ══════════════════════════════════════
+// BLOCKCHAIN PROOFS
+// ══════════════════════════════════════
+let _preparedProof = null;
+let _proofPollTimer = null;
+let _proofFileName = '';
+
+async function hashProofFile(input, targetId, titleId) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (targetId === 'proofHash') _proofFileName = file.name;
+  const target = document.getElementById(targetId);
+  if (titleId) document.getElementById(titleId).textContent = 'Hashing ' + file.name + '…';
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    target.value = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    if (titleId) document.getElementById(titleId).textContent = file.name;
+  } catch(e) {
+    if (titleId) document.getElementById(titleId).textContent = 'Could not hash this file';
+  }
+}
+
+async function loadProofsView() {
+  const walletSelect = document.getElementById('proofWallet');
+  try {
+    const wallets = await fetch('/api/wallets').then(r => r.json());
+    walletSelect.innerHTML = '<option value="">Select wallet</option>' + wallets.map(w =>
+      `<option value="${w.id}">${_escapeHtml(w.name)} · ${_escapeHtml(w.address.slice(0,8))}…</option>`
+    ).join('');
+  } catch(e) { walletSelect.innerHTML = '<option value="">Could not load wallets</option>'; }
+  await loadProofRecords();
+}
+
+async function _proofJson(response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'BlockchainProof request failed.');
+  return data;
+}
+
+async function prepareProofCheckout() {
+  const hash = document.getElementById('proofHash').value.trim().toLowerCase();
+  const walletId = Number(document.getElementById('proofWallet').value);
+  const description = document.getElementById('proofDescription').value.trim();
+  const status = document.getElementById('proofCreateStatus');
+  const prepareButton = document.getElementById('proofPrepareBtn');
+  if (!/^[0-9a-f]{64}$/.test(hash)) { status.textContent = 'Choose a file or enter a valid SHA-256 fingerprint.'; return; }
+  if (!walletId) { status.textContent = 'Select the wallet that will pay 1 USDC.'; return; }
+  status.textContent = 'Preparing a secure checkout…';
+  prepareButton.disabled = true;
+  try {
+    _preparedProof = await _proofJson(await fetch('/api/proofs/checkouts', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wallet_id:walletId, hash, description, file_name:_proofFileName}),
+    }));
+    const expiry = new Date(_preparedProof.expires_at).toLocaleString();
+    document.getElementById('proofCheckoutPreview').innerHTML = `<div class="proof-preview">
+      <strong>Review before authorizing</strong><br>
+      Pay: <strong>1.00 USDC</strong> on Polygon PoS<br>
+      Available: <strong>${Number(_preparedProof.usdc_balance).toFixed(2)} USDC</strong><br>
+      From: ${_escapeHtml(_preparedProof.wallet_name)} · <code>${_escapeHtml(_preparedProof.wallet_address)}</code><br>
+      To: <code>${_escapeHtml(_preparedProof.recipient)}</code><br>
+      Fingerprint: <code>${_escapeHtml(_preparedProof.hash)}</code><br>
+      Expires: ${_escapeHtml(expiry)}
+      <div class="proof-actions"><button class="settings-save-btn" onclick="authorizePreparedProof()">Authorize 1 USDC</button><button class="wallet-btn-cancel" onclick="cancelPreparedProof()">Cancel</button></div>
+    </div>`;
+    status.textContent = 'Checkout validated. Review every field before authorizing.';
+  } catch(e) { status.textContent = e.message; }
+  finally { prepareButton.disabled = false; }
+}
+
+function cancelPreparedProof() {
+  _preparedProof = null;
+  document.getElementById('proofCheckoutPreview').innerHTML = '';
+  document.getElementById('proofCreateStatus').textContent = 'Checkout left unsigned. It will expire without payment.';
+}
+
+async function authorizePreparedProof() {
+  if (!_preparedProof) return;
+  const passphrase = await requestTransactionPassphrase();
+  if (!passphrase) return;
+  const recordId = _preparedProof.id;
+  const status = document.getElementById('proofCreateStatus');
+  status.textContent = 'Signing the exact 1 USDC authorization…';
+  try {
+    const record = await _proofJson(await fetch(`/api/proofs/${recordId}/confirm`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({passphrase}),
+    }));
+    document.getElementById('lockInput').value = '';
+    _preparedProof = null;
+    document.getElementById('proofCheckoutPreview').innerHTML = '';
+    status.textContent = 'Payment authorization submitted. Creating the proof…';
+    await loadProofRecords();
+    pollProofRecord(record.id);
+  } catch(e) { status.textContent = e.message; }
+}
+
+function pollProofRecord(id) {
+  clearTimeout(_proofPollTimer);
+  let attempts = 0;
+  const poll = async () => {
+    attempts++;
+    try {
+      const row = await _proofJson(await fetch(`/api/proofs/${id}/refresh`, {method:'POST'}));
+      await loadProofRecords();
+      const terminal = ['complete','partial_failure','failed'].includes(row.proof_status) || ['failed','expired'].includes(row.status);
+      if (terminal) {
+        document.getElementById('proofCreateStatus').textContent = row.proof_status === 'complete' ? 'Proof complete. Evidence is stored locally.' : (row.last_error || 'Proof processing finished with an issue.');
+        return;
+      }
+    } catch(e) { document.getElementById('proofCreateStatus').textContent = e.message; }
+    if (attempts < 75) _proofPollTimer = setTimeout(poll, 4000);
+  };
+  poll();
+}
+
+async function refreshProofRecord(id) {
+  try { await _proofJson(await fetch(`/api/proofs/${id}/refresh`, {method:'POST'})); await loadProofRecords(); }
+  catch(e) { document.getElementById('proofCreateStatus').textContent = e.message; }
+}
+
+async function loadProofRecords() {
+  const list = document.getElementById('proofList');
+  try {
+    const rows = await _proofJson(await fetch('/api/proofs'));
+    if (!rows.length) { list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No proofs yet.</div>'; return; }
+    list.innerHTML = rows.map(row => {
+      const status = row.proof_status || row.status;
+      const statusClass = status === 'complete' ? 'complete' : (status === 'failed' ? 'failed' : '');
+      const publicLink = row.public_url ? `<a href="${_escapeHtml(row.public_url)}" target="_blank" rel="noopener">Public proof</a>` : '';
+      const evidence = row.has_evidence ? `<a href="/api/proofs/${row.id}/evidence">Download evidence</a>` : '';
+      return `<div class="proof-entry"><div class="proof-entry-head"><div><strong>${_escapeHtml(row.description || row.file_name || 'File proof')}</strong><div class="proof-meta">${_escapeHtml(row.file_name || '')}${row.file_name ? ' · ' : ''}${_escapeHtml(row.wallet_name || '')} · ${_escapeHtml(new Date(row.created_at).toLocaleString())}</div></div><span class="proof-status ${statusClass}">${_escapeHtml(status)}</span></div><div class="proof-meta proof-hash">${_escapeHtml(row.hash)}</div><div class="proof-actions"><button class="wallet-btn-cancel" onclick="refreshProofRecord(${row.id})">Refresh</button>${publicLink}${evidence}</div>${row.last_error ? `<div class="proof-meta" style="color:var(--red)">${_escapeHtml(row.last_error)}</div>` : ''}</div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = `<div style="font-size:11px;color:var(--red)">${_escapeHtml(e.message)}</div>`; }
+}
+
+async function verifyProofHash() {
+  const hash = document.getElementById('proofVerifyHash').value.trim().toLowerCase();
+  const result = document.getElementById('proofVerifyResult');
+  if (!/^[0-9a-f]{64}$/.test(hash)) { result.textContent = 'Enter a valid SHA-256 fingerprint.'; return; }
+  result.textContent = 'Checking public evidence…';
+  try {
+    const data = await _proofJson(await fetch('/api/proofs/verify/hash', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hash})}));
+    if (!data.match_count) { result.textContent = 'No matching public proof was found.'; return; }
+    result.innerHTML = `<strong>${data.match_count} matching proof${data.match_count === 1 ? '' : 's'} found.</strong>` + data.proofs.map(p => `<div class="proof-preview" style="margin-top:7px">${_escapeHtml(p.proof_id)} · ${p.all_available_evidence_valid ? 'Available evidence valid' : 'Review evidence status'}</div>`).join('');
+  } catch(e) { result.textContent = e.message; }
 }
 
 const _SETTINGS_FILLED_PLACEHOLDER = '••••••••••••••••••••';
@@ -2198,7 +3788,63 @@ async function _loadSettingsView() {
     const savedModel = (modelInfo && modelInfo.raw) ? modelInfo.raw : '';
     if (savedModel) document.getElementById('sinput-LLM_MODEL').value = savedModel;
     _updateAIActiveLabel(savedModel);
+    await _loadAssetSettings();
   } catch(e) {}
+}
+
+async function _loadAssetSettings() {
+  const list = document.getElementById('assetSettingsList');
+  if (!list) return;
+  try {
+    _assetSettings = await fetch('/api/settings/assets').then(r => r.json());
+    list.innerHTML = _assetSettings.networks.map(n => `
+      <div class="asset-settings-row">
+        <label class="asset-settings-main">
+          <span>${_escapeHtml(n.label)}</span>
+          <input type="checkbox" class="network-toggle" data-network="${_escapeHtml(n.id)}" ${n.enabled ? 'checked' : ''} onchange="_syncAssetSettingsRow(this)">
+        </label>
+        <div class="asset-settings-token">
+          <span>${_escapeHtml(n.native)} <span class="gas-required">Required for gas</span></span>
+          <label>USDC <input type="checkbox" class="usdc-toggle" data-network="${_escapeHtml(n.id)}" ${n.usdc_enabled ? 'checked' : ''} ${n.enabled ? '' : 'disabled'}></label>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="font-size:10.5px;color:var(--red)">Could not load network settings.</div>';
+  }
+}
+
+function _syncAssetSettingsRow(networkToggle) {
+  const row = networkToggle.closest('.asset-settings-row');
+  const usdc = row.querySelector('.usdc-toggle');
+  usdc.disabled = !networkToggle.checked;
+  if (!networkToggle.checked) usdc.checked = false;
+}
+
+async function saveAssetSettings() {
+  const statusEl = document.getElementById('assetSettingsStatus');
+  const enabled_networks = [...document.querySelectorAll('.network-toggle:checked')].map(el => el.dataset.network);
+  const usdc_networks = [...document.querySelectorAll('.usdc-toggle:checked:not(:disabled)')].map(el => el.dataset.network);
+  if (!enabled_networks.length) {
+    statusEl.textContent = 'Keep at least one network enabled.';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  try {
+    const r = await fetch('/api/settings/assets', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ enabled_networks, usdc_networks }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Could not save');
+    _assetSettings = data;
+    statusEl.textContent = 'Saved!';
+    statusEl.style.color = 'var(--green)';
+    await loadPortfolioView();
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  } catch(e) {
+    statusEl.textContent = e.message;
+    statusEl.style.color = 'var(--red)';
+  }
 }
 
 async function _loadOpenrouterModels() {
@@ -2399,6 +4045,7 @@ async function submitExportWallet() {
   try {
     const r = await fetch('/api/wallets/' + _exportWalletId + '/export', {
       method: 'POST',
+      cache: 'no-store',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ passphrase })
     });
@@ -2406,6 +4053,7 @@ async function submitExportWallet() {
     if (!r.ok) throw new Error(data.detail || 'Failed');
     passInput.value = '';
     document.getElementById('exportKeyOutput').value = data.private_key;
+    data.private_key = '';
     document.getElementById('exportStepPass').style.display = 'none';
     document.getElementById('exportStepKey').style.display = '';
   } catch(e) {

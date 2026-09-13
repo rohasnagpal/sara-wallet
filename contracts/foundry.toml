@@ -1,0 +1,18 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+# Pinned compiler and optimizer settings — CLAUDE_STAGES_3_TO_7.md Stage 5.1
+# requires reproducible bytecode from pinned source. Bump deliberately, never
+# silently via a caret/range.
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+bytecode_hash = "none"  # deterministic bytecode across machines/CI (no embedded ipfs metadata hash)
+
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -6,11 +6,16 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from app.db.session import init_db, SessionLocal, engine
 from app.db.models import Config
-from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments
+from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, proofs, system, ledger, safety, counterparties, payment_batches, schedules, payroll, spending_policies, accounting, treasury, risk, contracts, names
 from app.tools.wallet import lock as lock_state
 from app.core.session_auth import LAUNCH_TOKEN
+from app.core.access import ensure_local_owner
+from app.core.events import process_pending
+from app.db.migrations import run_migrations
 import os
 import secrets
+import asyncio
+import logging
 
 def _load_db_config():
     """Override os.environ with any keys saved in the Config table."""
@@ -24,92 +29,83 @@ def _load_db_config():
     except Exception:
         pass
 
-def _clear_stale_master_key_row():
-    """One-time cleanup: SARA_MASTER_KEY used to also be written to the
-    Config table by the old settings flow. It's now managed exclusively via
-    .env + the lock/unlock session, so drop any leftover row."""
+def _clear_legacy_config_rows():
+    """Remove settings that are no longer supported or user-configurable."""
     try:
         db = SessionLocal()
-        row = db.query(Config).filter(Config.key == "SARA_MASTER_KEY").first()
-        if row:
+        legacy_keys = ("SARA_MASTER_KEY", "HELIUS_RPC", "TRONGRID_API_KEY")
+        rows = db.query(Config).filter(Config.key.in_(legacy_keys)).all()
+        for row in rows:
             db.delete(row)
+        if rows:
             db.commit()
         db.close()
     except Exception:
         pass
 
-def _add_column_if_missing(table: str, column: str, sql_type: str = "VARCHAR"):
-    """create_all() only creates missing tables, not missing columns on
-    existing ones — new nullable columns added to existing models need a
-    one-time ALTER TABLE on any pre-existing DB."""
-    from sqlalchemy import text, inspect
-    import logging
-    try:
-        inspector = inspect(engine)
-        if table not in inspector.get_table_names():
-            return
-        cols = {c["name"] for c in inspector.get_columns(table)}
-        if column not in cols:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
-    except Exception:
-        # By the time this ALTER runs, the column-existence check above has
-        # already ruled out the one "expected" failure (column already
-        # there) — anything raised here is a genuine problem (disk full, DB
-        # locked, permissions), and silently swallowing it means the column
-        # never gets added, so every later read/write of it crashes deep in
-        # unrelated code with a far more confusing error. Log it here where
-        # the real cause is visible instead.
-        logging.getLogger("sara.migrations").exception(
-            "Failed to add column %s.%s — the app will likely error later wherever this column is used.",
-            table, column,
-        )
-        raise
 
-def _add_unique_index_if_missing(index_name: str, table: str, columns: list[str]):
-    """create_all() only applies new __table_args__ constraints to tables it
-    creates fresh, not ones that already exist — the PaymentRequest race-
-    condition fix (models.py) added a unique constraint on
-    (chain, network, matched_tx_hash) that a pre-existing DB needs this
-    one-time index creation to actually get enforced."""
-    from sqlalchemy import text, inspect
-    import logging
+def _run_foundation_cycle() -> None:
+    from app.services.transaction_monitor import check_transactions
+    from app.services.balance_monitor import check_balance_monitors
+    from app.services.activity_indexer import index_wallet_activity
+    from app.services.schedules import materialize_due_schedules
+    from app.services.token_factory import check_pending_deployments
+    from app.services.names_indexer import sync_events as sync_name_events, check_expiring_names
+    from app.tools.payments.reconcile import reconcile_pending_requests
+    db = SessionLocal()
     try:
-        inspector = inspect(engine)
-        if table not in inspector.get_table_names():
-            return
-        existing = {ix["name"] for ix in inspector.get_indexes(table)}
-        if index_name not in existing:
-            cols_sql = ", ".join(columns)
-            with engine.begin() as conn:
-                conn.execute(text(
-                    f"CREATE UNIQUE INDEX {index_name} ON {table} ({cols_sql})"
-                ))
-    except Exception:
-        # Most likely cause: rows already violating the constraint (e.g. a
-        # duplicate matched_tx_hash from before this fix existed). Logging
-        # rather than crashing startup means the app stays usable — the
-        # constraint just won't be enforced yet, same failure mode as
-        # _add_column_if_missing above, until the underlying data is fixed.
-        logging.getLogger("sara.migrations").exception(
-            "Failed to create unique index %s on %s — the race-condition fix "
-            "for duplicate payment matches will not be enforced until this is resolved.",
-            index_name, table,
-        )
-        raise
+        check_transactions(db)
+        index_wallet_activity(db)
+        reconcile_pending_requests(db)
+        check_balance_monitors(db)
+        materialize_due_schedules(db)
+        check_pending_deployments(db)
+        try:
+            sync_name_events(db)
+            check_expiring_names(db)
+        except Exception:
+            # Sara Names being unconfigured or the Amoy RPC being briefly
+            # down must never stop the rest of the foundation cycle
+            # (transaction confirmation, reconciliation, etc.) from running.
+            logging.getLogger("sara.foundation").warning("Sara Names background sync failed this cycle", exc_info=True)
+        process_pending(db)
+    finally:
+        db.close()
+
+
+async def _foundation_worker() -> None:
+    from app.core.config import settings
+    while True:
+        await asyncio.sleep(max(5, settings.TRANSACTION_POLL_SECONDS))
+        try:
+            await asyncio.to_thread(_run_foundation_cycle)
+        except Exception:
+            # A temporary database/provider failure must not permanently kill
+            # finality tracking for the remainder of the app process.
+            logging.getLogger("sara.foundation").exception("Foundation cycle failed; retrying")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    run_migrations(engine)
     _load_db_config()
-    _clear_stale_master_key_row()
-    _add_column_if_missing("transactions", "reference")
-    _add_column_if_missing("payment_requests", "matched_tx_hash")
-    _add_unique_index_if_missing(
-        "uq_payment_requests_chain_network_txhash", "payment_requests",
-        ["chain", "network", "matched_tx_hash"],
-    )
-    yield
+    _clear_legacy_config_rows()
+    db = SessionLocal()
+    try:
+        ensure_local_owner(db)
+    finally:
+        db.close()
+    from app.services.alerts import register_alert_handlers
+    register_alert_handlers()
+    worker = asyncio.create_task(_foundation_worker())
+    try:
+        yield
+    finally:
+        worker.cancel()
+        try:
+            await worker
+        except asyncio.CancelledError:
+            pass
 
 app = FastAPI(title="SARA", version="1.0.0", lifespan=lifespan, redirect_slashes=False)
 
@@ -207,6 +203,20 @@ app.include_router(intelligence.router, prefix="/api")
 app.include_router(lock.router, prefix="/api")
 app.include_router(tokens.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
+app.include_router(proofs.router, prefix="/api")
+app.include_router(system.router, prefix="/api")
+app.include_router(ledger.router, prefix="/api")
+app.include_router(safety.router, prefix="/api")
+app.include_router(counterparties.router, prefix="/api")
+app.include_router(payment_batches.router, prefix="/api")
+app.include_router(schedules.router, prefix="/api")
+app.include_router(payroll.router, prefix="/api")
+app.include_router(spending_policies.router, prefix="/api")
+app.include_router(accounting.router, prefix="/api")
+app.include_router(treasury.router, prefix="/api")
+app.include_router(risk.router, prefix="/api")
+app.include_router(contracts.router, prefix="/api")
+app.include_router(names.router, prefix="/api")
 
 @app.get("/health")
 async def health():
@@ -225,4 +235,7 @@ async def root():
         html = html.replace("<head>", "<head>\n" + injected, 1)
     else:
         html = injected + html
-    return HTMLResponse(html)
+    return HTMLResponse(
+        html,
+        headers={"Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"},
+    )

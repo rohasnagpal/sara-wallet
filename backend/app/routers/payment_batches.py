@@ -1,0 +1,387 @@
+import io
+import hashlib
+import hmac
+import secrets
+from datetime import datetime
+from decimal import Decimal
+
+import pandas as pd
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+from web3 import Web3
+
+from app.core.amounts import to_base_units
+from app.core.audit import append_audit
+from app.core.session_auth import require_session
+from app.db.models import ApprovalCredential, PaymentBatch, PaymentBatchItem, Wallet
+from app.db.session import get_db
+from app.services import batch_engine
+
+router = APIRouter(prefix="/payment-batches", tags=["payment-batches"], dependencies=[Depends(require_session)])
+
+_KINDS = ("payment", "airdrop", "payroll", "recurring")
+_CSV_MAX_BYTES = 2 * 1024 * 1024
+_CSV_MAX_ROWS = 5000
+_CSV_REQUIRED_COLUMNS = {"recipient_address", "amount"}
+_LOCAL_OWNER = "local-owner"
+
+
+def _checker_principal(db: Session, api_key: str | None) -> str:
+    if not api_key:
+        return _LOCAL_OWNER
+    prefix = api_key[:12]
+    row = db.query(ApprovalCredential).filter(
+        ApprovalCredential.key_prefix == prefix, ApprovalCredential.enabled == True,  # noqa: E712
+    ).first()
+    digest = hashlib.sha256(api_key.encode()).hexdigest()
+    if not row or not hmac.compare_digest(row.key_hash, digest):
+        raise HTTPException(401, "Invalid or disabled approver credential")
+    return f"approver:{row.id}"
+
+
+def _batch_or_404(db: Session, batch_id: int) -> PaymentBatch:
+    row = db.query(PaymentBatch).filter(PaymentBatch.id == batch_id).first()
+    if not row:
+        raise HTTPException(404, "Payment batch not found")
+    return row
+
+
+def _resolve_decimals(batch: PaymentBatch) -> int:
+    from app.core.assets import NETWORKS
+    from app.tools.market.paraswap import resolve_token
+    native = NETWORKS.get(batch.network, {}).get("native")
+    if batch.token.upper() == native:
+        return 18
+    resolved = resolve_token(batch.token, batch.network)
+    if not resolved:
+        raise HTTPException(400, f"{batch.token} could not be resolved on {batch.network}")
+    return resolved[1]
+
+
+def _item_row(item: PaymentBatchItem) -> dict:
+    amount = format(Decimal(item.amount_raw) / (Decimal(10) ** item.decimals), "f")
+    return {
+        "id": item.id, "row_index": item.row_index, "recipient_address": item.recipient_address,
+        "counterparty_id": item.counterparty_id, "amount": amount, "amount_raw": item.amount_raw,
+        "decimals": item.decimals, "reference": item.reference, "status": item.status,
+        "tx_hash": item.tx_hash, "transaction_id": item.transaction_id, "failure_reason": item.failure_reason,
+    }
+
+
+def _batch_row(db: Session, batch: PaymentBatch, *, with_items: bool = False) -> dict:
+    data = {
+        "id": batch.id, "kind": batch.kind, "status": batch.status, "wallet_id": batch.wallet_id,
+        "network": batch.network, "token": batch.token, "memo": batch.memo,
+        "execution_date": batch.execution_date.isoformat() if batch.execution_date else None,
+        "payroll_period": batch.payroll_period, "schedule_id": batch.schedule_id,
+        "created_by": batch.created_by, "approved_by": batch.approved_by,
+        "approved_at": batch.approved_at.isoformat() if batch.approved_at else None,
+        "created_at": batch.created_at.isoformat() if batch.created_at else None,
+    }
+    items = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).order_by(PaymentBatchItem.row_index).all()
+    total_raw = sum((int(i.amount_raw) for i in items), 0)
+    decimals = items[0].decimals if items else 0
+    data["item_count"] = len(items)
+    data["total_amount"] = format(Decimal(total_raw) / (Decimal(10) ** decimals), "f") if items else "0"
+    if with_items:
+        data["items"] = [_item_row(i) for i in items]
+    return data
+
+
+class CreateBatchBody(BaseModel):
+    kind: str = "payment"
+    wallet_id: int
+    network: str
+    token: str
+    memo: str | None = Field(None, max_length=500)
+    execution_date: datetime | None = None
+
+
+@router.post("")
+def create_batch(body: CreateBatchBody, db: Session = Depends(get_db)):
+    if body.kind not in _KINDS:
+        raise HTTPException(400, f"kind must be one of {_KINDS}")
+    wallet = db.query(Wallet).filter(Wallet.id == body.wallet_id, Wallet.chain == "evm").first()
+    if not wallet:
+        raise HTTPException(404, "EVM wallet not found")
+    from app.core.assets import network_enabled
+    if not network_enabled(body.network):
+        raise HTTPException(400, f"network '{body.network}' is disabled")
+    batch = PaymentBatch(
+        kind=body.kind, status="draft", wallet_id=body.wallet_id, network=body.network.lower(),
+        token=body.token.upper(), memo=body.memo, execution_date=body.execution_date,
+        created_by=_LOCAL_OWNER,
+    )
+    db.add(batch)
+    db.flush()
+    append_audit(db, "payment_batch.created", "payment_batch", resource_id=str(batch.id),
+                 details={"kind": batch.kind, "wallet_id": batch.wallet_id, "network": batch.network, "token": batch.token},
+                 actor_id=batch.created_by)
+    db.commit()
+    return _batch_row(db, batch)
+
+
+@router.get("")
+def list_batches(status: str | None = None, kind: str | None = None, db: Session = Depends(get_db)):
+    query = db.query(PaymentBatch)
+    if status is not None:
+        query = query.filter(PaymentBatch.status == status)
+    if kind is not None:
+        query = query.filter(PaymentBatch.kind == kind)
+    rows = query.order_by(PaymentBatch.id.desc()).all()
+    return {"batches": [_batch_row(db, b) for b in rows]}
+
+
+@router.get("/{batch_id}")
+def get_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = _batch_or_404(db, batch_id)
+    return _batch_row(db, batch, with_items=True)
+
+
+class ItemBody(BaseModel):
+    recipient_address: str
+    amount: str
+    counterparty_id: int | None = None
+    reference: str | None = Field(None, max_length=200)
+
+
+@router.post("/{batch_id}/items")
+def add_item(batch_id: int, body: ItemBody, db: Session = Depends(get_db)):
+    from app.tools.names.resolver import resolve_recipient_input
+
+    batch = _batch_or_404(db, batch_id)
+    resolved = resolve_recipient_input(db, body.recipient_address, batch.network)
+    if not resolved:
+        raise HTTPException(400, "Invalid recipient address, and no matching address book entry or Sara Name found")
+    decimals = _resolve_decimals(batch)
+    try:
+        amount_raw = to_base_units(body.amount, decimals, batch.token)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    existing = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
+    next_row_index = (max((i.row_index for i in existing), default=-1)) + 1
+    item = PaymentBatchItem(
+        batch_id=batch.id, row_index=next_row_index, recipient_address=resolved.address,
+        counterparty_id=body.counterparty_id, amount_raw=str(amount_raw), decimals=decimals,
+        reference=body.reference, status="draft",
+    )
+    db.add(item)
+    if batch.status in ("awaiting_approval", "approved"):
+        batch_engine.invalidate_approval(db, batch, "item added after approval")
+    append_audit(db, "payment_batch_item.added", "payment_batch_item", resource_id=str(batch.id),
+                 details={"recipient_address": resolved.address, "resolved_from": resolved.source,
+                          "input_label": resolved.input_label, "amount_raw": str(amount_raw)})
+    db.commit()
+    row = _item_row(item)
+    row["resolved_via"] = resolved.source
+    row["resolved_from_input"] = resolved.input_label
+    return row
+
+
+@router.patch("/{batch_id}/items/{item_id}")
+def update_item(batch_id: int, item_id: int, body: ItemBody, db: Session = Depends(get_db)):
+    from app.tools.names.resolver import resolve_recipient_input
+
+    batch = _batch_or_404(db, batch_id)
+    item = db.query(PaymentBatchItem).filter(PaymentBatchItem.id == item_id, PaymentBatchItem.batch_id == batch.id).first()
+    if not item:
+        raise HTTPException(404, "Batch item not found")
+    resolved = resolve_recipient_input(db, body.recipient_address, batch.network)
+    if not resolved:
+        raise HTTPException(400, "Invalid recipient address, and no matching address book entry or Sara Name found")
+    decimals = _resolve_decimals(batch)
+    try:
+        amount_raw = to_base_units(body.amount, decimals, batch.token)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    item.recipient_address = resolved.address
+    item.counterparty_id = body.counterparty_id
+    item.amount_raw = str(amount_raw)
+    item.decimals = decimals
+    item.reference = body.reference
+    item.status = "draft"
+    item.failure_reason = None
+    if batch.status in ("awaiting_approval", "approved"):
+        batch_engine.invalidate_approval(db, batch, f"item {item_id} edited after approval")
+    append_audit(db, "payment_batch_item.updated", "payment_batch_item", resource_id=str(item.id), details={})
+    db.commit()
+    return _item_row(item)
+
+
+@router.delete("/{batch_id}/items/{item_id}")
+def delete_item(batch_id: int, item_id: int, db: Session = Depends(get_db)):
+    batch = _batch_or_404(db, batch_id)
+    item = db.query(PaymentBatchItem).filter(PaymentBatchItem.id == item_id, PaymentBatchItem.batch_id == batch.id).first()
+    if not item:
+        raise HTTPException(404, "Batch item not found")
+    if item.status in ("submitted", "confirmed"):
+        raise HTTPException(400, "Cannot delete an item that has already been broadcast")
+    db.delete(item)
+    if batch.status in ("awaiting_approval", "approved"):
+        batch_engine.invalidate_approval(db, batch, f"item {item_id} removed after approval")
+    append_audit(db, "payment_batch_item.deleted", "payment_batch_item", resource_id=str(item_id), details={})
+    db.commit()
+    return {"deleted": item_id}
+
+
+@router.post("/{batch_id}/items/import-csv")
+async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Airdrop/batch CSV import: strict required columns, row-level errors
+    that don't abort the whole import, duplicate-recipient detection, a size
+    cap, and (for airdrops) restriction to trusted/Sara-supported tokens."""
+    batch = _batch_or_404(db, batch_id)
+    if batch.status != "draft":
+        raise HTTPException(400, "Items can only be imported into a draft batch")
+    if batch.kind == "airdrop":
+        from app.tools.market.paraswap import trusted_symbols
+        if batch.token.upper() not in trusted_symbols(batch.network):
+            raise HTTPException(400, f"{batch.token} is not a trusted token on {batch.network} for airdrops")
+
+    raw = await file.read(_CSV_MAX_BYTES + 1)
+    if len(raw) > _CSV_MAX_BYTES:
+        raise HTTPException(400, f"CSV file exceeds the {_CSV_MAX_BYTES // (1024 * 1024)}MB limit")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(400, "CSV must be UTF-8 encoded")
+    try:
+        df = pd.read_csv(io.StringIO(text), dtype=str, keep_default_na=False, engine="python")
+    except Exception as exc:
+        raise HTTPException(400, f"Could not parse CSV: {exc}")
+    if len(df) > _CSV_MAX_ROWS:
+        raise HTTPException(400, f"CSV has {len(df)} rows; the limit is {_CSV_MAX_ROWS}")
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    missing = _CSV_REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise HTTPException(400, f"CSV is missing required column(s): {', '.join(sorted(missing))}")
+
+    decimals = _resolve_decimals(batch)
+    existing = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
+    next_row_index = (max((i.row_index for i in existing), default=-1)) + 1
+    seen = {i.recipient_address.lower() for i in existing if Web3.is_address(i.recipient_address)}
+    row_errors: list[dict] = []
+    imported = 0
+    for idx, record in df.iterrows():
+        line_no = int(idx) + 2  # header is line 1
+        address = str(record.get("recipient_address", "")).strip()
+        amount_str = str(record.get("amount", "")).strip()
+        reference = str(record.get("reference", "")).strip() or None
+        if not Web3.is_address(address):
+            row_errors.append({"row": line_no, "error": "invalid recipient_address"})
+            continue
+        key = address.lower()
+        if key in seen:
+            row_errors.append({"row": line_no, "error": f"duplicate recipient_address {address}"})
+            continue
+        try:
+            amount_raw = to_base_units(amount_str, decimals, batch.token)
+        except ValueError as exc:
+            row_errors.append({"row": line_no, "error": str(exc)})
+            continue
+        db.add(PaymentBatchItem(
+            batch_id=batch.id, row_index=next_row_index, recipient_address=address,
+            amount_raw=str(amount_raw), decimals=decimals, reference=reference, status="draft",
+        ))
+        seen.add(key)
+        next_row_index += 1
+        imported += 1
+
+    append_audit(db, "payment_batch.items_imported", "payment_batch", resource_id=str(batch.id),
+                 details={"imported": imported, "errors": len(row_errors)})
+    db.commit()
+    return {"imported": imported, "errors": row_errors}
+
+
+@router.post("/{batch_id}/validate")
+def validate_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = _batch_or_404(db, batch_id)
+    result = batch_engine.validate_batch(db, batch)
+    return {**result, "batch": _batch_row(db, batch, with_items=True)}
+
+
+class ApproveBody(BaseModel):
+    reason: str | None = Field(None, max_length=500)
+
+
+@router.post("/{batch_id}/approve")
+def approve_batch(batch_id: int, body: ApproveBody, db: Session = Depends(get_db),
+                  x_sara_approver_key: str | None = Header(None)):
+    batch = _batch_or_404(db, batch_id)
+    actor = _checker_principal(db, x_sara_approver_key)
+    try:
+        batch_engine.approve_batch(db, batch, actor, reason=body.reason)
+    except batch_engine.BatchValidationError as exc:
+        raise HTTPException(400, {"message": str(exc), **exc.result})
+    except batch_engine.SelfApprovalError as exc:
+        raise HTTPException(403, str(exc))
+    return _batch_row(db, batch, with_items=True)
+
+
+class ExecuteBody(BaseModel):
+    passphrase: str
+
+
+@router.post("/{batch_id}/execute")
+def execute_batch(batch_id: int, body: ExecuteBody, db: Session = Depends(get_db)):
+    from app.tools.wallet.encrypt import decrypt_key
+    from app.tools.wallet.lock import confirm_passphrase
+
+    batch = _batch_or_404(db, batch_id)
+    wallet = db.query(Wallet).filter(Wallet.id == batch.wallet_id, Wallet.chain == "evm").first()
+    if not wallet:
+        raise HTTPException(404, "EVM wallet not found")
+    if not confirm_passphrase(body.passphrase):
+        raise HTTPException(401, "Incorrect passphrase")
+    key = decrypt_key(wallet.encrypted_key)
+    try:
+        summary = batch_engine.execute_batch(db, batch, wallet, key, actor=_LOCAL_OWNER)
+    except batch_engine.BatchExecutionError as exc:
+        raise HTTPException(409, str(exc))
+    finally:
+        key = None
+    return {**summary, "batch": _batch_row(db, batch, with_items=True)}
+
+
+class ApproverCredentialBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+
+
+@router.post("/approvers/credentials")
+def create_approver_credential(body: ApproverCredentialBody, db: Session = Depends(get_db)):
+    api_key = "sara_apr_" + secrets.token_urlsafe(32)
+    row = ApprovalCredential(
+        name=body.name.strip(), key_prefix=api_key[:12],
+        key_hash=hashlib.sha256(api_key.encode()).hexdigest(), enabled=True,
+    )
+    db.add(row)
+    db.flush()
+    append_audit(db, "approval_credential.created", "approval_credential", resource_id=str(row.id),
+                 details={"name": row.name})
+    db.commit()
+    return {"id": row.id, "name": row.name, "api_key": api_key}
+
+
+@router.delete("/approvers/credentials/{credential_id}")
+def disable_approver_credential(credential_id: int, db: Session = Depends(get_db)):
+    row = db.query(ApprovalCredential).filter(ApprovalCredential.id == credential_id).first()
+    if not row:
+        raise HTTPException(404, "Approver credential not found")
+    row.enabled = False
+    append_audit(db, "approval_credential.disabled", "approval_credential", resource_id=str(row.id), details={})
+    db.commit()
+    return {"disabled": credential_id}
+
+
+@router.post("/{batch_id}/cancel")
+def cancel_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = _batch_or_404(db, batch_id)
+    if batch.status in ("executing", "completed"):
+        raise HTTPException(400, f"Cannot cancel a batch in status '{batch.status}'")
+    batch.status = "cancelled"
+    for item in db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id):
+        if item.status not in ("submitted", "confirmed"):
+            item.status = "cancelled"
+    append_audit(db, "payment_batch.cancelled", "payment_batch", resource_id=str(batch.id), details={})
+    db.commit()
+    return _batch_row(db, batch, with_items=True)

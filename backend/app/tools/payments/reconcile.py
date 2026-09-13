@@ -28,6 +28,12 @@ def _required_raw(amount, decimals: int) -> int:
     return int((Decimal(str(amount)) * (Decimal(10) ** decimals)).to_integral_value(rounding=ROUND_CEILING))
 
 
+def _request_required_raw(request, decimals: int) -> int:
+    if request.amount_raw is not None and request.decimals == decimals:
+        return int(request.amount_raw)
+    return _required_raw(request.amount, decimals)
+
+
 def _raw_int(value) -> int | None:
     try:
         if isinstance(value, str):
@@ -74,7 +80,7 @@ def check_evm_request(wallet, request) -> str | None:
     url = f"https://{slug}.g.alchemy.com/v2/{api_key}"
     payload = {"jsonrpc": "2.0", "id": 1, "method": "alchemy_getAssetTransfers", "params": [params]}
     created_at = _to_naive_utc(request.created_at)
-    required = _required_raw(request.amount, decimals)
+    required = _request_required_raw(request, decimals)
     page_key = None
     try:
         for _ in range(_MAX_RECONCILE_PAGES):
@@ -248,20 +254,13 @@ def check_payment_request(db, request) -> bool:
     """Checks on-chain for a matching incoming transfer. If found, marks the
     request paid and stores the matched tx hash. Returns True if the request
     is (newly or already) paid."""
-    if request.status != "pending":
+    if request.status not in ("pending", "overdue"):
         return request.status == "paid"
     from app.db.models import Wallet
     wallet = db.query(Wallet).filter(Wallet.id == request.wallet_id).first()
     if not wallet:
         return False
-    if request.chain == "evm":
-        tx_hash = check_evm_request(wallet, request)
-    elif request.chain == "tron":
-        tx_hash = check_tron_request(wallet, request)
-    elif request.chain == "solana":
-        tx_hash = check_solana_request(wallet, request)
-    else:
-        tx_hash = None
+    tx_hash = check_evm_request(wallet, request) if request.chain == "evm" else None
     if tx_hash:
         # A single real transfer must not satisfy two different invoices —
         # without this check, two pending requests for the same (or
@@ -271,7 +270,7 @@ def check_payment_request(db, request) -> bool:
         # concurrent commit between this check and the commit below, so the
         # (chain, network, matched_tx_hash) unique constraint on
         # PaymentRequest (models.py) is the actual source of truth.
-        from app.db.models import PaymentRequest
+        from app.db.models import PaymentRequest, Transaction
         already_claimed = db.query(PaymentRequest).filter(
             PaymentRequest.matched_tx_hash == tx_hash,
             PaymentRequest.id != request.id,
@@ -280,7 +279,35 @@ def check_payment_request(db, request) -> bool:
             return False
         request.status = "paid"
         request.matched_tx_hash = tx_hash
+        indexed = db.query(Transaction).filter(
+            Transaction.network == request.network,
+            Transaction.tx_hash == tx_hash,
+            Transaction.direction == "incoming",
+        ).first()
+        if indexed:
+            indexed.reference = request.reference
+            indexed.category = "invoice_payment"
         try:
+            from app.core.audit import append_audit
+            from app.core.events import publish
+            details = {
+                "reference": request.reference, "tx_hash": tx_hash,
+                "chain": request.chain, "network": request.network,
+                "amount": str(request.amount), "amount_raw": request.amount_raw,
+                "decimals": request.decimals, "token": request.token,
+                "wallet_id": request.wallet_id, "payment_address": request.payment_address,
+                "merchant_client_id": request.merchant_client_id,
+            }
+            publish(
+                db, "payment_request.paid", details,
+                aggregate_type="payment_request", aggregate_id=str(request.id),
+                event_key=f"payment:{request.chain}:{request.network}:{tx_hash}:reconciled",
+            )
+            append_audit(
+                db, "payment_request.reconciled", "payment_request",
+                resource_id=str(request.id), details=details,
+                actor_type="system", actor_id="payment-reconciler",
+            )
             db.commit()
         except IntegrityError:
             # Lost the race — a concurrent check already claimed this exact
@@ -289,3 +316,19 @@ def check_payment_request(db, request) -> bool:
             return False
         return True
     return False
+
+
+def reconcile_pending_requests(db, *, limit: int = 50) -> int:
+    """Reconcile active invoices during the normal background cycle."""
+    from app.db.models import PaymentRequest
+    rows = db.query(PaymentRequest).filter(
+        PaymentRequest.status.in_(("pending", "overdue"))
+    ).order_by(PaymentRequest.created_at).limit(limit).all()
+    matched = 0
+    for row in rows:
+        if row.status == "pending" and row.due_date and row.due_date < datetime.utcnow():
+            row.status = "overdue"
+            db.commit()
+        if check_payment_request(db, row):
+            matched += 1
+    return matched
