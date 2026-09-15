@@ -1,1 +1,0 @@
-"""Standalone bName registry service."""

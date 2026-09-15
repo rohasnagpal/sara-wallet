@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sara AI Wallet</title>
+<title>Sara AI Wallet (alpha)</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════
-   DEFAULT — Pearl (light pastel)
+   DEFAULT - Pearl (light pastel)
 ══════════════════════════════════════ */
 :root {
   --bg-app-start: #c4cff0;
@@ -366,15 +366,18 @@ body {
 
 /* Column 2 panel nav */
 .col2-panel-nav {
-  display: flex; gap: 6px; padding: 0 2px 14px;
+  display: flex; flex-wrap: wrap; gap: 7px; padding: 0 2px 14px;
+}
+#col2Nav.col2-panel-nav {
+  display: grid; grid-template-columns: repeat(5, 1fr);
 }
 .col2-nav-btn {
-  flex: 1; padding: 7px 0; border-radius: 9px;
+  flex: 1 1 auto; padding: 7px 6px; border-radius: 9px;
   border: 1.5px solid var(--border-dark); background: transparent;
   color: var(--text-secondary); font-size: 11px; font-weight: 600;
   letter-spacing: 0.04em; text-transform: uppercase;
   cursor: pointer; font-family: var(--font-body);
-  transition: all 0.15s;
+  transition: all 0.15s; white-space: nowrap;
 }
 .col2-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
 .col2-nav-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
@@ -385,13 +388,18 @@ body {
 .settings-label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
 .settings-input-row { display: flex; gap: 6px; }
 .settings-input {
-  flex: 1; min-width: 0; padding: 8px 11px; border-radius: 8px;
+  flex: 1; min-width: 130px; padding: 8px 11px; border-radius: 8px;
   border: 1.5px solid var(--border-dark); background: var(--bg-input);
   color: var(--text-primary); font-size: 12.5px; font-family: var(--font-mono);
-  outline: none; box-sizing: border-box;
+  outline: none; box-sizing: border-box; width: 100%;
 }
 select.settings-input { text-overflow: ellipsis; }
 .settings-input:focus { border-color: var(--accent); }
+/* Labeled field: wraps one input/select with its name shown above it. */
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.field-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+.field-label { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); white-space: nowrap; }
 .settings-save-btn {
   padding: 8px 14px; border-radius: 8px; border: none;
   background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 500;
@@ -574,6 +582,28 @@ select.settings-input { text-overflow: ellipsis; }
 .proof-meta { margin-top: 5px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 @media (max-width: 700px) { .proof-grid { grid-template-columns: 1fr; } }
 
+/* Reusable status pill + result/list-row cards (token deployments, previews, etc) */
+.status-pill {
+  flex-shrink: 0; display: inline-block; padding: 3px 10px; border: 1px solid currentColor;
+  border-radius: 999px; font: 700 10px var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em;
+}
+.result-card {
+  border: 1px solid var(--border-dark); border-radius: 12px; padding: 12px 14px;
+  margin-top: 8px; background: var(--bg-card2);
+}
+.result-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.result-card-sub { font-size: 10.5px; color: var(--text-secondary); text-transform: capitalize; margin-left: 5px; font-weight: 400; }
+.result-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); padding: 4px 0; }
+.result-row code { font-family: var(--font-mono); color: var(--text-primary); font-size: 11.5px; }
+.result-desc { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.55; }
+.result-warn { font-size: 11px; color: var(--red); margin-top: 8px; line-height: 1.6; }
+.chip-btn {
+  padding: 6px 13px; border-radius: 999px; border: 1.5px solid var(--border-dark);
+  background: var(--bg-input); color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; font-family: var(--font-body);
+}
+.chip-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--pill-bg); }
+
 .focus-btn {
   font-size: 11.5px; font-weight: 600; font-family: var(--font-body);
   padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border-dark);
@@ -586,7 +616,7 @@ select.settings-input { text-overflow: ellipsis; }
   background: var(--accent); color: var(--accent-text); border-color: var(--accent);
 }
 
-/* Focus mode — hide everything except the chat column */
+/* Focus mode - hide everything except the chat column */
 .focus-mode .sidebar1,
 .focus-mode .sidebar2,
 .focus-mode .dashboard-left { display: none; }
@@ -610,7 +640,7 @@ select.settings-input { text-overflow: ellipsis; }
 ══════════════════════════════════════ */
 .dashboard { flex: 1; display: flex; overflow: hidden; }
 
-/* Left — narrower */
+/* Left - narrower */
 .dashboard-left {
   width: 480px; flex-shrink: 0;
   overflow-y: auto; padding: 16px 14px 16px 18px;
@@ -618,7 +648,7 @@ select.settings-input { text-overflow: ellipsis; }
 .dashboard-left::-webkit-scrollbar { width: 3px; }
 .dashboard-left::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
 
-/* Right — wider chat */
+/* Right - wider chat */
 .dashboard-right {
   flex: 1; min-width: 0;
   border-left: 1px solid var(--border-dark);
@@ -1002,7 +1032,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   <!-- ── Sidebar 2 : Asset Watchlist ── -->
   <div class="sidebar2">
     <div class="s2-header">
-      <div class="s2-title">Sara AI Wallet</div>
+      <div class="s2-title">Sara AI Wallet <span style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.02em">(alpha)</span></div>
     </div>
     <div class="watchlist-header">
       <div class="watchlist-title">Holdings</div>
@@ -1028,7 +1058,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
           <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
           <div class="theme-dot" data-theme="forest" title="Forest"></div>
-          <div class="theme-dot active" data-theme="proof" title="Proof — inspired by BlockchainProof"></div>
+          <div class="theme-dot active" data-theme="proof" title="Proof - inspired by BlockchainProof"></div>
         </div>
       </div>
     </div>
@@ -1060,13 +1090,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="card-icon">💰</div>
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Total Portfolio Value</div>
-                <div style="font-size:10px;color:var(--text-muted)" id="portfolioChainCount">—</div>
+                <div style="font-size:10px;color:var(--text-muted)" id="portfolioChainCount">-</div>
               </div>
             </div>
           </div>
           <div class="asset-headline">
             <div class="asset-headline-price" id="portfolioTotal">$0.00</div>
-            <div class="asset-headline-chg" id="portfolioChg">—</div>
+            <div class="asset-headline-chg" id="portfolioChg">-</div>
           </div>
           <div class="asset-headline-sub" id="portfolioUpdated">Loading…</div>
         </div>
@@ -1103,6 +1133,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="card">
             <div style="font-size:15px;font-weight:600">Transaction ledger</div>
             <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Confirmed status, fiat snapshots, fees, tags, notes and proof-of-payment receipts.</div>
+            <div class="field" style="max-width:280px;margin-bottom:10px">
+              <label class="field-label" for="ledgerSearch">Search by tag or note</label>
+              <input class="settings-input" id="ledgerSearch" placeholder="e.g. rent, invoice #42" oninput="filterLedger()">
+            </div>
             <div id="ledgerList"><div style="font-size:11px;color:var(--text-muted)">Loading…</div></div>
           </div>
         </div>
@@ -1111,13 +1145,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="card" style="margin-bottom:10px">
             <div style="font-size:15px;font-weight:600">Create USDC invoice</div>
             <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Polygon payment page with automatic on-chain reconciliation.</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-              <select class="settings-input" id="invoiceWallet"></select>
-              <input class="settings-input" id="invoiceAmount" type="number" min="0" step="0.000001" placeholder="Amount (USDC)">
-              <input class="settings-input" id="invoiceCustomer" maxlength="120" placeholder="Customer name">
-              <input class="settings-input" id="invoiceEmail" type="email" maxlength="254" placeholder="Customer email">
-              <input class="settings-input" id="invoiceDue" type="datetime-local">
-              <input class="settings-input" id="invoiceDescription" maxlength="1000" placeholder="Description">
+            <div class="field-grid">
+              <div class="field"><label class="field-label" for="invoiceWallet">Wallet</label><select class="settings-input" id="invoiceWallet"></select></div>
+              <div class="field"><label class="field-label" for="invoiceAmount">Amount (USDC)</label><input class="settings-input" id="invoiceAmount" type="number" min="0" step="0.000001" placeholder="0.00"></div>
+              <div class="field"><label class="field-label" for="invoiceCustomer">Customer name</label><input class="settings-input" id="invoiceCustomer" maxlength="120" placeholder="Customer name"></div>
+              <div class="field"><label class="field-label" for="invoiceEmail">Customer email</label><input class="settings-input" id="invoiceEmail" type="email" maxlength="254" placeholder="Customer email"></div>
+              <div class="field"><label class="field-label" for="invoiceDue">Due date</label><input class="settings-input" id="invoiceDue" type="datetime-local"></div>
+              <div class="field"><label class="field-label" for="invoiceDescription">Description</label><input class="settings-input" id="invoiceDescription" maxlength="1000" placeholder="Description"></div>
             </div>
             <button class="settings-save-btn" style="margin-top:8px" onclick="createInvoice()">Create invoice</button>
             <div class="settings-status" id="invoiceStatus"></div>
@@ -1129,7 +1163,11 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="card">
             <div style="font-size:13px;font-weight:600">Merchant API</div>
             <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Create a scoped API key and optional signed payment webhook.</div>
-            <div style="display:flex;gap:6px"><input class="settings-input" id="merchantName" maxlength="80" placeholder="Client name"><input class="settings-input" id="merchantWebhook" placeholder="https://… webhook"><button class="settings-save-btn" onclick="createMerchantClient()">Create key</button></div>
+            <div class="field-row">
+              <div class="field"><label class="field-label" for="merchantName">Client name</label><input class="settings-input" id="merchantName" maxlength="80" placeholder="Client name"></div>
+              <div class="field"><label class="field-label" for="merchantWebhook">Webhook URL</label><input class="settings-input" id="merchantWebhook" placeholder="https://… webhook"></div>
+              <button class="settings-save-btn" onclick="createMerchantClient()">Create key</button>
+            </div>
             <div id="merchantResult" style="font-size:11px;word-break:break-all;margin-top:8px"></div>
             <div id="merchantList" style="font-size:11px;margin-top:8px"></div>
           </div>
@@ -1147,24 +1185,25 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
                 <button class="col2-nav-btn" id="bizTabAccounting" onclick="showBizTab('accounting')">Accounting</button>
               </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-secondary)">
-                Checker key
-                <input class="settings-input" id="bizApproverKey" type="password" autocomplete="off" placeholder="optional" style="width:150px;font-size:11px">
+              <div class="field-row" style="align-items:flex-end">
+                <div class="field"><label class="field-label" for="newCheckerName">New checker name</label><input class="settings-input" id="newCheckerName" maxlength="120" placeholder="e.g. Priya" style="width:130px;font-size:11px"></div>
+                <div class="field"><label class="field-label" for="bizApproverKey">Checker key</label><input class="settings-input" id="bizApproverKey" type="password" autocomplete="off" placeholder="generated key" style="width:150px;font-size:11px"></div>
                 <button class="settings-save-btn" onclick="createApproverCredential()">Create key</button>
               </div>
             </div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Dual-control approval requires a separately generated checker key. Keys are shown once and stored only as hashes.</div>
+            <div class="settings-status" id="checkerKeyStatus"></div>
           </div>
 
           <div id="bizCounterpartiesPane">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Counterparties</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Vendors, employees and contractors — separate from your address book.</div>
-              <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr;gap:7px">
-                <input class="settings-input" id="cpName" maxlength="160" placeholder="Display name">
-                <select class="settings-input" id="cpType"><option value="vendor">Vendor</option><option value="employee">Employee</option><option value="contractor">Contractor</option></select>
-                <select class="settings-input" id="cpNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="cpAddress" placeholder="Wallet address (0x…)">
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Vendors, employees and contractors - separate from your address book.</div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="cpName">Display name</label><input class="settings-input" id="cpName" maxlength="160" placeholder="Display name"></div>
+                <div class="field"><label class="field-label" for="cpType">Type</label><select class="settings-input" id="cpType"><option value="vendor">Vendor</option><option value="employee">Employee</option><option value="contractor">Contractor</option></select></div>
+                <div class="field"><label class="field-label" for="cpNetwork">Network</label><select class="settings-input" id="cpNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="cpAddress">Wallet address</label><input class="settings-input" id="cpAddress" placeholder="Wallet address (0x…)"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createCounterparty()">Add counterparty</button>
               <div class="settings-status" id="cpStatus"></div>
@@ -1175,14 +1214,14 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="bizBatchesPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New payment batch</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially — never one atomic transaction.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px">
-                <select class="settings-input" id="batchKind"><option value="payment">Payment</option><option value="airdrop">Airdrop</option></select>
-                <select class="settings-input" id="batchWallet"></select>
-                <select class="settings-input" id="batchNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="batchToken" value="USDC" maxlength="20" placeholder="Token symbol">
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially - never one atomic transaction.</div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="batchKind">Kind</label><select class="settings-input" id="batchKind"><option value="payment">Payment</option><option value="airdrop">Airdrop</option></select></div>
+                <div class="field"><label class="field-label" for="batchWallet">Wallet</label><select class="settings-input" id="batchWallet"></select></div>
+                <div class="field"><label class="field-label" for="batchNetwork">Network</label><select class="settings-input" id="batchNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="batchToken">Token symbol</label><input class="settings-input" id="batchToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
               </div>
-              <input class="settings-input" id="batchMemo" style="margin-top:7px" maxlength="500" placeholder="Memo (optional)">
+              <div class="field" style="margin-top:7px"><label class="field-label" for="batchMemo">Memo (optional)</label><input class="settings-input" id="batchMemo" maxlength="500" placeholder="Memo (optional)"></div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createBatch()">Create draft batch</button>
               <div class="settings-status" id="batchCreateStatus"></div>
             </div>
@@ -1196,19 +1235,19 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="bizSchedulesPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New recurring payment</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Materializes a reviewable batch each time it's due — it never signs by itself.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <select class="settings-input" id="schedWallet"></select>
-                <select class="settings-input" id="schedNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="schedToken" value="USDC" maxlength="20" placeholder="Token symbol">
-                <input class="settings-input" id="schedRecipient" placeholder="Recipient address (0x…)">
-                <input class="settings-input" id="schedAmount" placeholder="Amount">
-                <select class="settings-input" id="schedFreq">
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Materializes a reviewable batch each time it's due - it never signs by itself.</div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="schedWallet">Wallet</label><select class="settings-input" id="schedWallet"></select></div>
+                <div class="field"><label class="field-label" for="schedNetwork">Network</label><select class="settings-input" id="schedNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="schedToken">Token symbol</label><input class="settings-input" id="schedToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
+                <div class="field"><label class="field-label" for="schedRecipient">Recipient address</label><input class="settings-input" id="schedRecipient" placeholder="Recipient address (0x…)"></div>
+                <div class="field"><label class="field-label" for="schedAmount">Amount</label><input class="settings-input" id="schedAmount" placeholder="Amount"></div>
+                <div class="field"><label class="field-label" for="schedFreq">Frequency</label><select class="settings-input" id="schedFreq">
                   <option value="FREQ=MONTHLY;INTERVAL=1">Monthly</option>
                   <option value="FREQ=WEEKLY;INTERVAL=1">Weekly</option>
                   <option value="FREQ=DAILY;INTERVAL=1">Daily</option>
-                </select>
-                <input class="settings-input" id="schedStart" type="datetime-local">
+                </select></div>
+                <div class="field"><label class="field-label" for="schedStart">Start</label><input class="settings-input" id="schedStart" type="datetime-local"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createSchedule()">Create schedule</button>
               <div class="settings-status" id="schedCreateStatus"></div>
@@ -1219,14 +1258,14 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="bizPayrollPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Add payroll person</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor counterparty. Creates a monthly recurring salary instruction — it's only ever paid through an explicit payroll run below, never automatically.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <select class="settings-input" id="prollCounterparty"></select>
-                <select class="settings-input" id="prollWallet"></select>
-                <select class="settings-input" id="prollNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="prollToken" value="USDC" maxlength="20" placeholder="Token symbol">
-                <input class="settings-input" id="prollAmount" placeholder="Salary amount">
-                <input class="settings-input" id="prollStart" type="datetime-local">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor counterparty. Creates a monthly recurring salary instruction - it's only ever paid through an explicit payroll run below, never automatically.</div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="prollCounterparty">Counterparty</label><select class="settings-input" id="prollCounterparty"></select></div>
+                <div class="field"><label class="field-label" for="prollWallet">Wallet</label><select class="settings-input" id="prollWallet"></select></div>
+                <div class="field"><label class="field-label" for="prollNetwork">Network</label><select class="settings-input" id="prollNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="prollToken">Token symbol</label><input class="settings-input" id="prollToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
+                <div class="field"><label class="field-label" for="prollAmount">Salary amount</label><input class="settings-input" id="prollAmount" placeholder="Salary amount"></div>
+                <div class="field"><label class="field-label" for="prollStart">Start date</label><input class="settings-input" id="prollStart" type="datetime-local"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="addPayrollPerson()">Add person</button>
               <div class="settings-status" id="prollAddStatus"></div>
@@ -1234,11 +1273,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-bottom:10px"><div id="prollPeopleList" style="font-size:11px">Loading…</div></div>
             <div class="card">
               <div style="font-size:13px;font-weight:600">Run payroll</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-top:8px">
-                <select class="settings-input" id="prollRunWallet"></select>
-                <select class="settings-input" id="prollRunNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="prollRunToken" value="USDC" maxlength="20" placeholder="Token symbol">
-                <input class="settings-input" id="prollRunPeriod" maxlength="40" placeholder="Period label (e.g. 2026-01)">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Materializes a reviewable batch paying everyone due for this period - it never signs by itself.</div>
+              <div class="field-grid" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="prollRunWallet">Wallet</label><select class="settings-input" id="prollRunWallet"></select></div>
+                <div class="field"><label class="field-label" for="prollRunNetwork">Network</label><select class="settings-input" id="prollRunNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="prollRunToken">Token symbol</label><input class="settings-input" id="prollRunToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
+                <div class="field"><label class="field-label" for="prollRunPeriod">Period label</label><input class="settings-input" id="prollRunPeriod" maxlength="40" placeholder="Period label (e.g. 2026-01)"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createPayrollRun()">Create payroll run</button>
               <div class="settings-status" id="prollRunStatus"></div>
@@ -1250,13 +1290,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New spending policy</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Evaluated when a batch is approved and again immediately before each item is signed.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <input class="settings-input" id="polName" maxlength="160" placeholder="Policy name">
-                <select class="settings-input" id="polNetwork"><option value="">Any network</option><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="polToken" maxlength="20" placeholder="Token (blank = any)">
-                <input class="settings-input" id="polMaxAmount" placeholder="Max per payment (blank = no cap)">
-                <select class="settings-input" id="polPeriod"><option value="">No cumulative cap</option><option value="day">Per day</option><option value="week">Per week</option><option value="month">Per month</option></select>
-                <input class="settings-input" id="polPeriodLimit" placeholder="Cumulative cap for period">
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="polName">Policy name</label><input class="settings-input" id="polName" maxlength="160" placeholder="Policy name"></div>
+                <div class="field"><label class="field-label" for="polNetwork">Network</label><select class="settings-input" id="polNetwork"><option value="">Any network</option><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="polToken">Token</label><input class="settings-input" id="polToken" maxlength="20" placeholder="Token (blank = any)"></div>
+                <div class="field"><label class="field-label" for="polMaxAmount">Max per payment</label><input class="settings-input" id="polMaxAmount" placeholder="Blank = no cap"></div>
+                <div class="field"><label class="field-label" for="polPeriod">Cap period</label><select class="settings-input" id="polPeriod"><option value="">No cumulative cap</option><option value="day">Per day</option><option value="week">Per week</option><option value="month">Per month</option></select></div>
+                <div class="field"><label class="field-label" for="polPeriodLimit">Cumulative cap</label><input class="settings-input" id="polPeriodLimit" placeholder="Cap for period"></div>
               </div>
               <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text-secondary)">
                 <input type="checkbox" id="polDualControl"> Require a different approver than the preparer
@@ -1270,7 +1310,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="bizAccountingPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Reconcile</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Links internal transfers and swap legs that share the same on-chain transaction hash — never a fuzzy guess.</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Links internal transfers and swap legs that share the same on-chain transaction hash - never a fuzzy guess.</div>
               <button class="settings-save-btn" onclick="runAccountingMatch()">Match transfers &amp; swaps</button>
               <span id="matchStatus" style="font-size:10.5px;color:var(--text-secondary);margin-left:8px"></span>
             </div>
@@ -1278,9 +1318,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Cost-basis lots (FIFO)</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Not tax advice. Rebuild is a full, deterministic recompute for one token/network.</div>
-              <div style="display:flex;gap:6px">
-                <input class="settings-input" id="lotsToken" value="USDC" maxlength="20" placeholder="Token">
-                <select class="settings-input" id="lotsNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+              <div class="field-row">
+                <div class="field"><label class="field-label" for="lotsToken">Token</label><input class="settings-input" id="lotsToken" value="USDC" maxlength="20" placeholder="Token"></div>
+                <div class="field"><label class="field-label" for="lotsNetwork">Network</label><select class="settings-input" id="lotsNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
                 <button class="settings-save-btn" onclick="rebuildLots()">Rebuild lots</button>
               </div>
               <div id="lotsRebuildStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
@@ -1289,11 +1329,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:13px;font-weight:600">P&amp;L report</div>
-              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                <input class="settings-input" id="pnlToken" value="USDC" maxlength="20" placeholder="Token">
-                <select class="settings-input" id="pnlNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="pnlStart" type="date">
-                <input class="settings-input" id="pnlEnd" type="date">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Realized gains and losses for one token, computed FIFO from the cost-basis lots above.</div>
+              <div class="field-row" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="pnlToken">Token</label><input class="settings-input" id="pnlToken" value="USDC" maxlength="20" placeholder="Token"></div>
+                <div class="field"><label class="field-label" for="pnlNetwork">Network</label><select class="settings-input" id="pnlNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="pnlStart">Start date</label><input class="settings-input" id="pnlStart" type="date"></div>
+                <div class="field"><label class="field-label" for="pnlEnd">End date</label><input class="settings-input" id="pnlEnd" type="date"></div>
                 <button class="settings-save-btn" onclick="loadPnlReport()">Run</button>
               </div>
               <div id="pnlResult" style="font-size:11px;margin-top:8px"></div>
@@ -1301,9 +1342,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:13px;font-weight:600">Income &amp; expense report</div>
-              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                <input class="settings-input" id="ieStart" type="date">
-                <input class="settings-input" id="ieEnd" type="date">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Totals every ledger entry by category for a date range - a quick P&amp;L across all tokens and networks.</div>
+              <div class="field-row" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="ieStart">Start date</label><input class="settings-input" id="ieStart" type="date"></div>
+                <div class="field"><label class="field-label" for="ieEnd">End date</label><input class="settings-input" id="ieEnd" type="date"></div>
                 <button class="settings-save-btn" onclick="loadIncomeExpenseReport()">Run</button>
               </div>
               <div id="ieResult" style="font-size:11px;margin-top:8px"></div>
@@ -1311,6 +1353,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:13px;font-weight:600">Data quality</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Flags ledger rows missing a fiat valuation, category, or other data your reports depend on.</div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="loadDataQuality()">Check</button>
               <div id="dqResult" style="font-size:11px;margin-top:8px"></div>
             </div>
@@ -1342,18 +1385,18 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="toolsTokensPane">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Create an ERC-20 token</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only — never arbitrary Solidity.</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only - never arbitrary Solidity.</div>
               <div id="tokenTemplateList" style="font-size:11px;margin-bottom:8px">Loading templates…</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <select class="settings-input" id="tokTemplate"></select>
-                <select class="settings-input" id="tokWallet"></select>
-                <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="tokName" maxlength="64" placeholder="Token name">
-                <input class="settings-input" id="tokSymbol" maxlength="16" placeholder="Symbol">
-                <input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="Decimals">
-                <input class="settings-input" id="tokSupply" placeholder="Initial supply">
-                <input class="settings-input" id="tokCap" placeholder="Cap (mintable template only)">
-                <input class="settings-input" id="tokOwner" placeholder="Owner address (blank = deploying wallet)">
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="tokTemplate">Template</label><select class="settings-input" id="tokTemplate"></select></div>
+                <div class="field"><label class="field-label" for="tokWallet">Wallet</label><select class="settings-input" id="tokWallet"></select></div>
+                <div class="field"><label class="field-label" for="tokNetwork">Network</label><select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="tokName">Token name</label><input class="settings-input" id="tokName" maxlength="64" placeholder="Token name"></div>
+                <div class="field"><label class="field-label" for="tokSymbol">Symbol</label><input class="settings-input" id="tokSymbol" maxlength="16" placeholder="Symbol"></div>
+                <div class="field"><label class="field-label" for="tokDecimals">Decimals</label><input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="Decimals"></div>
+                <div class="field"><label class="field-label" for="tokSupply">Initial supply</label><input class="settings-input" id="tokSupply" placeholder="Initial supply"></div>
+                <div class="field"><label class="field-label" for="tokCap">Cap</label><input class="settings-input" id="tokCap" placeholder="Mintable template only"></div>
+                <div class="field"><label class="field-label" for="tokOwner">Owner address</label><input class="settings-input" id="tokOwner" placeholder="Blank = deploying wallet"></div>
               </div>
               <div style="display:flex;gap:6px;margin-top:8px">
                 <button class="settings-save-btn" onclick="previewTokenDeployment()">Preview deployment</button>
@@ -1362,7 +1405,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div id="tokenPreview" style="font-size:11px;margin-top:8px"></div>
               <div id="tokenDeployStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
             </div>
-            <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><strong>Deployed tokens</strong><button class="settings-save-btn" onclick="loadTokenDeployments()">Refresh</button></div><div id="tokenDeploymentsList" style="font-size:11px;margin-top:8px">Loading…</div></div>
+            <div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><strong>Deployed tokens</strong><button class="settings-save-btn" onclick="loadTokenDeployments()">Refresh</button></div></div>
+            <div id="tokenDeploymentsList" style="font-size:11px">Loading…</div>
           </div>
 
           <div id="toolsTreasuryPane" style="display:none">
@@ -1372,13 +1416,14 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
             <div class="card">
               <div style="font-size:13px;font-weight:600">Compare stablecoin routes</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-top:8px">
-                <select class="settings-input" id="routeFromNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <select class="settings-input" id="routeToNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="routeFromToken" value="USDC" maxlength="20">
-                <input class="settings-input" id="routeToToken" value="USDC" maxlength="20">
-                <input class="settings-input" id="routeAmount" placeholder="Amount">
-                <select class="settings-input" id="routeWallet"></select>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Estimates cost and time to move funds between two networks - for deciding how to rebalance.</div>
+              <div class="field-grid" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="routeFromNetwork">From network</label><select class="settings-input" id="routeFromNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="routeToNetwork">To network</label><select class="settings-input" id="routeToNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="routeFromToken">From token</label><input class="settings-input" id="routeFromToken" value="USDC" maxlength="20"></div>
+                <div class="field"><label class="field-label" for="routeToToken">To token</label><input class="settings-input" id="routeToToken" value="USDC" maxlength="20"></div>
+                <div class="field"><label class="field-label" for="routeAmount">Amount</label><input class="settings-input" id="routeAmount" placeholder="Amount"></div>
+                <div class="field"><label class="field-label" for="routeWallet">Wallet</label><select class="settings-input" id="routeWallet"></select></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
               <div id="routeResult" style="font-size:11px;margin-top:8px"></div>
@@ -1393,7 +1438,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="loadIntel('recurring-counterparties')">Recurring counterparties</button>
                 <button class="settings-save-btn" onclick="loadIntel('unusual-activity')">Unusual activity</button>
               </div>
-              <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Deterministic ledger queries — every figure links back to source transactions.</div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Deterministic ledger queries - every figure links back to source transactions.</div>
             </div>
             <div class="card"><div id="intelResult" style="font-size:11px">Pick a query above.</div></div>
           </div>
@@ -1401,20 +1446,21 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="toolsRiskPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Screen an address</div>
-              <div style="display:flex;gap:6px;margin-top:8px">
-                <input class="settings-input" id="riskAddress" placeholder="Address (0x…)">
-                <select class="settings-input" id="riskNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Checks an address against sanctions and risk lists before you send it funds.</div>
+              <div class="field-row" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="riskAddress">Address</label><input class="settings-input" id="riskAddress" placeholder="Address (0x…)"></div>
+                <div class="field"><label class="field-label" for="riskNetwork">Network</label><select class="settings-input" id="riskNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
                 <button class="settings-save-btn" onclick="screenAddress()">Screen</button>
               </div>
               <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
             </div>
             <div class="card">
               <div style="font-size:13px;font-weight:600">Manual review</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Records an audited override decision — never an invisible bypass.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <input class="settings-input" id="reviewAddress" placeholder="Address (0x…)">
-                <select class="settings-input" id="reviewDecision"><option value="approved">Approve</option><option value="rejected">Reject</option></select>
-                <input class="settings-input" id="reviewReason" maxlength="1000" placeholder="Reason">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Records an audited override decision - never an invisible bypass.</div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="reviewAddress">Address</label><input class="settings-input" id="reviewAddress" placeholder="Address (0x…)"></div>
+                <div class="field"><label class="field-label" for="reviewDecision">Decision</label><select class="settings-input" id="reviewDecision"><option value="approved">Approve</option><option value="rejected">Reject</option></select></div>
+                <div class="field"><label class="field-label" for="reviewReason">Reason</label><input class="settings-input" id="reviewReason" maxlength="1000" placeholder="Reason"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="submitRiskReview()">Record review</button>
               <div id="reviewStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
@@ -1425,24 +1471,24 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Read a verified contract</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only verified, non-proxy contracts and allowlisted methods (name, symbol, decimals, totalSupply, balanceOf, owner, allowance, cap, paused).</div>
-              <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:7px">
-                <input class="settings-input" id="ciAddress" placeholder="Contract address (0x…)">
-                <select class="settings-input" id="ciNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="ciMethod" placeholder="Method (e.g. balanceOf)">
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="ciAddress">Contract address</label><input class="settings-input" id="ciAddress" placeholder="Contract address (0x…)"></div>
+                <div class="field"><label class="field-label" for="ciNetwork">Network</label><select class="settings-input" id="ciNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="ciMethod">Method</label><input class="settings-input" id="ciMethod" placeholder="e.g. balanceOf"></div>
               </div>
-              <input class="settings-input" id="ciArgs" style="margin-top:7px" placeholder="Args, comma-separated (optional)">
+              <div class="field" style="margin-top:7px"><label class="field-label" for="ciArgs">Args (comma-separated, optional)</label><input class="settings-input" id="ciArgs" placeholder="Args, comma-separated (optional)"></div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="readContract()">Read</button>
               <div id="ciReadResult" style="font-size:11px;margin-top:8px"></div>
             </div>
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:13px;font-weight:600">Prepare and execute a reviewed call</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only approve, transfer and transferFrom. Sara rebuilds and re-simulates the exact reviewed call before signing.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-                <select class="settings-input" id="ciWriteWallet"></select>
-                <input class="settings-input" id="ciWriteAddress" placeholder="Contract address">
-                <select class="settings-input" id="ciWriteNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <select class="settings-input" id="ciWriteMethod"><option value="transfer">transfer</option><option value="approve">approve</option><option value="transferFrom">transferFrom</option></select>
-                <input class="settings-input" id="ciWriteArgs" placeholder="Args, comma-separated">
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="ciWriteWallet">Wallet</label><select class="settings-input" id="ciWriteWallet"></select></div>
+                <div class="field"><label class="field-label" for="ciWriteAddress">Contract address</label><input class="settings-input" id="ciWriteAddress" placeholder="Contract address"></div>
+                <div class="field"><label class="field-label" for="ciWriteNetwork">Network</label><select class="settings-input" id="ciWriteNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="ciWriteMethod">Method</label><select class="settings-input" id="ciWriteMethod"><option value="transfer">transfer</option><option value="approve">approve</option><option value="transferFrom">transferFrom</option></select></div>
+                <div class="field"><label class="field-label" for="ciWriteArgs">Args (comma-separated)</label><input class="settings-input" id="ciWriteArgs" placeholder="Args, comma-separated"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="prepareContractCall()">Prepare and simulate</button>
               <button class="settings-save-btn" style="margin-top:8px" id="ciExecuteBtn" onclick="executeContractCall()" disabled>Execute reviewed call</button>
@@ -1450,12 +1496,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
             <div class="card">
               <div style="font-size:13px;font-weight:600">Simulate a call</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px">
-                <select class="settings-input" id="ciSimNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
-                <input class="settings-input" id="ciSimFrom" placeholder="From address">
-                <input class="settings-input" id="ciSimTo" placeholder="To address">
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Dry-runs any contract call without sending it - see the result before it costs gas.</div>
+              <div class="field-grid" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="ciSimNetwork">Network</label><select class="settings-input" id="ciSimNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="ciSimFrom">From address</label><input class="settings-input" id="ciSimFrom" placeholder="From address"></div>
+                <div class="field"><label class="field-label" for="ciSimTo">To address</label><input class="settings-input" id="ciSimTo" placeholder="To address"></div>
               </div>
-              <input class="settings-input" id="ciSimData" style="margin-top:7px" value="0x" placeholder="Calldata (0x…)">
+              <div class="field" style="margin-top:7px"><label class="field-label" for="ciSimData">Calldata</label><input class="settings-input" id="ciSimData" value="0x" placeholder="Calldata (0x…)"></div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="simulateCall()">Simulate</button>
               <div id="ciSimResult" style="font-size:11px;margin-top:8px"></div>
             </div>
@@ -1465,8 +1512,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Sara Names</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Polygon Amoy testnet. Registration is a two-step commit → wait ~60s → reveal process, priced in USDC by name length.</div>
-              <div style="display:flex;gap:6px">
-                <input class="settings-input" id="nameSearch" placeholder="Search a name (e.g. rohas)">
+              <div class="field-row">
+                <div class="field"><label class="field-label" for="nameSearch">Name</label><input class="settings-input" id="nameSearch" placeholder="Search a name (e.g. rohas)"></div>
                 <button class="settings-save-btn" onclick="checkNameAvailability()">Check</button>
               </div>
               <div id="nameAvailabilityResult" style="font-size:11px;margin-top:8px"></div>
@@ -1474,8 +1521,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" id="nameRegisterCard" style="margin-bottom:10px;display:none">
               <div style="font-size:13px;font-weight:600">Register</div>
-              <div style="display:flex;gap:6px;margin-top:8px">
-                <select class="settings-input" id="nameWallet"></select>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Commit now, then complete the registration once the ~60s reveal delay has passed.</div>
+              <div class="field-row" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="nameWallet">Wallet</label><select class="settings-input" id="nameWallet"></select></div>
                 <button class="settings-save-btn" onclick="commitName()">1. Commit</button>
                 <button class="settings-save-btn" onclick="revealName()" id="nameRevealBtn" disabled>2. Complete (after ~60s)</button>
               </div>
@@ -1484,15 +1532,16 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:13px;font-weight:600">Manage a name</div>
-              <div style="display:flex;gap:6px;margin-top:8px">
-                <input class="settings-input" id="nameManage" placeholder="Name you own (e.g. rohas)">
-                <select class="settings-input" id="nameManageWallet"></select>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Load a name you own to renew it before expiry or transfer it to another address.</div>
+              <div class="field-row" style="margin-top:8px">
+                <div class="field"><label class="field-label" for="nameManage">Name you own</label><input class="settings-input" id="nameManage" placeholder="Name you own (e.g. rohas)"></div>
+                <div class="field"><label class="field-label" for="nameManageWallet">Wallet</label><select class="settings-input" id="nameManageWallet"></select></div>
                 <button class="settings-save-btn" onclick="loadNameDetail()">Load</button>
               </div>
               <div id="nameDetailResult" style="font-size:11px;margin-top:8px"></div>
-              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <div class="field-row" style="margin-top:8px">
                 <button class="settings-save-btn" onclick="renewName()">Renew 1yr</button>
-                <input class="settings-input" id="nameTransferTo" placeholder="Transfer to address" style="max-width:220px">
+                <div class="field"><label class="field-label" for="nameTransferTo">Transfer to address</label><input class="settings-input" id="nameTransferTo" placeholder="Transfer to address" style="max-width:220px"></div>
                 <button class="settings-save-btn" onclick="transferName()">Transfer</button>
               </div>
             </div>
@@ -1500,10 +1549,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card">
               <div style="font-size:13px;font-weight:600">Publish a signed record</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Off-chain, EIP-712 signed. Only the current on-chain owner can publish.</div>
-              <input class="settings-input" id="recordAddresses" placeholder='Addresses JSON, e.g. [{"network":"eip155:137","addr":"0x..."}]'>
-              <div style="display:flex;gap:6px;margin-top:7px">
-                <input class="settings-input" id="recordPreferredNetwork" placeholder="Preferred network (CAIP-2)">
-                <input class="settings-input" id="recordPreferredToken" placeholder="Preferred token">
+              <div class="field"><label class="field-label" for="recordAddresses">Addresses (JSON)</label><input class="settings-input" id="recordAddresses" placeholder='Addresses JSON, e.g. [{"network":"eip155:137","addr":"0x..."}]'></div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="recordPreferredNetwork">Preferred network (CAIP-2)</label><input class="settings-input" id="recordPreferredNetwork" placeholder="Preferred network (CAIP-2)"></div>
+                <div class="field"><label class="field-label" for="recordPreferredToken">Preferred token</label><input class="settings-input" id="recordPreferredToken" placeholder="Preferred token"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="publishRecord()">Publish record</button>
               <div id="recordPublishStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
@@ -1514,26 +1563,43 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <div id="safetyView" style="display:none">
           <div class="card" style="margin-bottom:10px">
             <div style="font-size:15px;font-weight:600">Wallet safety</div>
-            <div style="display:flex;gap:6px;margin-top:10px">
-              <select class="settings-input" id="safetyWallet"></select>
-              <select class="settings-input" id="safetyNetwork"><option>polygon</option><option>ethereum</option><option>arbitrum</option><option>base</option><option>optimism</option></select>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Lists other contracts you've approved to spend your tokens, so you can revoke any that shouldn't still have access.</div>
+            <div class="field-row" style="margin-top:10px">
+              <div class="field"><label class="field-label" for="safetyWallet">Wallet</label><select class="settings-input" id="safetyWallet"></select></div>
+              <div class="field"><label class="field-label" for="safetyNetwork">Network</label><select class="settings-input" id="safetyNetwork"><option>polygon</option><option>ethereum</option><option>arbitrum</option><option>base</option><option>optimism</option></select></div>
               <button class="settings-save-btn" onclick="loadAllowances()">Check allowances</button>
             </div>
             <div id="allowanceList" style="font-size:11px;margin-top:9px"></div>
           </div>
           <div class="card" style="margin-bottom:10px">
             <div style="font-size:13px;font-weight:600">Balance monitoring</div>
-            <div style="display:flex;gap:6px;margin-top:8px">
-              <select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select>
-              <input class="settings-input" id="monitorThreshold" placeholder="USDC threshold">
+            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Get alerted when a wallet's balance crosses a threshold you set, via the destinations below.</div>
+            <div class="field-row" style="margin-top:8px">
+              <div class="field"><label class="field-label" for="monitorCondition">Condition</label><select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select></div>
+              <div class="field"><label class="field-label" for="monitorThreshold">USDC threshold</label><input class="settings-input" id="monitorThreshold" placeholder="USDC threshold"></div>
               <button class="settings-save-btn" onclick="createBalanceMonitor()">Add monitor</button>
             </div>
             <div id="monitorList" style="font-size:11px;margin-top:9px"></div>
           </div>
           <div class="card">
             <div style="font-size:13px;font-weight:600">Alerts</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Telegram, email and signed HTTPS webhook destinations.</div>
-            <button class="settings-save-btn" onclick="addAlertDestination()">Add destination</button>
+            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Telegram, email and signed HTTPS webhook destinations - where balance-monitor alerts get sent.</div>
+            <div class="field-row">
+              <div class="field"><label class="field-label" for="alertKind">Type</label>
+                <select class="settings-input" id="alertKind" onchange="_updateAlertKindHints()">
+                  <option value="telegram">Telegram</option>
+                  <option value="email">Email</option>
+                  <option value="webhook">Webhook</option>
+                </select>
+              </div>
+              <div class="field"><label class="field-label" for="alertTarget" id="alertTargetLabel">Telegram chat ID</label><input class="settings-input" id="alertTarget" placeholder="Chat ID"></div>
+            </div>
+            <div class="field" style="margin-top:7px">
+              <label class="field-label" for="alertConfig" id="alertConfigLabel">Config (JSON) - bot token</label>
+              <textarea class="settings-input" id="alertConfig" rows="2" style="font-family:var(--font-mono);resize:vertical" placeholder='{"bot_token":"..."}'>{}</textarea>
+            </div>
+            <button class="settings-save-btn" style="margin-top:8px" onclick="addAlertDestination()">Add destination</button>
+            <div class="settings-status" id="alertAddStatus"></div>
             <div id="alertList" style="font-size:11px;margin-top:9px"></div>
           </div>
         </div>
@@ -1546,10 +1612,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="proof-form">
               <label class="proof-file" for="proofFile"><span><strong id="proofFileTitle">Choose a file</strong><span id="proofFileHelp">The file never leaves Sara</span></span></label>
               <input id="proofFile" type="file" hidden onchange="hashProofFile(this, 'proofHash', 'proofFileTitle')">
-              <input class="settings-input proof-hash" id="proofHash" maxlength="64" placeholder="SHA-256 fingerprint">
+              <div class="field"><label class="field-label" for="proofHash">SHA-256 fingerprint</label><input class="settings-input proof-hash" id="proofHash" maxlength="64" placeholder="SHA-256 fingerprint"></div>
               <div class="proof-grid">
-                <select class="settings-input" id="proofWallet"><option value="">Select wallet</option></select>
-                <input class="settings-input" id="proofDescription" maxlength="300" placeholder="Private description (optional)">
+                <div class="field"><label class="field-label" for="proofWallet">Wallet</label><select class="settings-input" id="proofWallet"><option value="">Select wallet</option></select></div>
+                <div class="field"><label class="field-label" for="proofDescription">Description (optional)</label><input class="settings-input" id="proofDescription" maxlength="300" placeholder="Private description (optional)"></div>
               </div>
               <button class="settings-save-btn" id="proofPrepareBtn" onclick="prepareProofCheckout()">Prepare 1 USDC proof</button>
               <div class="settings-status" id="proofCreateStatus" style="height:auto;min-height:14px"></div>
@@ -1567,7 +1633,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 9px">Hash locally and check BlockchainProof for matching public records.</div>
             <div class="proof-form">
               <input id="proofVerifyFile" type="file" onchange="hashProofFile(this, 'proofVerifyHash')">
-              <input class="settings-input proof-hash" id="proofVerifyHash" maxlength="64" placeholder="SHA-256 fingerprint">
+              <div class="field"><label class="field-label" for="proofVerifyHash">SHA-256 fingerprint</label><input class="settings-input proof-hash" id="proofVerifyHash" maxlength="64" placeholder="SHA-256 fingerprint"></div>
               <button class="settings-save-btn" onclick="verifyProofHash()">Verify fingerprint</button>
               <div id="proofVerifyResult" style="font-size:11px;color:var(--text-secondary)"></div>
             </div>
@@ -1655,7 +1721,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
           <div class="card">
             <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Address Book</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Save nicknames so you can say "send 1 POL from test to <strong>rohas</strong>".</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Free, local aliases - saved as "name<strong>.sara</strong>" so they never collide with a paid Sara Name. Say "send 1 POL from test to <strong>rohas.sara</strong>". Want the bare name "rohas" to work instead? Register it under Tools → Names.</div>
 
             <div class="dir-add-form">
               <div class="dir-add-row">
@@ -1772,7 +1838,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
     <div id="exportStepKey" style="display:none">
       <div style="font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:12px;line-height:1.5">
-        ⚠ This is the only time Sara will show you this key. Copy it now and store it somewhere safe and offline — do not leave this screen open.
+        ⚠ This is the only time Sara will show you this key. Copy it now and store it somewhere safe and offline - do not leave this screen open.
       </div>
       <div class="wallet-form-group">
         <div class="wallet-form-label" id="exportKeyWalletName"></div>
@@ -1808,7 +1874,7 @@ let _lockMode = 'unlock'; // 'unlock' | 'setup' | 'confirm'
 let _transactionPassphraseResolver = null;
 
 // Every mutating/sensitive backend endpoint now requires this per-launch
-// token (see backend/app/core/session_auth.py) — injected into `<head>` by
+// token (see backend/app/core/session_auth.py) - injected into `<head>` by
 // the server itself on page load, never persisted anywhere. Adding it here,
 // in the one place the app already wraps every outgoing fetch (for 423
 // handling below), means every one of this file's ~20 other `fetch(...)`
@@ -1828,6 +1894,116 @@ window.fetch = async (...args) => {
   }
   return res;
 };
+
+// Receipt endpoints require the X-Sara-Session header (see above), so a
+// plain window.open(url) to them 401s - the browser's own navigation never
+// attaches that header. Fetch with auth instead, then render into a tab
+// opened synchronously (so popup blockers don't eat it) - themed to match
+// whichever UI skin (theme-dot) is currently active, not a hardcoded look.
+const _RECEIPT_LABEL_OVERRIDES = {
+  id: 'ID', tx_hash: 'Transaction hash', transaction_hash: 'Transaction hash',
+  amount_raw: 'Amount (raw units)', fee_raw: 'Fee (raw units)', fee_token: 'Fee token',
+  fiat_usd_value: 'Fiat value (USD)', fiat_inr_value: 'Fiat value (INR)',
+  valuation_source: 'Valuation source', block_number: 'Block number',
+  confirmed_at: 'Confirmed at', from: 'From', to: 'To',
+};
+const _RECEIPT_MONO_FIELDS = new Set(['id','tx_hash','transaction_hash','from','to','wallet','reference','block_number','amount_raw','fee_raw']);
+const _RECEIPT_HIDDEN_FIELDS = new Set(['receipt_type','explorer_url']);
+
+function _receiptFieldLabel(key) {
+  return _RECEIPT_LABEL_OVERRIDES[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+function _receiptFieldValue(key, v) {
+  if (v === null || v === undefined || v === '') return '-';
+  if (Array.isArray(v)) return v.length ? v.map(x => _escapeHtml(String(x))).join(', ') : '-';
+  if ((key === 'timestamp' || key.endsWith('_at')) && typeof v === 'string') {
+    const d = new Date(v);
+    return isNaN(d) ? _escapeHtml(v) : _escapeHtml(d.toLocaleString());
+  }
+  if (typeof v === 'object') return _escapeHtml(JSON.stringify(v));
+  return _escapeHtml(String(v));
+}
+
+async function openReceipt(url, title) {
+  const w = window.open('', '_blank');
+  try {
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok) throw new Error(_apiErrorText(data, 'Failed to load receipt'));
+
+    // Snapshot the live theme's CSS custom properties so this separate
+    // document (window.open gives it its own DOM) matches whatever skin
+    // (Pearl/Glassy/Dark Pro/Sunset/Forest/Lime/Proof) is active right now.
+    const cs = getComputedStyle(document.getElementById('appShell') || document.documentElement);
+    const themeVarNames = ['--bg-app-start','--bg-app-end','--bg-card','--bg-card2','--bg-input',
+      '--text-primary','--text-secondary','--text-muted','--accent','--accent-text',
+      '--accent2','--green','--red','--border','--border-dark','--card-shadow','--pill-bg'];
+    const themeVars = themeVarNames
+      .map(n => `${n}: ${cs.getPropertyValue(n).trim() || 'initial'};`).join('\n      ');
+
+    const statusVal = (data.status || '').toLowerCase();
+    const statusColorVar = ['paid','confirmed','completed','approved'].includes(statusVal) ? '--green'
+      : ['failed','rejected','cancelled'].includes(statusVal) ? '--red' : '--accent';
+
+    const rows = Object.entries(data)
+      .filter(([k, v]) => !_RECEIPT_HIDDEN_FIELDS.has(k) && k !== 'status' && !(v === null || v === undefined || v === ''))
+      .map(([k, v], i) => `<tr style="background:${i % 2 ? 'var(--bg-card2)' : 'transparent'}">
+        <th scope="row">${_escapeHtml(_receiptFieldLabel(k))}</th>
+        <td style="${_RECEIPT_MONO_FIELDS.has(k) ? "font-family:'Space Mono',monospace;word-break:break-all" : ''}">${_receiptFieldValue(k, v)}</td>
+      </tr>`).join('');
+
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${_escapeHtml(title)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+      ${themeVars}
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; font-family: 'DM Sans', -apple-system, sans-serif;
+        color: var(--text-primary); padding: 32px 16px;
+        background: linear-gradient(135deg, var(--bg-app-start), var(--bg-app-end));
+        display: flex; justify-content: center;
+      }
+      .receipt-card {
+        width: 100%; max-width: 720px; background: var(--bg-card);
+        border: 1px solid var(--border); border-radius: 16px; padding: 20px;
+        box-shadow: var(--card-shadow); backdrop-filter: blur(12px);
+      }
+      .receipt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+      .receipt-title { font-size: 16px; font-weight: 700; }
+      .receipt-sub { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+      .receipt-badge {
+        flex-shrink: 0; padding: 3px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        color: var(--${statusColorVar}); border: 1px solid var(--${statusColorVar});
+      }
+      table { width: 100%; border-collapse: collapse; border: 1px solid var(--border-dark); border-radius: 10px; overflow: hidden; font-size: 12.5px; }
+      th, td { padding: 8px 12px; text-align: left; border: 1px solid var(--border-dark); }
+      th { font-weight: 600; color: var(--text-secondary); width: 30%; font-size: 11px; white-space: nowrap; }
+      td { color: var(--text-primary); }
+      .receipt-link {
+        display: inline-block; margin-top: 16px; padding: 9px 16px; border-radius: 8px;
+        background: var(--accent); color: var(--accent-text); font-size: 12.5px; font-weight: 600;
+        text-decoration: none;
+      }
+      .receipt-footer { margin-top: 14px; font-size: 10px; color: var(--text-muted); }
+    </style></head>
+    <body><div class="receipt-card">
+      <div class="receipt-head">
+        <div><div class="receipt-title">${_escapeHtml(title)}</div><div class="receipt-sub">Sara AI Wallet (alpha)</div></div>
+        ${data.status ? `<div class="receipt-badge">${_escapeHtml(data.status)}</div>` : ''}
+      </div>
+      <table>${rows}</table>
+      ${data.explorer_url ? `<a class="receipt-link" href="${_escapeHtml(data.explorer_url)}" target="_blank" rel="noopener">View on block explorer →</a>` : ''}
+      <div class="receipt-footer">Generated ${_escapeHtml(new Date().toLocaleString())}</div>
+    </div></body></html>`;
+    w.document.open(); w.document.write(html); w.document.close();
+  } catch (e) {
+    if (w) { w.document.open(); w.document.write(`<pre style="font-family:sans-serif;padding:24px">${_escapeHtml(e.message || 'Failed to load receipt')}</pre>`); w.document.close(); }
+  }
+}
 
 function showLockOverlay(mode, subMessage) {
   _lockMode = mode;
@@ -1878,7 +2054,7 @@ async function submitLock() {
       document.getElementById('lockOverlay').classList.remove('open');
     } else {
       const body = await r.json().catch(() => ({}));
-      statusEl.textContent = body.detail || 'Incorrect passphrase.';
+      statusEl.textContent = _apiErrorText(body, 'Incorrect passphrase.');
     }
   } catch(e) {
     statusEl.textContent = 'Could not reach Sara. Is the server running?';
@@ -1918,7 +2094,7 @@ async function lockWalletNow() {
       document.getElementById('lockOverlay').classList.remove('open');
     }
   } catch(e) {
-    // Backend unreachable — leave the lock overlay showing rather than expose the app.
+    // Backend unreachable - leave the lock overlay showing rather than expose the app.
   }
 })();
 
@@ -1951,11 +2127,45 @@ const SESSION_ID = 'sara-' + crypto.randomUUID();
 let chatHistory = [];
 let isStreaming = false;
 
-// Escapes text for safe use inside innerHTML — both as element content and
+// FastAPI's `detail` is a plain string for hand-raised HTTPExceptions, but
+// for a 422 validation error it's an array of {loc, msg, type} objects -
+// assigning that straight to textContent used to render "[object Object]".
+// This normalizes every shape (string / validation-error array / {message})
+// into readable text.
+function _apiErrorText(data, fallback) {
+  const d = data && data.detail;
+  if (typeof d === 'string' && d) return d;
+  if (Array.isArray(d) && d.length) {
+    return d.map(e => {
+      if (typeof e === 'string') return e;
+      const loc = Array.isArray(e.loc) ? e.loc.filter(p => p !== 'body').join('.') : '';
+      return (loc ? loc + ': ' : '') + (e.msg || JSON.stringify(e));
+    }).join('; ');
+  }
+  if (d && typeof d === 'object') return d.message || JSON.stringify(d);
+  return fallback || 'Request failed.';
+}
+
+// Shortens a hash/address for display (e.g. "0x49eA...868E") - the full
+// value is always kept in a title attribute by the caller.
+function _truncMid(str, front, back) {
+  str = String(str || '');
+  front = front || 6; back = back || 4;
+  return str.length > front + back + 1 ? str.slice(0, front) + '…' + str.slice(-back) : str;
+}
+
+function _statusColor(status) {
+  const s = (status || '').toLowerCase();
+  if (['confirmed', 'paid', 'complete', 'completed', 'approved'].includes(s)) return 'var(--green)';
+  if (['failed', 'rejected', 'cancelled', 'error', 'overdue'].includes(s)) return 'var(--red)';
+  return 'var(--accent)';
+}
+
+// Escapes text for safe use inside innerHTML - both as element content and
 // inside a quoted HTML attribute. MUST be applied to any string that didn't
 // originate from this file's own hardcoded literals: payment-link payloads
 // (unsigned, attacker-craftable), on-chain token metadata (symbol/name are
-// attacker-settable — a scam token can name itself anything), user-entered
+// attacker-settable - a scam token can name itself anything), user-entered
 // notes/wallet names, and anything else that round-trips through the
 // backend from external input.
 function _escapeHtml(str) {
@@ -1968,12 +2178,12 @@ function _escapeHtml(str) {
 }
 
 // For a value passed as a single-quoted JS string-literal argument inside an
-// onclick="..." attribute — e.g. onclick="foo('${_jsAttrString(name)}')".
+// onclick="..." attribute - e.g. onclick="foo('${_jsAttrString(name)}')".
 // Escaping only the HTML layer (as _escapeHtml does) is NOT enough here: the
 // browser HTML-decodes the attribute before JS parses it, so an HTML-escaped
 // quote (&#39;) still becomes a real ' by the time it reaches the JS parser
 // and can terminate the string literal early. This escapes backslash/quote
-// for JS syntax first, then HTML-escapes the result for the attribute — the
+// for JS syntax first, then HTML-escapes the result for the attribute - the
 // pattern this codebase used before (bare `.replace(/'/g, "\\'")`) missed
 // double-quote escaping entirely, which let a value like `x" onmouseover="…`
 // break out of the attribute and inject new ones.
@@ -1993,7 +2203,7 @@ function addMsg(text, role) {
   if (role === 'bot') {
     div.innerHTML = `<div class="msg-avatar bot">🎯</div><div><div class="msg-bubble">${text}</div></div>`;
   } else {
-    // The user's own message can contain anything they typed — including
+    // The user's own message can contain anything they typed - including
     // payment-link fields copied in verbatim by _chatPayRequest's "Review
     // in Chat" flow, which are unsigned/attacker-craftable data from a
     // scanned or pasted link, not something the user composed themselves.
@@ -2006,8 +2216,8 @@ function addMsg(text, role) {
 }
 
 // Like addMsg('bot'), but the bubble gets an id so its content can be
-// updated in place later (interactive tool output — forms, lists with
-// actions — instead of a fresh message each time).
+// updated in place later (interactive tool output - forms, lists with
+// actions - instead of a fresh message each time).
 function _addBotBubble(html, bubbleId) {
   const div = document.createElement('div');
   div.className = 'msg bot';
@@ -2106,7 +2316,7 @@ async function sendMessage(text) {
 
   } catch(err) {
     typing.remove();
-    addMsg('Connection error — is the SARA backend running? Start it with: cd backend && uvicorn main:app --reload', 'bot');
+    addMsg('Connection error - is the SARA backend running? Start it with: cd backend && uvicorn main:app --reload', 'bot');
   }
 
   isStreaming = false;
@@ -2115,7 +2325,7 @@ async function sendMessage(text) {
 function sendChip(el) { sendMessage(el.textContent); }
 
 // For chips that are just a category label (Bridge, Swap) rather than a
-// complete command — show an example instead of sending the label itself.
+// complete command - show an example instead of sending the label itself.
 function showSampleMessage(example) {
   const safe = example.replace(/"/g, '&quot;');
   addMsg(`Try something like:<br><code class="chat-addr" data-msg="${safe}" onclick="_fillSampleInput(this)" title="Click to use this">${example}<span class="copy-icon"> ✎</span></code>`, 'bot');
@@ -2141,7 +2351,7 @@ const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'E
 const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'OP Mainnet', polygon:'Polygon PoS' };
 const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', USDC:'🔵' };
 
-function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '—'); }
+function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '-'); }
 function _symbolIcon(sym) { return SYMBOL_ICONS[sym] || (sym ? sym.charAt(0) : '?'); }
 function _fmtUsd(n) {
   return '$' + (n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -2158,7 +2368,7 @@ let _portfolioWallets = [];
 
 async function loadPortfolioView(isBackgroundPoll = false) {
   try {
-    // The periodic setInterval refresh isn't real user activity — tagging it
+    // The periodic setInterval refresh isn't real user activity - tagging it
     // lets the backend's auto-lock timer skip extending on these requests,
     // so leaving the tab open unattended still locks after inactivity.
     const bgHeaders = isBackgroundPoll ? { 'X-Sara-Background': '1' } : {};
@@ -2276,7 +2486,7 @@ function _renderHoldingsDetail(data, wallets) {
   const el = document.getElementById('holdingsDetailList');
   if (!el) return;
   if (!wallets.length) {
-    el.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No wallets yet — click the + button to create or import one.</div>';
+    el.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No wallets yet - click the + button to create or import one.</div>';
     return;
   }
   const assets = (data && data.assets) || [];
@@ -2315,11 +2525,11 @@ async function showTrustedTokensInChat() {
       c.tokens.forEach(t => {
         const safeSymbol = _escapeHtml(t.symbol);
         if (t.native) {
-          html += `${safeSymbol} — native asset<br>`;
+          html += `${safeSymbol} - native asset<br>`;
         } else {
           const short = _escapeHtml(t.address.slice(0, 8) + '…' + t.address.slice(-6));
           const safeAddr = _escapeHtml(t.address);
-          html += `${safeSymbol} — <code class="chat-addr" data-addr="${safeAddr}" onclick="copyAddr(this)" title="Click to copy">${short}<span class="copy-icon"> ⎘</span></code><br>`;
+          html += `${safeSymbol} - <code class="chat-addr" data-addr="${safeAddr}" onclick="copyAddr(this)" title="Click to copy">${short}<span class="copy-icon"> ⎘</span></code><br>`;
         }
       });
       html += '<br>';
@@ -2380,7 +2590,7 @@ async function _chatGenerateLink(bubbleId) {
       body: JSON.stringify({ wallet_name, network, amount, token, note }),
     });
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || 'Failed to create link');
+    if (!resp.ok) throw new Error(_apiErrorText(data, 'Failed to create link'));
     const url = location.origin + '/?pay=' + data.payload;
     const bubble = document.getElementById(bubbleId);
     const safeRef = _escapeHtml(data.reference);
@@ -2388,7 +2598,7 @@ async function _chatGenerateLink(bubbleId) {
     const safeWalletName = _escapeHtml(data.wallet_name);
     const safeNote = _escapeHtml(data.note || '');
     bubble.innerHTML = `
-      <div style="font-size:11.5px;margin-bottom:8px"><strong>${safeRef}</strong> — Requesting ${_fmtBal(Number(data.amount) || 0)} ${safeToken} into "${safeWalletName}"${safeNote ? ' — "' + safeNote + '"' : ''}</div>
+      <div style="font-size:11.5px;margin-bottom:8px"><strong>${safeRef}</strong> - Requesting ${_fmtBal(Number(data.amount) || 0)} ${safeToken} into "${safeWalletName}"${safeNote ? ' - "' + safeNote + '"' : ''}</div>
       <img src="/api/payments/qr?data=${encodeURIComponent(url)}" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;display:block;margin-bottom:8px">
       <input class="wallet-form-input" value="${_escapeHtml(url)}" readonly onclick="this.select()" style="font-size:10.5px;padding:6px;width:240px;box-sizing:border-box">`;
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -2521,7 +2731,7 @@ async function showPaymentRequestsInChat() {
 
 function _paymentRequestsRowsHtml(rows, bubbleId) {
   if (!rows.length) {
-    return '<div style="font-size:11.5px"><strong>📋 Track Requests</strong><br>No payment requests yet — try 🔗 Request Payment to create one.</div>';
+    return '<div style="font-size:11.5px"><strong>📋 Track Requests</strong><br>No payment requests yet - try 🔗 Request Payment to create one.</div>';
   }
   let html = '<div style="font-size:11px;font-weight:600;margin-bottom:6px">📋 Track Requests</div>';
   html += rows.map(r => {
@@ -2533,7 +2743,7 @@ function _paymentRequestsRowsHtml(rows, bubbleId) {
     const safeNote = _escapeHtml(r.note || '');
     const safeStatus = _escapeHtml(r.status);
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div>${safeRef} — ${_fmtBal(Number(r.amount) || 0)} ${safeToken} · ${safeWalletName}${safeNote ? ' · ' + safeNote : ''}${short ? ' · tx ' + short : ''}</div>
+      <div>${safeRef} - ${_fmtBal(Number(r.amount) || 0)} ${safeToken} · ${safeWalletName}${safeNote ? ' · ' + safeNote : ''}${short ? ' · tx ' + short : ''}</div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <span style="color:${_PAYMENT_STATUS_COLOR[r.status] || 'var(--text-muted)'};font-size:10px;border:1px solid currentColor;border-radius:5px;padding:1px 5px">${safeStatus}</span>
         ${r.status === 'pending' ? `<button class="dir-del" onclick="_chatCheckRequest(${r.id},'${bubbleId}')" title="Check for payment now">🔄</button>` : ''}
@@ -2581,7 +2791,7 @@ function toggleFocus() {
   btn.textContent = entering ? 'Exit Focus' : 'Focus';
   if (entering) {
     titleEl.dataset.prevHtml = titleEl.innerHTML;
-    titleEl.innerHTML = '<span style="margin-right:7px">🎯</span>Sara AI Wallet';
+    titleEl.innerHTML = '<span style="margin-right:7px">🎯</span>Sara AI Wallet (alpha)';
   } else if (titleEl.dataset.prevHtml !== undefined) {
     titleEl.innerHTML = titleEl.dataset.prevHtml;
     delete titleEl.dataset.prevHtml;
@@ -2634,7 +2844,7 @@ async function submitWallet() {
     }
     const resp = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || 'Failed');
+    if (!resp.ok) throw new Error(_apiErrorText(data, 'Failed'));
     closeWalletModal();
     const action = walletTab === 'create' ? 'created' : 'imported';
     addMsg('Wallet "' + _escapeHtml(data.name) + '" ' + action + '! Address: ' + _escapeHtml(data.address), 'bot');
@@ -2727,7 +2937,7 @@ async function loadInvoices() {
     <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(i.reference)}</strong><span>${_escapeHtml(i.status)}</span></div>
     <div>${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
     <div style="color:var(--text-muted)">${_escapeHtml(i.description || '')}${i.due_date ? ' · due ' + _escapeHtml(i.due_date) : ''}</div>
-    <button class="dir-del" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button>${i.status === 'paid' ? `<button class="dir-del" onclick="window.open('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','_blank')">Receipt</button>` : ''}
+    <button class="dir-del" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button><button class="dir-del" onclick="downloadInvoicePng('${_escapeHtml(i.reference)}')">Download PNG</button>${i.status === 'paid' ? `<button class="dir-del" onclick="openReceipt('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','Payment Receipt')">Receipt</button>` : ''}
   </div>`).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
   document.getElementById('merchantList').innerHTML = clients.map(c => `<div>${_escapeHtml(c.name)} · ${_escapeHtml(c.api_key_prefix)}… · ${c.enabled ? 'active' : 'disabled'}${c.enabled ? ` <button class="dir-del" onclick="disableMerchantClient(${Number(c.id)})">Disable</button>` : ''}</div>`).join('');
 }
@@ -2740,17 +2950,220 @@ async function createInvoice() {
     token:'USDC', network:'polygon', due_date:due ? new Date(due).toISOString() : null, description:document.getElementById('invoiceDescription').value};
   const r = await fetch('/api/payments/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data = await r.json().catch(()=>({}));
-  if (!r.ok) { status.textContent = data.detail || 'Could not create invoice.'; return; }
-  status.innerHTML = `Created ${_escapeHtml(data.reference)} · <a href="${_escapeHtml(data.payment_page)}" target="_blank">open payment page</a>`;
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not create invoice.'); return; }
+  status.innerHTML = `Created ${_escapeHtml(data.reference)} · <a href="${_escapeHtml(data.payment_page)}" target="_blank">open payment page</a> · <a href="#" onclick="downloadInvoicePng('${_escapeHtml(data.reference)}');return false">download PNG</a>`;
   await loadInvoices();
+}
+
+// The payment page is only reachable if this server has a public URL - on
+// localhost a customer can't open it. This renders a self-contained PNG
+// (amount, QR, address) they can receive over any channel and pay from.
+function _loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function _roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Word-wraps text to at most maxLines, ellipsizing the last line if it
+// still doesn't fit. Returns the lines only - caller draws them.
+function _wrapLines(ctx, text, maxWidth, maxLines) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(test).width > maxWidth) {
+      lines.push(line);
+      line = word;
+      if (lines.length === maxLines) break;
+    } else {
+      line = test;
+    }
+  }
+  if (lines.length < maxLines && line) lines.push(line);
+  if (lines.length === maxLines && lines.join(' ').length < words.join(' ').length) {
+    let last = lines[maxLines - 1];
+    while (last.length > 1 && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+    lines[maxLines - 1] = last.trimEnd() + '…';
+  }
+  return lines;
+}
+
+async function downloadInvoicePng(reference) {
+  try {
+    const inv = await fetch('/api/payments/public/' + encodeURIComponent(reference)).then(r => r.ok ? r.json() : Promise.reject());
+    let qrImg = null;
+    const qrData = inv.payment_uri || ('/?pay=' + inv.payload);
+    try { qrImg = await _loadImage('/api/payments/qr?data=' + encodeURIComponent(qrData)); } catch (e) {}
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+
+    const cs = getComputedStyle(document.getElementById('appShell') || document.documentElement);
+    const col = (name, fallback) => cs.getPropertyValue(name).trim() || fallback;
+
+    const W = 720, pad = 48;
+    const cx = W / 2;
+    const maxTextWidth = W - pad * 2 - 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.textAlign = 'center';
+
+    // ---- measure pass: lay out every element top-to-bottom before we know
+    // the final card height, so short invoices don't get dead space and
+    // long ones don't overflow. ----
+    let y = pad + 64;
+    const steps = [];
+
+    ctx.font = '700 15px "DM Sans", sans-serif';
+    steps.push({type: 'text', text: 'SARA AI WALLET (ALPHA)', font: ctx.font, color: col('--text-secondary', '#555'), y});
+    y += 44;
+
+    ctx.font = '700 30px "DM Sans", sans-serif';
+    steps.push({type: 'text', text: 'Payment Request', font: ctx.font, color: col('--text-primary', '#111'), y});
+    y += 38;
+
+    ctx.font = '400 15px "Space Mono", monospace';
+    steps.push({type: 'text', text: inv.reference, font: ctx.font, color: col('--text-muted', '#888'), y});
+    y += 68;
+
+    ctx.font = '700 58px "DM Sans", sans-serif';
+    steps.push({type: 'text', text: `${inv.amount} ${inv.token}`, font: ctx.font, color: col('--accent', '#08763a'), y});
+    y += 46;
+
+    if (inv.customer_name) {
+      ctx.font = '600 18px "DM Sans", sans-serif';
+      steps.push({type: 'text', text: 'For ' + inv.customer_name, font: ctx.font, color: col('--text-secondary', '#555'), y});
+      y += 30;
+    }
+    if (inv.description) {
+      ctx.font = '400 15px "DM Sans", sans-serif';
+      const lines = _wrapLines(ctx, inv.description, maxTextWidth, 2);
+      steps.push({type: 'lines', lines, font: ctx.font, color: col('--text-muted', '#888'), y, lineHeight: 22});
+      y += lines.length * 22 + 18;
+    }
+
+    const statusText = (inv.status || 'pending').toUpperCase();
+    const badgeColor = ['paid', 'confirmed'].includes(inv.status) ? col('--green', '#08763a')
+      : ['overdue', 'failed', 'cancelled'].includes(inv.status) ? col('--red', '#911717')
+      : col('--accent', '#08763a');
+    ctx.font = '700 13px "DM Sans", sans-serif';
+    const badgeW = ctx.measureText(statusText).width + 36;
+    steps.push({type: 'badge', text: statusText, color: badgeColor, y, w: badgeW});
+    y += 54;
+
+    steps.push({type: 'divider', y});
+    y += 40;
+
+    if (qrImg) {
+      const qrSize = 260, qrBoxH = qrSize + 32;
+      steps.push({type: 'qr', y, size: qrSize});
+      y += qrBoxH + 34;
+      ctx.font = '600 13px "DM Sans", sans-serif';
+      steps.push({type: 'text', text: 'Scan to pay with any wallet', font: ctx.font, color: col('--text-secondary', '#555'), y});
+      y += 34;
+    }
+
+    ctx.font = '400 13px "Space Mono", monospace';
+    steps.push({type: 'text', text: inv.sara_name || inv.payment_address || '', font: ctx.font, color: col('--text-muted', '#888'), y});
+    y += 28;
+
+    if (inv.due_date) {
+      ctx.font = '400 13px "DM Sans", sans-serif';
+      steps.push({type: 'text', text: 'Due ' + new Date(inv.due_date).toLocaleDateString(), font: ctx.font, color: col('--text-secondary', '#555'), y});
+      y += 13;
+    }
+
+    const H = Math.round(y + pad);
+    canvas.height = H; // resizing clears the canvas and resets ctx state - fine, nothing drawn yet
+
+    // ---- background ----
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, col('--bg-app-start', '#deffe9'));
+    grad.addColorStop(1, col('--bg-app-end', '#ccff9f'));
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // ---- card, with a soft drop shadow ----
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 14;
+    _roundRectPath(ctx, pad, pad, W - pad * 2, H - pad * 2, 28);
+    ctx.fillStyle = col('--bg-card', 'rgba(255,255,255,0.95)');
+    ctx.fill();
+    ctx.restore();
+    _roundRectPath(ctx, pad, pad, W - pad * 2, H - pad * 2, 28);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = col('--border', 'rgba(0,0,0,0.12)');
+    ctx.stroke();
+
+    // accent strip along the top of the card
+    _roundRectPath(ctx, pad, pad, W - pad * 2, 6, 3);
+    ctx.fillStyle = col('--accent', '#08763a');
+    ctx.fill();
+
+    // ---- draw every measured step ----
+    ctx.textAlign = 'center';
+    for (const step of steps) {
+      if (step.type === 'text' && step.text) {
+        ctx.font = step.font; ctx.fillStyle = step.color;
+        ctx.fillText(step.text, cx, step.y);
+      } else if (step.type === 'lines') {
+        ctx.font = step.font; ctx.fillStyle = step.color;
+        step.lines.forEach((l, i) => ctx.fillText(l, cx, step.y + i * step.lineHeight));
+      } else if (step.type === 'badge') {
+        _roundRectPath(ctx, cx - step.w / 2, step.y - 19, step.w, 30, 15);
+        ctx.strokeStyle = step.color; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.font = '700 13px "DM Sans", sans-serif';
+        ctx.fillStyle = step.color;
+        ctx.fillText(step.text, cx, step.y);
+      } else if (step.type === 'divider') {
+        ctx.strokeStyle = col('--border-dark', 'rgba(0,0,0,0.1)');
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad + 48, step.y);
+        ctx.lineTo(W - pad - 48, step.y);
+        ctx.stroke();
+      } else if (step.type === 'qr') {
+        const qrSize = step.size, boxPad = 16;
+        _roundRectPath(ctx, cx - qrSize / 2 - boxPad, step.y, qrSize + boxPad * 2, qrSize + boxPad * 2, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = col('--border-dark', 'rgba(0,0,0,0.08)');
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.drawImage(qrImg, cx - qrSize / 2, step.y + boxPad, qrSize, qrSize);
+      }
+    }
+
+    const a = document.createElement('a');
+    a.download = `invoice-${reference}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  } catch (e) {
+    alert('Could not generate the invoice image.');
+  }
 }
 
 async function createMerchantClient() {
   const body = {name:document.getElementById('merchantName').value, wallet_id:Number(document.getElementById('invoiceWallet').value), webhook_url:document.getElementById('merchantWebhook').value || null};
   const r = await fetch('/api/payments/merchant/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data = await r.json().catch(()=>({})); const box = document.getElementById('merchantResult');
-  if (!r.ok) { box.textContent = data.detail || 'Could not create key.'; return; }
-  box.innerHTML = `<strong>Save now — shown once.</strong><br>API key: <code>${_escapeHtml(data.api_key)}</code>${data.webhook_signing_secret ? `<br>Webhook secret: <code>${_escapeHtml(data.webhook_signing_secret)}</code>` : ''}`;
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not create key.'); return; }
+  box.innerHTML = `<strong>Save now - shown once.</strong><br>API key: <code>${_escapeHtml(data.api_key)}</code>${data.webhook_signing_secret ? `<br>Webhook secret: <code>${_escapeHtml(data.webhook_signing_secret)}</code>` : ''}`;
   await loadInvoices();
 }
 
@@ -2767,12 +3180,16 @@ let _bizCounterparties = [];
 function _bizApproverKey() { return (document.getElementById('bizApproverKey').value || '').trim(); }
 
 async function createApproverCredential() {
-  const name = prompt('Checker name'); if (!name) return;
+  const status = document.getElementById('checkerKeyStatus');
+  const name = document.getElementById('newCheckerName').value.trim();
+  if (!name) { status.style.color = 'var(--red)'; status.textContent = 'Enter a checker name first.'; return; }
   const r = await fetch('/api/payment-batches/approvers/credentials', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(data.detail || 'Could not create checker key.'); return; }
+  if (!r.ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'Could not create checker key.'); return; }
   document.getElementById('bizApproverKey').value = data.api_key;
-  alert('Save this checker key now; it is shown only once.');
+  document.getElementById('newCheckerName').value = '';
+  status.style.color = 'var(--green)';
+  status.textContent = 'Key created for ' + name + ' - copy it now, it is shown only once.';
 }
 
 function _fillWalletSelects(ids) {
@@ -2833,7 +3250,7 @@ async function createCounterparty() {
   };
   const r = await fetch('/api/counterparties', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('cpStatus').textContent = r.ok ? 'Added.' : (data.detail || 'Could not add counterparty.');
+  document.getElementById('cpStatus').textContent = r.ok ? 'Added.' : (_apiErrorText(data, 'Could not add counterparty.'));
   if (r.ok) { document.getElementById('cpName').value = ''; document.getElementById('cpAddress').value = ''; await loadCounterparties(); }
 }
 
@@ -2863,7 +3280,7 @@ async function createBatch() {
   };
   const r = await fetch('/api/payment-batches', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('batchCreateStatus').textContent = r.ok ? 'Draft batch #' + data.id + ' created.' : (data.detail?.message || data.detail || 'Could not create batch.');
+  document.getElementById('batchCreateStatus').textContent = r.ok ? 'Draft batch #' + data.id + ' created.' : (_apiErrorText(data, 'Could not create batch.'));
   if (r.ok) { await loadBatches(); await openBatch(data.id); }
 }
 
@@ -2888,10 +3305,10 @@ async function openBatch(id) {
         ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${i.id})">Remove</button>` : ''}
       </div>`).join('') : '<div style="color:var(--text-muted)">No items yet.</div>'}</div>
     ${b.status === 'draft' ? `
-    <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;margin-top:10px">
-      <input class="settings-input" id="itemRecipient" placeholder="Recipient address (0x…)">
-      <input class="settings-input" id="itemAmount" placeholder="Amount">
-      <input class="settings-input" id="itemReference" placeholder="Reference (optional)">
+    <div class="field-grid" style="margin-top:10px">
+      <div class="field"><label class="field-label" for="itemRecipient">Recipient address</label><input class="settings-input" id="itemRecipient" placeholder="Recipient address (0x…)"></div>
+      <div class="field"><label class="field-label" for="itemAmount">Amount</label><input class="settings-input" id="itemAmount" placeholder="Amount"></div>
+      <div class="field"><label class="field-label" for="itemReference">Reference (optional)</label><input class="settings-input" id="itemReference" placeholder="Reference (optional)"></div>
     </div>
     <button class="settings-save-btn" style="margin-top:6px" onclick="addBatchItem()">Add item</button>
     ${b.kind === 'airdrop' ? `<div style="margin-top:8px"><input type="file" id="csvFile" accept=".csv"><button class="settings-save-btn" onclick="importBatchCsv()">Import CSV</button></div>` : ''}
@@ -2915,7 +3332,7 @@ async function addBatchItem() {
     reference: document.getElementById('itemReference').value.trim() || null,
   };
   const r = await fetch(`/api/payment-batches/${_openBatchId}/items`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  if (!r.ok) { alert((await r.json().catch(() => ({}))).detail || 'Could not add item'); return; }
+  if (!r.ok) { alert(_apiErrorText((await r.json().catch(() => ({}))), 'Could not add item')); return; }
   await openBatch(_openBatchId); await loadBatches();
 }
 
@@ -2930,8 +3347,8 @@ async function importBatchCsv() {
   const form = new FormData(); form.append('file', fileInput.files[0]);
   const r = await fetch(`/api/payment-batches/${_openBatchId}/items/import-csv`, {method: 'POST', body: form});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(data.detail || 'CSV import failed'); return; }
-  alert(`Imported ${data.imported} row(s)${data.errors.length ? `, ${data.errors.length} row error(s) — see console` : ''}.`);
+  if (!r.ok) { alert(_apiErrorText(data, 'CSV import failed')); return; }
+  alert(`Imported ${data.imported} row(s)${data.errors.length ? `, ${data.errors.length} row error(s) - see console` : ''}.`);
   if (data.errors.length) console.warn('CSV row errors', data.errors);
   await openBatch(_openBatchId); await loadBatches();
 }
@@ -2949,7 +3366,7 @@ async function approveBatch(id) {
   const headers = {'Content-Type': 'application/json'}; if (key) headers['X-Sara-Approver-Key'] = key;
   const r = await fetch(`/api/payment-batches/${id}/approve`, {method: 'POST', headers, body: JSON.stringify({})});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(data.detail?.message || data.detail || 'Approval failed'); return; }
+  if (!r.ok) { alert(_apiErrorText(data, 'Approval failed')); return; }
   await openBatch(id); await loadBatches();
 }
 
@@ -2957,7 +3374,7 @@ async function executeBatch(id) {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
   const r = await fetch(`/api/payment-batches/${id}/execute`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase})});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(data.detail || 'Execution failed'); return; }
+  if (!r.ok) { alert(_apiErrorText(data, 'Execution failed')); return; }
   alert(`Executed: ${data.submitted} submitted, ${data.failed} failed.`);
   await openBatch(id); await loadBatches();
 }
@@ -2975,7 +3392,7 @@ async function loadSchedules() {
   document.getElementById('schedList').innerHTML = rows.length ? rows.map(s => `
     <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(s.recipient_address || ('counterparty #' + s.counterparty_id))}</strong><span>${s.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(s.token)} on ${_escapeHtml(s.network)} · ${_escapeHtml(s.rrule)} · next ${s.next_run_at ? new Date(s.next_run_at).toLocaleString() : '—'}</div>
+      <div style="color:var(--text-muted)">${_escapeHtml(s.token)} on ${_escapeHtml(s.network)} · ${_escapeHtml(s.rrule)} · next ${s.next_run_at ? new Date(s.next_run_at).toLocaleString() : '-'}</div>
       ${s.active ? `<button class="dir-del" onclick="deactivateSchedule(${s.id})">Deactivate</button>` : ''}
     </div>`).join('') : '<div style="color:var(--text-muted)">No recurring payments yet.</div>';
 }
@@ -2994,7 +3411,7 @@ async function createSchedule() {
   };
   const r = await fetch('/api/schedules', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('schedCreateStatus').textContent = r.ok ? 'Schedule created.' : (data.detail || 'Could not create schedule.');
+  document.getElementById('schedCreateStatus').textContent = r.ok ? 'Schedule created.' : (_apiErrorText(data, 'Could not create schedule.'));
   if (r.ok) await loadSchedules();
 }
 
@@ -3028,7 +3445,7 @@ async function addPayrollPerson() {
   };
   const r = await fetch('/api/payroll/people', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('prollAddStatus').textContent = r.ok ? 'Added.' : (data.detail || 'Could not add payroll person.');
+  document.getElementById('prollAddStatus').textContent = r.ok ? 'Added.' : (_apiErrorText(data, 'Could not add payroll person.'));
   if (r.ok) await loadPayrollPeople();
 }
 
@@ -3056,7 +3473,7 @@ async function createPayrollRun() {
   };
   const r = await fetch('/api/payroll/runs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('prollRunStatus').textContent = r.ok ? `Run created: batch #${data.batch_id}, ${data.items} item(s)${data.skipped.length ? ', ' + data.skipped.length + ' skipped' : ''}.` : (data.detail || 'Could not create payroll run.');
+  document.getElementById('prollRunStatus').textContent = r.ok ? `Run created: batch #${data.batch_id}, ${data.items} item(s)${data.skipped.length ? ', ' + data.skipped.length + ' skipped' : ''}.` : (_apiErrorText(data, 'Could not create payroll run.'));
   if (r.ok) await loadPayrollRuns();
 }
 
@@ -3069,7 +3486,7 @@ async function loadSpendingPolicies() {
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.name)}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(p.network || 'any network')} · ${_escapeHtml(p.token || 'any token')}${p.max_amount_raw ? ' · max ' + _escapeHtml(p.max_amount_raw) + ' base units' : ''}${p.period ? ' · ' + _escapeHtml(p.period_limit_raw) + ' base units/' + _escapeHtml(p.period) : ''}${p.require_dual_control ? ' · dual control' : ''}</div>
       <button class="dir-del" onclick="deleteSpendingPolicy(${p.id})">Delete</button>
-    </div>`).join('') : '<div style="color:var(--text-muted)">No spending policies yet — nothing is restricted.</div>';
+    </div>`).join('') : '<div style="color:var(--text-muted)">No spending policies yet - nothing is restricted.</div>';
 }
 
 async function createSpendingPolicy() {
@@ -3084,7 +3501,7 @@ async function createSpendingPolicy() {
   };
   const r = await fetch('/api/spending-policies', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('polCreateStatus').textContent = r.ok ? 'Policy added.' : (data.detail || 'Could not add policy.');
+  document.getElementById('polCreateStatus').textContent = r.ok ? 'Policy added.' : (_apiErrorText(data, 'Could not add policy.'));
   if (r.ok) await loadSpendingPolicies();
 }
 
@@ -3099,7 +3516,7 @@ async function runAccountingMatch() {
   el.textContent = 'Matching…';
   const r = await fetch('/api/accounting/transactions/match', {method: 'POST'});
   const data = await r.json().catch(() => ({}));
-  el.textContent = r.ok ? `Matched ${data.matched_pairs} pair(s).` : (data.detail || 'Match failed.');
+  el.textContent = r.ok ? `Matched ${data.matched_pairs} pair(s).` : (_apiErrorText(data, 'Match failed.'));
 }
 
 async function rebuildLots() {
@@ -3108,8 +3525,8 @@ async function rebuildLots() {
   const data = await r.json().catch(() => ({}));
   const status = document.getElementById('lotsRebuildStatus');
   status.textContent = r.ok
-    ? `${data.lots_created} lot(s), ${data.disposals_created} disposal(s) rebuilt.${data.warnings.length ? ' ' + data.warnings.length + ' warning(s) — see console.' : ''}`
-    : (data.detail || 'Rebuild failed.');
+    ? `${data.lots_created} lot(s), ${data.disposals_created} disposal(s) rebuilt.${data.warnings.length ? ' ' + data.warnings.length + ' warning(s) - see console.' : ''}`
+    : (_apiErrorText(data, 'Rebuild failed.'));
   if (data.warnings && data.warnings.length) console.warn('Lot rebuild warnings', data.warnings);
   if (r.ok) await loadLots(body.token, body.network);
 }
@@ -3135,10 +3552,10 @@ async function loadPnlReport() {
   const r = await fetch('/api/accounting/reports/pnl?' + params);
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('pnlResult');
-  if (!r.ok) { box.textContent = data.detail || 'Could not load report.'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load report.'); return; }
   box.innerHTML = `
     <div>Realized: <strong>$${_escapeHtml(data.realized_gain_usd)}</strong> over ${_escapeHtml(data.disposal_count)} disposal(s)</div>
-    <div>Unrealized: <strong>${data.unrealized_gain_usd !== null ? '$' + _escapeHtml(data.unrealized_gain_usd) : '—'}</strong> across ${_escapeHtml(data.open_lot_count)} open lot(s)</div>
+    <div>Unrealized: <strong>${data.unrealized_gain_usd !== null ? '$' + _escapeHtml(data.unrealized_gain_usd) : '-'}</strong> across ${_escapeHtml(data.open_lot_count)} open lot(s)</div>
     ${data.warnings.length ? `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>` : ''}
     <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.disclaimer)}</div>
   `;
@@ -3151,7 +3568,7 @@ async function loadIncomeExpenseReport() {
   const r = await fetch('/api/accounting/reports/income-expense?' + params);
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('ieResult');
-  if (!r.ok) { box.textContent = data.detail || 'Could not load report.'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load report.'); return; }
   box.innerHTML = `
     <div>Income: <strong>$${_escapeHtml(data.income_total_usd)}</strong> · Expense: <strong>$${_escapeHtml(data.expense_total_usd)}</strong> · Net: <strong>$${_escapeHtml(data.net_usd)}</strong></div>
     <div style="margin-top:6px;color:var(--text-muted)">${Object.entries(data.by_classification).map(([k, v]) => `${_escapeHtml(k)}: $${_escapeHtml(v)}`).join(' · ')}</div>
@@ -3208,7 +3625,7 @@ async function loadTokenTemplates() {
   document.getElementById('tokTemplate').innerHTML = templates.map(t => `<option value="${t.template_id}">${_escapeHtml(t.label)}</option>`).join('');
   document.getElementById('tokenTemplateList').innerHTML = templates.map(t => `
     <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-      <strong>${_escapeHtml(t.label)}</strong> — ${_escapeHtml(t.description)}
+      <strong>${_escapeHtml(t.label)}</strong> - ${_escapeHtml(t.description)}
       ${t.centralisation_risks.length ? `<div style="color:var(--text-muted);margin-top:3px">${t.centralisation_risks.map(r => '⚠ ' + _escapeHtml(r)).join('<br>')}</div>` : ''}
     </div>`).join('');
 }
@@ -3231,12 +3648,18 @@ async function previewTokenDeployment() {
   const r = await fetch('/api/tokens/deployments/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_tokenDeployBody())});
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('tokenPreview');
-  if (!r.ok) { box.textContent = data.detail || 'Preview failed.'; return; }
+  if (!r.ok) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'Preview failed.'))}</div>`; return; }
   box.innerHTML = `
-    <div><strong>${_escapeHtml(data.name)} (${_escapeHtml(data.symbol)})</strong> on ${_escapeHtml(data.network)} — owner ${_escapeHtml(data.owner_address)}</div>
-    <div>Estimated fee: ${_escapeHtml(data.estimated_fee_native)} · gas ${_escapeHtml(data.estimated_gas)}</div>
-    <div style="color:var(--text-muted)">${_escapeHtml(data.description)}</div>
-    ${data.centralisation_risks.length ? `<div style="color:var(--text-muted)">${data.centralisation_risks.map(x => '⚠ ' + _escapeHtml(x)).join('<br>')}</div>` : ''}
+    <div class="result-card">
+      <div class="result-card-head">
+        <div><strong>${_escapeHtml(data.name)}</strong> <span class="result-card-sub">(${_escapeHtml(data.symbol)}) on ${_escapeHtml(data.network)}</span></div>
+        <span class="status-pill" style="color:var(--accent)">Preview</span>
+      </div>
+      <div class="result-row"><span>Owner</span><code title="${_escapeHtml(data.owner_address)}">${_escapeHtml(_truncMid(data.owner_address))}</code></div>
+      <div class="result-row"><span>Estimated fee</span><span>${_escapeHtml(data.estimated_fee_native)} &middot; gas ${_escapeHtml(data.estimated_gas)}</span></div>
+      <div class="result-desc">${_escapeHtml(data.description)}</div>
+      ${data.centralisation_risks.length ? `<div class="result-warn">${data.centralisation_risks.map(x => '⚠ ' + _escapeHtml(x)).join('<br>')}</div>` : ''}
+    </div>
   `;
 }
 
@@ -3245,29 +3668,56 @@ async function deployToken() {
   const body = {..._tokenDeployBody(), passphrase};
   const r = await fetch('/api/tokens/deployments', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('tokenDeployStatus').textContent = r.ok
-    ? `Submitted — tx ${data.deployment_tx_hash}, status ${data.status}.`
-    : (data.detail || 'Deployment failed.');
+  const status = document.getElementById('tokenDeployStatus');
+  status.innerHTML = r.ok ? `
+    <div class="result-card">
+      <div class="result-card-head">
+        <div>Deployment submitted</div>
+        <span class="status-pill" style="color:${_statusColor(data.status)}">${_escapeHtml(data.status)}</span>
+      </div>
+      <div class="result-row"><span>Transaction</span><code title="${_escapeHtml(data.deployment_tx_hash)}">${_escapeHtml(_truncMid(data.deployment_tx_hash))}</code></div>
+    </div>
+  ` : `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'Deployment failed.'))}</div>`;
   if (r.ok) await loadTokenDeployments();
 }
+
+const _EXPLORERS = {
+  ethereum: 'https://etherscan.io/address/', polygon: 'https://polygonscan.com/address/',
+  arbitrum: 'https://arbiscan.io/address/', base: 'https://basescan.org/address/',
+  optimism: 'https://optimistic.etherscan.io/address/',
+};
 
 async function loadTokenDeployments() {
   const data = await fetch('/api/tokens/deployments').then(r => r.json()).catch(() => ({deployments: []}));
   const rows = data.deployments || [];
-  document.getElementById('tokenDeploymentsList').innerHTML = rows.length ? rows.map(d => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark)">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(d.name)} (${_escapeHtml(d.symbol)})</strong><span>${_escapeHtml(d.status)}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(d.network)} · ${d.contract_address ? _escapeHtml(d.contract_address) : 'pending confirmation'} · ${_escapeHtml(d.template_id)}</div>
+  document.getElementById('tokenDeploymentsList').innerHTML = rows.length ? rows.map(d => {
+    const explorerUrl = d.contract_address && _EXPLORERS[d.network] ? _EXPLORERS[d.network] + d.contract_address : null;
+    const addressHtml = d.contract_address
+      ? (explorerUrl
+        ? `<a href="${_escapeHtml(explorerUrl)}" target="_blank" rel="noopener" title="${_escapeHtml(d.contract_address)}" style="font-family:var(--font-mono);color:var(--accent);text-decoration:none">${_escapeHtml(_truncMid(d.contract_address))}</a>`
+        : `<code title="${_escapeHtml(d.contract_address)}">${_escapeHtml(_truncMid(d.contract_address))}</code>`)
+      : 'pending confirmation';
+    return `
+    <div class="card" style="margin-bottom:10px">
+      <div class="result-card-head">
+        <div><strong style="font-size:15px">${_escapeHtml(d.name)}</strong> <span class="result-card-sub">${_escapeHtml(d.symbol)}</span></div>
+        <span class="status-pill" style="color:${_statusColor(d.status)}">${_escapeHtml(d.status)}</span>
+      </div>
+      <div class="result-row" style="justify-content:flex-start;gap:6px;font-size:11px;margin-top:2px">
+        <span style="text-transform:capitalize">${_escapeHtml(d.network)}</span><span>&middot;</span>${addressHtml}<span>&middot;</span><span>${_escapeHtml(d.template_id)}</span>
+      </div>
       ${d.status === 'confirmed' ? `
-        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
-          <button class="dir-del" onclick="viewTokenSupply(${d.id})">Supply</button>
-          <button class="dir-del" onclick="mintToken(${d.id})">Mint</button>
-          <button class="dir-del" onclick="burnToken(${d.id})">Burn</button>
-          <button class="dir-del" onclick="transferToken(${d.id})">Transfer</button>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="chip-btn" onclick="viewTokenSupply(${d.id})">Supply</button>
+          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'mint')">Mint</button>
+          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'burn')">Burn</button>
+          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'transfer')">Transfer</button>
         </div>
-        <div id="tokAction${d.id}" style="font-size:10.5px;color:var(--text-secondary);margin-top:4px"></div>
+        <div id="tokActionForm${d.id}" class="field-row" style="display:none;margin-top:10px"></div>
+        <div id="tokAction${d.id}" style="font-size:11px;color:var(--text-secondary);margin-top:8px"></div>
       ` : ''}
-    </div>`).join('') : '<div style="color:var(--text-muted)">No tokens deployed yet.</div>';
+    </div>`;
+  }).join('') : '<div class="card" style="color:var(--text-muted);font-size:11px">No tokens deployed yet.</div>';
 }
 
 async function viewTokenSupply(id) {
@@ -3276,31 +3726,43 @@ async function viewTokenSupply(id) {
   box.textContent = data ? `Supply: ${data.total_supply}${data.cap ? ' / cap ' + data.cap : ''}${data.on_chain_owner ? ' · owner ' + data.on_chain_owner : ''}` : 'Could not load supply.';
 }
 
-async function mintToken(id) {
-  const to = prompt('Mint to address:'); if (!to) return;
-  const amount = prompt('Amount:'); if (!amount) return;
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch('/api/tokens/mint', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, to_address: to, amount, passphrase})});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('tokAction' + id).textContent = r.ok ? `Minted — tx ${data.tx_hash}` : (data.detail || 'Mint failed.');
+function showTokenActionForm(id, kind) {
+  const el = document.getElementById('tokActionForm' + id);
+  if (el.dataset.kind === kind && el.style.display !== 'none') { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.dataset.kind = kind;
+  el.style.display = '';
+  if (kind === 'mint') {
+    el.innerHTML = `<div class="field"><label class="field-label">To address</label><input class="settings-input" id="tokActTo${id}" placeholder="0x…"></div>
+      <div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
+      <button class="settings-save-btn" onclick="submitTokenAction(${id},'mint')">Mint</button>`;
+  } else if (kind === 'burn') {
+    el.innerHTML = `<div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
+      <div class="field"><label class="field-label">From (blank = you)</label><input class="settings-input" id="tokActFrom${id}" placeholder="0x… (optional)"></div>
+      <button class="settings-save-btn" onclick="submitTokenAction(${id},'burn')">Burn</button>`;
+  } else {
+    el.innerHTML = `<div class="field"><label class="field-label">To address</label><input class="settings-input" id="tokActTo${id}" placeholder="0x…"></div>
+      <div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
+      <button class="settings-save-btn" onclick="submitTokenAction(${id},'transfer')">Transfer</button>`;
+  }
 }
 
-async function burnToken(id) {
-  const amount = prompt('Amount to burn:'); if (!amount) return;
-  const from = prompt('Burn from address (blank = your own balance):') || null;
+async function submitTokenAction(id, kind) {
+  const box = document.getElementById('tokAction' + id);
+  const amount = (document.getElementById('tokActAmount' + id)?.value || '').trim();
+  const to = (document.getElementById('tokActTo' + id)?.value || '').trim();
+  const from = (document.getElementById('tokActFrom' + id)?.value || '').trim() || null;
+  if (kind !== 'burn' && !to) { box.textContent = 'Enter a destination address.'; return; }
+  if (!amount) { box.textContent = 'Enter an amount.'; return; }
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch('/api/tokens/burn', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, amount, from_address: from, passphrase})});
+  const endpoint = kind === 'mint' ? '/api/tokens/mint' : kind === 'burn' ? '/api/tokens/burn' : '/api/tokens/transfer';
+  const body = kind === 'mint' ? {deployment_id: id, to_address: to, amount, passphrase}
+    : kind === 'burn' ? {deployment_id: id, amount, from_address: from, passphrase}
+    : {deployment_id: id, to_address: to, amount, passphrase};
+  const r = await fetch(endpoint, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('tokAction' + id).textContent = r.ok ? `Burned — tx ${data.tx_hash}` : (data.detail || 'Burn failed.');
-}
-
-async function transferToken(id) {
-  const to = prompt('Transfer to address:'); if (!to) return;
-  const amount = prompt('Amount:'); if (!amount) return;
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch('/api/tokens/transfer', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({deployment_id: id, to_address: to, amount, passphrase})});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('tokAction' + id).textContent = r.ok ? `Transferred — tx ${data.tx_hash}` : (data.detail || 'Transfer failed.');
+  const doneLabel = {mint: 'Minted', burn: 'Burned', transfer: 'Transferred'}[kind];
+  box.textContent = r.ok ? `${doneLabel} - tx ${data.tx_hash}` : (_apiErrorText(data, 'Action failed.'));
+  if (r.ok) { const form = document.getElementById('tokActionForm' + id); form.style.display = 'none'; form.innerHTML = ''; }
 }
 
 // ---- Treasury ----
@@ -3310,7 +3772,7 @@ async function loadTreasuryOverview() {
   if (!data) { box.textContent = 'Could not load treasury overview.'; return; }
   box.innerHTML = `
     <div>Total: <strong>$${_escapeHtml(data.total_usd)}</strong></div>
-    <div style="margin-top:6px">${(data.proposals || []).map(p => `<div>⚠ ${_escapeHtml(p.description)}</div>`).join('') || 'No proposals — nothing flagged.'}</div>
+    <div style="margin-top:6px">${(data.proposals || []).map(p => `<div>⚠ ${_escapeHtml(p.description)}</div>`).join('') || 'No proposals - nothing flagged.'}</div>
     <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.note)}</div>
   `;
 }
@@ -3327,10 +3789,10 @@ async function compareRoutes() {
   const r = await fetch('/api/treasury/routes?' + params);
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('routeResult');
-  if (!r.ok) { box.textContent = data.detail || 'Could not compare routes.'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not compare routes.'); return; }
   box.innerHTML = (data.routes || []).map(rt => `
     <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-      <strong>${_escapeHtml(rt.provider)}</strong>${rt.recommended ? ' ⭐' : ''} — delivers ${_escapeHtml(rt.delivered_amount)} ${_escapeHtml(data.to_token)}
+      <strong>${_escapeHtml(rt.provider)}</strong>${rt.recommended ? ' ⭐' : ''} - delivers ${_escapeHtml(rt.delivered_amount)} ${_escapeHtml(data.to_token)}
       ${rt.fee_usd ? ` · fee $${_escapeHtml(rt.fee_usd)}` : ''}${rt.gas_cost_usd ? ` · gas $${_escapeHtml(rt.gas_cost_usd)}` : ''}
       <div style="color:var(--text-muted);font-size:10px">${_escapeHtml(rt.expiry)}</div>
     </div>`).join('') || '<div style="color:var(--text-muted)">No routes found.</div>';
@@ -3344,13 +3806,13 @@ async function loadIntel(kind) {
   const data = await fetch('/api/intelligence/wallet/' + kind).then(r => r.json()).catch(() => null);
   if (!data) { box.textContent = 'Could not load.'; return; }
   if (kind === 'top-payees') {
-    box.innerHTML = (data.payees || []).map(p => `<div>${_escapeHtml(p.payee)} — $${_escapeHtml(p.total_usd)} (${p.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
+    box.innerHTML = (data.payees || []).map(p => `<div>${_escapeHtml(p.payee)} - $${_escapeHtml(p.total_usd)} (${p.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
   } else if (kind === 'spend-by-category') {
-    box.innerHTML = (data.categories || []).map(c => `<div>${_escapeHtml(c.category)} — $${_escapeHtml(c.total_usd)} (${c.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
+    box.innerHTML = (data.categories || []).map(c => `<div>${_escapeHtml(c.category)} - $${_escapeHtml(c.total_usd)} (${c.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
   } else if (kind === 'recurring-counterparties') {
-    box.innerHTML = (data.recurring_counterparties || []).map(c => `<div>${_escapeHtml(c.payee)} — ${c.occurrences} payments</div>`).join('') || 'No recurring counterparties yet.';
+    box.innerHTML = (data.recurring_counterparties || []).map(c => `<div>${_escapeHtml(c.payee)} - ${c.occurrences} payments</div>`).join('') || 'No recurring counterparties yet.';
   } else if (kind === 'unusual-activity') {
-    box.innerHTML = (data.unusual_transactions || []).map(u => `<div>Tx #${u.transaction_id} — $${_escapeHtml(u.amount_usd)} to ${_escapeHtml(u.counterparty || '?')} (${u.deviations_above_mean}σ above mean)</div>`).join('') || (data.note ? _escapeHtml(data.note) : 'Nothing unusual.');
+    box.innerHTML = (data.unusual_transactions || []).map(u => `<div>Tx #${u.transaction_id} - $${_escapeHtml(u.amount_usd)} to ${_escapeHtml(u.counterparty || '?')} (${u.deviations_above_mean}σ above mean)</div>`).join('') || (data.note ? _escapeHtml(data.note) : 'Nothing unusual.');
   }
 }
 
@@ -3360,11 +3822,11 @@ async function screenAddress() {
   const r = await fetch('/api/risk/screen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('riskResult');
-  if (!r.ok) { box.textContent = data.detail || 'Screening failed.'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Screening failed.'); return; }
   box.innerHTML = `
     <div>Result: <strong>${_escapeHtml(data.result)}</strong> (${_escapeHtml(data.provider)})</div>
     ${data.reason ? `<div style="color:var(--text-muted)">${_escapeHtml(data.reason)}</div>` : ''}
-    ${data.mandatory ? '<div style="color:var(--text-muted)">Mandatory screening is enabled — a flagged/unavailable result blocks batch sends.</div>' : ''}
+    ${data.mandatory ? '<div style="color:var(--text-muted)">Mandatory screening is enabled - a flagged/unavailable result blocks batch sends.</div>' : ''}
   `;
 }
 
@@ -3375,7 +3837,7 @@ async function submitRiskReview() {
   };
   const r = await fetch('/api/risk/reviews', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('reviewStatus').textContent = r.ok ? 'Review recorded.' : (data.detail || 'Could not record review.');
+  document.getElementById('reviewStatus').textContent = r.ok ? 'Review recorded.' : (_apiErrorText(data, 'Could not record review.'));
 }
 
 // ---- Contract interaction assistant ----
@@ -3390,7 +3852,7 @@ async function readContract() {
   };
   const r = await fetch('/api/contracts/read', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('ciReadResult').textContent = r.ok ? `${data.contract_name}.${data.method}(${data.args.join(', ')}) = ${data.result}` : (data.detail || 'Read failed.');
+  document.getElementById('ciReadResult').textContent = r.ok ? `${data.contract_name}.${data.method}(${data.args.join(', ')}) = ${data.result}` : (_apiErrorText(data, 'Read failed.'));
 }
 
 async function simulateCall() {
@@ -3402,7 +3864,7 @@ async function simulateCall() {
   const data = await r.json().catch(() => ({}));
   document.getElementById('ciSimResult').innerHTML = r.ok
     ? (data.summary.map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'No asset changes detected.')
-    : (data.detail || 'Simulation failed.');
+    : (_apiErrorText(data, 'Simulation failed.'));
 }
 
 let _preparedContractCall = null;
@@ -3419,10 +3881,10 @@ async function prepareContractCall() {
   const box = document.getElementById('ciWriteResult');
   const r = await fetch('/api/contracts/prepare', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = data.detail || 'Preparation failed.'; return; }
+  if (!r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = _apiErrorText(data, 'Preparation failed.'); return; }
   const sim = await fetch('/api/contracts/simulate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({network:body.network, from_address:body.from_address, to_address:data.address, data:data.data, value_wei:0})});
   const simData = await sim.json().catch(() => ({}));
-  if (!sim.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = simData.detail || 'Simulation failed.'; return; }
+  if (!sim.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = _apiErrorText(simData, 'Simulation failed.'); return; }
   _preparedContractCall = {...body, wallet_id:walletId, confirmation_token:data.confirmation_token};
   document.getElementById('ciExecuteBtn').disabled = false;
   box.innerHTML = (simData.summary || []).map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'Simulation found no asset changes. Review carefully.';
@@ -3434,7 +3896,7 @@ async function executeContractCall() {
   const body = {..._preparedContractCall, passphrase}; delete body.from_address;
   const r = await fetch('/api/contracts/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('ciWriteResult').textContent = r.ok ? `Broadcast ${data.tx_hash}` : (data.detail || 'Execution failed.');
+  document.getElementById('ciWriteResult').textContent = r.ok ? `Broadcast ${data.tx_hash}` : (_apiErrorText(data, 'Execution failed.'));
   if (r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; }
 }
 
@@ -3448,9 +3910,9 @@ async function checkNameAvailability() {
   if (!name) { box.textContent = 'Enter a name to check.'; return; }
   const r = await fetch('/api/names/availability?name=' + encodeURIComponent(name));
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { box.textContent = data.detail || 'Could not check availability.'; registerCard.style.display = 'none'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not check availability.'); registerCard.style.display = 'none'; return; }
   if (data.available) {
-    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is available — ${_escapeHtml(data.price_1yr)} USDC/year.`;
+    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is available - ${_escapeHtml(data.price_1yr)} USDC/year.`;
     registerCard.style.display = '';
     registerCard.dataset.name = name;
   } else {
@@ -3465,7 +3927,7 @@ async function commitName() {
   const status = document.getElementById('nameRegisterStatus');
   const r = await fetch('/api/names/commit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name})});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = data.detail || 'Commit failed.'; return; }
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Commit failed.'); return; }
   _nameCommitState = {name, walletId, secret: data.secret, committedAt: Date.now()};
   status.textContent = `Committed (tx ${data.tx_hash}). Wait ~60s, then click "Complete".`;
   document.getElementById('nameRevealBtn').disabled = true;
@@ -3482,7 +3944,7 @@ async function revealName() {
   };
   const r = await fetch('/api/names/register', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok ? `Registered! Tx: ${data.tx_hash}` : (data.detail || 'Registration failed.');
+  status.textContent = r.ok ? `Registered! Tx: ${data.tx_hash}` : (_apiErrorText(data, 'Registration failed.'));
   if (r.ok) _nameCommitState = null;
 }
 
@@ -3492,7 +3954,7 @@ async function loadNameDetail() {
   if (!name) { box.textContent = 'Enter a name.'; return; }
   const r = await fetch('/api/names/' + encodeURIComponent(name));
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { box.textContent = data.detail || 'Could not load.'; return; }
+  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load.'); return; }
   if (!data.on_chain) { box.innerHTML = 'Not registered on-chain.'; return; }
   const expiryDate = new Date(data.on_chain.expiry * 1000);
   const daysLeft = Math.round((expiryDate - Date.now()) / 86400000);
@@ -3509,7 +3971,7 @@ async function renewName() {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
   const r = await fetch('/api/names/renew', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, duration_seconds: 365 * 86400, passphrase})});
   const data = await r.json().catch(() => ({}));
-  alert(r.ok ? `Renewed — tx ${data.tx_hash}` : (data.detail || 'Renewal failed.'));
+  alert(r.ok ? `Renewed - tx ${data.tx_hash}` : (_apiErrorText(data, 'Renewal failed.')));
   if (r.ok) await loadNameDetail();
 }
 
@@ -3522,7 +3984,7 @@ async function transferName() {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
   const r = await fetch('/api/names/transfer', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, new_owner: newOwner, passphrase})});
   const data = await r.json().catch(() => ({}));
-  alert(r.ok ? `Transferred — tx ${data.tx_hash}` : (data.detail || 'Transfer failed.'));
+  alert(r.ok ? `Transferred - tx ${data.tx_hash}` : (_apiErrorText(data, 'Transfer failed.')));
   if (r.ok) await loadNameDetail();
 }
 
@@ -3544,26 +4006,57 @@ async function publishRecord() {
   const data = await r.json().catch(() => ({}));
   status.textContent = r.ok
     ? `Published (sequence ${data.sequence})${data.published_externally ? ', synced to the record service' : ', cached locally only'}.`
-    : (data.detail || 'Publish failed.');
+    : (_apiErrorText(data, 'Publish failed.'));
 }
+
+let _ledgerTransactions = [];
 
 async function loadLedger() {
   const box = document.getElementById('ledgerList');
   try {
     const data = await fetch('/api/ledger?limit=200').then(r => r.json());
-    box.innerHTML = data.transactions.length ? data.transactions.map(t => `<div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div style="display:flex;justify-content:space-between;gap:6px"><strong>${_escapeHtml(t.category || t.direction || 'transaction')}</strong><span>${_escapeHtml(t.status)}</span></div>
-      <div>${_escapeHtml(t.amount)} ${_escapeHtml(t.token || '')} · ${_escapeHtml(t.network || t.chain || '')}${t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''}</div>
-      <div style="color:var(--text-muted)">${_escapeHtml(t.counterparty || t.to || '')}${t.note ? ' · ' + _escapeHtml(t.note) : ''}</div>
-      <button class="dir-del" onclick="editLedger(${t.id})">Tag / note</button><button class="dir-del" onclick="window.open('/api/ledger/${t.id}/receipt','_blank')">Receipt</button>
-    </div>`).join('') : '<div style="font-size:11px;color:var(--text-muted)">No recorded transactions yet.</div>';
+    _ledgerTransactions = data.transactions || [];
+    filterLedger();
   } catch(e) { box.textContent = 'Could not load the ledger.'; }
 }
 
-async function editLedger(id) {
-  const note = prompt('Transaction note (leave blank to clear):');
-  if (note === null) return;
-  const tags = prompt('Comma-separated tags:') ?? '';
+function filterLedger() {
+  const q = (document.getElementById('ledgerSearch')?.value || '').trim().toLowerCase();
+  const rows = !q ? _ledgerTransactions : _ledgerTransactions.filter(t => {
+    const note = (t.note || '').toLowerCase();
+    const tags = (t.tags || []).join(' ').toLowerCase();
+    return note.includes(q) || tags.includes(q);
+  });
+  _renderLedgerList(rows, q);
+}
+
+function _renderLedgerList(rows, q) {
+  const box = document.getElementById('ledgerList');
+  box.innerHTML = rows.length ? rows.map(t => `<div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
+      <div style="display:flex;justify-content:space-between;gap:6px"><strong>${_escapeHtml(t.category || t.direction || 'transaction')}</strong><span>${_escapeHtml(t.status)}</span></div>
+      <div>${_escapeHtml(t.amount)} ${_escapeHtml(t.token || '')} · ${_escapeHtml(t.network || t.chain || '')}${t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''}</div>
+      <div style="color:var(--text-muted)">${_escapeHtml(t.counterparty || t.to || '')}${t.note ? ' · ' + _escapeHtml(t.note) : ''}${(t.tags || []).length ? ' · ' + t.tags.map(x => _escapeHtml(x)).join(', ') : ''}</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Tag / note</button>
+        <button class="dir-del" onclick="openReceipt('/api/ledger/${t.id}/receipt','Transaction Receipt')">Receipt</button>
+      </div>
+      <div id="ledgerEdit${t.id}" class="field-row" style="display:none;margin-top:7px">
+        <div class="field"><label class="field-label" for="ledgerNote${t.id}">Note</label><input class="settings-input" id="ledgerNote${t.id}" value="${_escapeHtml(t.note || '')}" placeholder="Note"></div>
+        <div class="field"><label class="field-label" for="ledgerTags${t.id}">Tags (comma-separated)</label><input class="settings-input" id="ledgerTags${t.id}" value="${_escapeHtml((t.tags || []).join(', '))}" placeholder="tag1, tag2"></div>
+        <button class="settings-save-btn" onclick="saveLedgerEdit(${t.id})">Save</button>
+        <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Cancel</button>
+      </div>
+    </div>`).join('') : `<div style="font-size:11px;color:var(--text-muted)">${q ? 'No transactions match "' + _escapeHtml(q) + '".' : 'No recorded transactions yet.'}</div>`;
+}
+
+function toggleLedgerEdit(id) {
+  const el = document.getElementById('ledgerEdit' + id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+async function saveLedgerEdit(id) {
+  const note = document.getElementById('ledgerNote' + id).value;
+  const tags = document.getElementById('ledgerTags' + id).value;
   await fetch('/api/ledger/' + id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note, tags:tags.split(',').map(x=>x.trim()).filter(Boolean)})});
   await loadLedger();
 }
@@ -3589,13 +4082,13 @@ async function revokeAllowance(spender) {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
   const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', spender, passphrase};
   const r = await fetch('/api/safety/allowances/revoke', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if (!r.ok) alert((await r.json().catch(()=>({}))).detail || 'Revocation failed'); else await loadAllowances();
+  if (!r.ok) alert(_apiErrorText((await r.json().catch(()=>({}))), 'Revocation failed')); else await loadAllowances();
 }
 
 async function createBalanceMonitor() {
   const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', condition:document.getElementById('monitorCondition').value, threshold:document.getElementById('monitorThreshold').value};
   const r = await fetch('/api/safety/monitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if (!r.ok) alert((await r.json().catch(()=>({}))).detail || 'Could not create monitor'); else await loadBalanceMonitors();
+  if (!r.ok) alert(_apiErrorText((await r.json().catch(()=>({}))), 'Could not create monitor')); else await loadBalanceMonitors();
 }
 
 async function loadBalanceMonitors() {
@@ -3604,13 +4097,39 @@ async function loadBalanceMonitors() {
 }
 async function deleteMonitor(id){await fetch('/api/safety/monitors/'+id,{method:'DELETE'});await loadBalanceMonitors();}
 
+function _updateAlertKindHints() {
+  const kind = document.getElementById('alertKind').value;
+  const targetLabel = document.getElementById('alertTargetLabel');
+  const targetInput = document.getElementById('alertTarget');
+  const configLabel = document.getElementById('alertConfigLabel');
+  const configInput = document.getElementById('alertConfig');
+  if (kind === 'telegram') {
+    targetLabel.textContent = 'Telegram chat ID'; targetInput.placeholder = 'Chat ID';
+    configLabel.textContent = 'Config (JSON) - bot token'; configInput.placeholder = '{"bot_token":"..."}';
+  } else if (kind === 'email') {
+    targetLabel.textContent = 'Recipient email'; targetInput.placeholder = 'you@example.com';
+    configLabel.textContent = 'Config (JSON) - SMTP settings'; configInput.placeholder = '{"smtp_host":"...","smtp_port":587,"from_address":"...","username":"...","password":"..."}';
+  } else {
+    targetLabel.textContent = 'Webhook URL'; targetInput.placeholder = 'https://…';
+    configLabel.textContent = 'Config (JSON) - signing secret'; configInput.placeholder = '{"signing_secret":"..."}';
+  }
+}
+
 async function addAlertDestination() {
-  const kind = (prompt('Destination type: telegram, email, or webhook') || '').toLowerCase(); if (!kind) return;
-  const target = prompt(kind === 'telegram' ? 'Telegram chat ID:' : kind === 'email' ? 'Recipient email:' : 'HTTPS webhook URL:'); if (!target) return;
-  const raw = prompt(kind === 'telegram' ? 'Config JSON, e.g. {"bot_token":"..."}' : kind === 'email' ? 'Config JSON with smtp_host, smtp_port, from_address, username and password:' : 'Config JSON, e.g. {"signing_secret":"..."}', '{}');
-  let config; try { config=JSON.parse(raw||'{}'); } catch(e) { alert('Invalid JSON'); return; }
-  const r=await fetch('/api/safety/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,target,config})});
-  if(!r.ok) alert((await r.json().catch(()=>({}))).detail||'Could not add destination'); else await loadAlertDestinations();
+  const status = document.getElementById('alertAddStatus');
+  const kind = document.getElementById('alertKind').value;
+  const target = document.getElementById('alertTarget').value.trim();
+  if (!target) { status.style.color = 'var(--red)'; status.textContent = 'Enter a target first.'; return; }
+  let config;
+  try { config = JSON.parse(document.getElementById('alertConfig').value.trim() || '{}'); }
+  catch (e) { status.style.color = 'var(--red)'; status.textContent = 'Config must be valid JSON.'; return; }
+  const r = await fetch('/api/safety/alerts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind, target, config})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'Could not add destination.'); return; }
+  document.getElementById('alertTarget').value = '';
+  document.getElementById('alertConfig').value = '{}';
+  status.style.color = 'var(--green)'; status.textContent = 'Destination added.';
+  await loadAlertDestinations();
 }
 async function loadAlertDestinations(){const rows=await fetch('/api/safety/alerts').then(r=>r.json()).catch(()=>[]);document.getElementById('alertList').innerHTML=rows.map(d=>`<div>${_escapeHtml(d.kind)} · ${_escapeHtml(d.target)} <button class="dir-del" onclick="deleteAlert(${d.id})">×</button></div>`).join('')||'No alert destinations.';}
 async function deleteAlert(id){await fetch('/api/safety/alerts/'+id,{method:'DELETE'});await loadAlertDestinations();}
@@ -3650,7 +4169,7 @@ async function loadProofsView() {
 
 async function _proofJson(response) {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || 'BlockchainProof request failed.');
+  if (!response.ok) throw new Error(_apiErrorText(data, 'BlockchainProof request failed.'));
   return data;
 }
 
@@ -3764,7 +4283,7 @@ async function verifyProofHash() {
 
 const _SETTINGS_FILLED_PLACEHOLDER = '••••••••••••••••••••';
 
-// A saved key never needs to be shown or re-typed — just make the input
+// A saved key never needs to be shown or re-typed - just make the input
 // itself look filled with dots. Falls back to the field's normal helper
 // placeholder (e.g. "sk-or-…") when nothing is set yet.
 function _applyKeyPlaceholder(inputEl, isSet) {
@@ -3835,7 +4354,7 @@ async function saveAssetSettings() {
       body: JSON.stringify({ enabled_networks, usdc_networks }),
     });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || 'Could not save');
+    if (!r.ok) throw new Error(_apiErrorText(data, 'Could not save'));
     _assetSettings = data;
     statusEl.textContent = 'Saved!';
     statusEl.style.color = 'var(--green)';
@@ -3975,7 +4494,7 @@ async function saveWalletName(id, newName) {
     });
     if (!r.ok) {
       const data = await r.json().catch(() => ({}));
-      addMsg('Rename failed: ' + _escapeHtml(data.detail || 'unknown error'), 'bot');
+      addMsg('Rename failed: ' + _escapeHtml(_apiErrorText(data, 'unknown error')), 'bot');
     }
   } catch(e) {}
   await loadWalletMgmt();
@@ -4050,7 +4569,7 @@ async function submitExportWallet() {
       body: JSON.stringify({ passphrase })
     });
     const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || 'Failed');
+    if (!r.ok) throw new Error(_apiErrorText(data, 'Failed'));
     passInput.value = '';
     document.getElementById('exportKeyOutput').value = data.private_key;
     data.private_key = '';

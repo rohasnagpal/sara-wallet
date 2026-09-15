@@ -67,8 +67,9 @@ requirement for any proxy), **names do not carry over automatically**:
    the new registry" convenience flow (not built in this stage) that reads
    the old contract's data and pre-fills a fresh commit/reveal on the new
    one, but the actual claim is a new, independent action by the owner.
-3. Update `SARA_NAME_REGISTRAR_ADDRESS` (and re-run
-   `contracts/scripts/export_artifacts.py` if the ABI changed) only after
+3. Update `SARA_NAME_REGISTRAR_ADDRESS` (and re-run the `bname` repo's
+   `scripts/export_artifacts.py`, copying the result over
+   `backend/app/tools/names/registry_abi.json`, if the ABI changed) only after
    every user-facing surface (this runbook, `docs/sara-names-protocol.md`,
    the frontend) is updated to say so — never silently point existing users
    at a different contract without them knowing their old names don't

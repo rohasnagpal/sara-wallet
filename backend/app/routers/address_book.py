@@ -25,6 +25,13 @@ def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
     nick = body.nickname.strip().lower()
     if not nick:
         raise HTTPException(400, "Nickname required")
+    # Directory nicknames are free, local, unverified aliases - they must
+    # never shadow a bare name a "send to X" could also resolve as a paid,
+    # on-chain Sara Name (app.tools.names.sara_names), or nobody would ever
+    # buy one. Namespacing every directory entry under ".sara" reserves the
+    # bare label exclusively for the real registry.
+    if not nick.endswith(".sara"):
+        nick = nick + ".sara"
     if body.chain.lower() != "evm":
         raise HTTPException(400, "Sara now supports EVM addresses only")
     from web3 import Web3

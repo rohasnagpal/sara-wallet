@@ -17,6 +17,23 @@ from app.db.models import Wallet, PaymentRequest, MerchantClient, AlertDestinati
 from app.tools.payments.links import decode_payload, create_payment_request, encode_payload
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
+from app.core.assets import NETWORKS
+
+
+def _eip681_uri(token: str, network: str, payment_address: str | None, amount_raw) -> str | None:
+    """A wallet-standard (EIP-681) payment URI so scanning the invoice's QR
+    with MetaMask or any other wallet app pre-fills the transfer, instead of
+    a Sara-only deep link only Sara's own frontend can act on."""
+    net = NETWORKS.get(network)
+    if not net or not payment_address or amount_raw is None:
+        return None
+    chain_id = net["chain_id"]
+    symbol = token.upper()
+    if symbol == net["native"]:
+        return f"ethereum:{payment_address}@{chain_id}?value={amount_raw}"
+    if symbol == "USDC" and net.get("usdc"):
+        return f"ethereum:{net['usdc']}@{chain_id}/transfer?address={payment_address}&uint256={amount_raw}"
+    return None
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -116,14 +133,18 @@ def public_invoice(reference: str, db: Session = Depends(get_db)):
     db.commit()
     payload = encode_payload({"v":1,"ref":row.reference,"to":row.payment_address,"chain":row.chain,
                               "network":row.network,"token":row.token,"amount":data["amount"],"note":row.note})
-    return {**data, "payload": payload}
+    payment_uri = _eip681_uri(row.token, row.network, row.payment_address, row.amount_raw)
+    return {**data, "payload": payload, "payment_uri": payment_uri}
 
 
 @router.get("/page/{reference}", response_class=HTMLResponse)
 def payment_page(reference: str, db: Session = Depends(get_db)):
     data = public_invoice(reference, db)
     payload = data["payload"]
-    qr_url = "/api/payments/qr?data=" + quote("/?pay=" + payload, safe="")
+    # A standard wallet-payment URI (EIP-681) when we have one, so MetaMask
+    # and other wallet apps' QR scanners can pre-fill the transfer directly;
+    # falls back to Sara's own deep link (only Sara itself can open that).
+    qr_url = "/api/payments/qr?data=" + quote(data.get("payment_uri") or ("/?pay=" + payload), safe="")
     status = html.escape(data["status"])
     return HTMLResponse(f"""<!doctype html><html><head><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Invoice {html.escape(reference)}</title><style>body{{font-family:system-ui;background:#f5f3ee;color:#1d1b17;display:grid;place-items:center;min-height:100vh}}main{{background:white;padding:28px;border-radius:16px;max-width:420px;text-align:center;box-shadow:0 8px 30px #0001}}img{{width:220px}}code{{word-break:break-all}}a{{display:inline-block;padding:11px 18px;background:#254f3d;color:white;border-radius:8px;text-decoration:none}}</style></head><body><main><h1>{html.escape(reference)}</h1><p>{html.escape(data.get('customer_name') or '')}</p><h2>{html.escape(data['amount'])} {html.escape(data['token'])}</h2><p>{html.escape(data.get('description') or '')}</p><img src='{qr_url}' alt='Payment QR'><p><code>{html.escape(data['payment_address'] or '')}</code></p><p>Status: <strong>{status}</strong></p>{'' if status in ('paid','cancelled') else f"<a href='/?pay={payload}'>Pay with Sara</a>"}</main></body></html>""", headers={"Cache-Control":"no-store"})
 
