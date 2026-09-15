@@ -21,56 +21,56 @@
 Sara now combines four product layers:
 
 **Wallet and payments**
-1. Natural-language USDC/native sends
-2. Payment links and QR codes
-3. Invoices with automatic on-chain reconciliation
-4. Proof-of-payment receipts
-5. Swaps
-6. Bridges
-7. Batch payments
-8. Recurring payments
-9. Crypto payroll
+1. **Natural-language USDC/native sends** - e.g. `send 100 USDC to rohas.sara`; Sara resolves the recipient, shows the exact amount and fee, and asks you to confirm before signing.
+2. **Payment links and QR codes** - generate a shareable link or QR pre-filled with the amount, token and network, so anyone can pay you without typing an address.
+3. **Invoices with automatic on-chain reconciliation** - create an invoice for a customer and Sara marks it paid itself the moment a matching transfer lands, no manual "mark as paid."
+4. **Proof-of-payment receipts** - every confirmed payment gets a receipt with the amount, fiat value, fee, tx hash and status, ready to save or send.
+5. **Swaps** - trade one token for another on the same network, e.g. USDC to POL, with the quoted rate shown before you sign.
+6. **Bridges** - move USDC from one supported network to another, e.g. Polygon to Base, in one flow instead of a separate bridge dApp.
+7. **Batch payments** - pay or airdrop many recipients in one go from a list, each sent as its own on-chain transaction.
+8. **Recurring payments** - set a schedule (e.g. "every 1st of the month") that materializes a reviewable payment batch each time it's due.
+9. **Crypto payroll** - run payroll for a list of employees/contractors in one action, built on top of counterparties and batches.
 
 **Business and accounting**
-1. Exact-base-unit transaction ledger
-2. Fiat valuation
-3. Tags and notes
-4. Counterparties
-5. Income/expense reporting
-6. FIFO cost basis and P&L
-7. CSV/XLSX exports
-8. Approval workflows
-9. Scoped spending controls
+1. **Exact-base-unit transaction ledger** - every send/receive is recorded in the token's exact base units (no floating-point rounding), searchable by tag or note.
+2. **Fiat valuation** - each transaction is snapshotted with its USD/INR value at the time it happened, for accurate reporting later.
+3. **Tags and notes** - label transactions, e.g. "rent" or "invoice #42", so you can filter and categorize your ledger.
+4. **Counterparties** - save vendors, employees and contractors separately from your personal address book, for use in batches and payroll.
+5. **Income/expense reporting** - totals every ledger entry by category over a date range - a quick P&L across all tokens and networks.
+6. **FIFO cost basis and P&L** - tracks acquisition cost lots per token and computes realized gains/losses (not tax advice) when you dispose of them.
+7. **CSV/XLSX exports** - download your full ledger with fiat values, fees and classifications for your accountant or tax software.
+8. **Approval workflows** - require a second, independently-generated checker credential before a sensitive payment batch executes.
+9. **Scoped spending controls** - cap how much a wallet can send per transaction or per day/week/month, enforced right before signing.
 
 **Token and safety tools**
-1. Fixed-supply or capped mintable/burnable ERC-20 creation
-2. Mint/burn/transfer management
-3. Airdrops
-4. Allowance inspection and revocation
-5. Transaction simulation
-6. Verified-contract interaction
-7. Address risk screening
-8. Treasury monitoring
-9. Stablecoin route comparison
+1. **Fixed-supply or capped mintable/burnable ERC-20 creation** - deploy your own token, e.g. "Rohas Coin (RHS)", from two pinned templates: a fixed-supply coin, or an owner-mintable, holder-burnable, capped one.
+2. **Mint/burn/transfer management** - mint more supply (if the template allows it), burn your own balance, or send tokens you've deployed, straight from the Deployed tokens list.
+3. **Airdrops** - send the same or different amounts of a token to a batch of addresses in one flow.
+4. **Allowance inspection and revocation** - see every contract you've approved to spend your tokens and revoke any that shouldn't still have access.
+5. **Transaction simulation** - dry-run a contract call and see the result before it costs any gas.
+6. **Verified-contract interaction** - read from or write to any verified, non-proxy contract using allowlisted methods, re-simulated right before signing.
+7. **Address risk screening** - checks a destination address against sanctions/risk lists before you send it funds.
+8. **Treasury monitoring** - see combined balances and exposure across every wallet and network in one view.
+9. **Stablecoin route comparison** - estimates cost and time to move funds between two networks, e.g. Polygon to Arbitrum, for deciding how to rebalance.
 
 **Sara Names**
-1. Commit/reveal registration
-2. Renewals
-3. Transfers
-4. Subnames
-5. EIP-712 signed multi-network address/payment-preference records
+1. **Commit/reveal registration** - reserve a name like `rohas` in two steps, commit then complete after a ~60s delay, so nobody can front-run your registration by watching the mempool.
+2. **Renewals** - extend a name's expiry before it lapses; anyone can pay to renew it without changing who owns it.
+3. **Transfers** - move ownership of a name, e.g. `rohas`, to a different wallet address.
+4. **Subnames** - create names under one you own, e.g. `pay.rohas`, each with its own owner.
+5. **EIP-712 signed multi-network address/payment-preference records** - publish a signed record so `rohas` resolves to different addresses per network (plus a preferred token/network for payments), without an on-chain transaction per update.
 
 Backed by the Sara Names Polygon registry contract, developed and tested in a separate repo - this codebase only holds the client that talks to it (`backend/app/tools/names/`, `backend/app/routers/names.py`).
 
 **Portfolio and wallet intelligence**
-1. Historical performance
-2. Exposure
-3. Top-payee analysis
-4. Spend by category
-5. Recurring-counterparty detection
-6. Unusual-activity detection
+1. **Historical performance** - track total portfolio value over time across every wallet and network.
+2. **Exposure** - see how holdings break down by token and network at a glance.
+3. **Top-payee analysis** - "who have I sent the most to?", ranked from your own ledger, not a third-party service.
+4. **Spend by category** - totals outgoing transactions by the tags/categories you've assigned them.
+5. **Recurring-counterparty detection** - flags addresses you pay repeatedly, useful for spotting subscriptions or regular vendors.
+6. **Unusual-activity detection** - flags transactions that look out of pattern compared to your usual activity.
 
-**Alerts** can monitor payments, invoices, transactions and balance thresholds through Telegram, email or signed webhooks.
+**Alerts** can monitor payments, invoices, transactions and balance thresholds (e.g. "alert me if my Treasury wallet drops below 50 USDC") through Telegram, email or signed webhooks.
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
 
