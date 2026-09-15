@@ -400,6 +400,10 @@ select.settings-input { text-overflow: ellipsis; }
 .field-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
 .field-label { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); white-space: nowrap; }
+.field-hint { font-size: 10px; color: var(--text-muted); line-height: 1.4; }
+.field-grid-wide { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.howto-steps { font-size: 11px; color: var(--text-secondary); line-height: 1.8; margin: 6px 0 10px; padding-left: 18px; }
+.howto-steps li strong { color: var(--text-primary); }
 .settings-save-btn {
   padding: 8px 14px; border-radius: 8px; border: none;
   background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 500;
@@ -621,6 +625,12 @@ select.settings-input { text-overflow: ellipsis; }
 .focus-mode .sidebar2,
 .focus-mode .dashboard-left { display: none; }
 .focus-mode .dashboard-right { border-left: none; }
+
+/* Dashboard mode - hide everything except the center column (balance/ledger/etc) */
+.dashboard-mode .sidebar1,
+.dashboard-mode .sidebar2,
+.dashboard-mode .dashboard-right { display: none; }
+.dashboard-mode .dashboard-left { width: 100%; max-width: 900px; margin: 0 auto; }
 
 .profile-pill {
   display: flex; align-items: center; gap: 7px;
@@ -1049,6 +1059,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     <div class="topbar">
       <div class="topbar-title" id="topbarTitle">Portfolio</div>
       <div class="topbar-right">
+        <button class="focus-btn" id="dashboardBtn" onclick="toggleDashboardMode()">Dashboard</button>
         <button class="focus-btn" id="focusBtn" onclick="toggleFocus()">Focus</button>
         <span class="theme-label">Theme</span>
         <div class="theme-switcher">
@@ -1073,7 +1084,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
           <button class="col2-nav-btn" id="col2BtnBusiness" onclick="showCol2('business')">Business</button>
-          <button class="col2-nav-btn" id="col2BtnTools" onclick="showCol2('tools')">Tools</button>
+          <button class="col2-nav-btn" id="col2BtnTools" onclick="showCol2('tools')">Tokens</button>
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')">Proofs</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
@@ -1385,20 +1396,62 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="toolsTokensPane">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Create an ERC-20 token</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only - never arbitrary Solidity.</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only - never arbitrary Solidity. First time doing this? Here's the flow:</div>
+              <ol class="howto-steps">
+                <li>Pick a <strong>template</strong> below (each one explains what it can and can't do) and the <strong>network</strong> to deploy on - this costs real gas, so pick a wallet that's funded there.</li>
+                <li>Fill in the token's details - a display name, a short ticker symbol, and how many to create.</li>
+                <li><strong>Preview deployment</strong> first - it shows the exact fee and any centralisation risks before anything is signed.</li>
+                <li><strong>Deploy</strong> when you're happy. The token then shows up under "Deployed tokens" below, where you can mint/burn/transfer it - and if a PolygonScan/Etherscan API key is configured, its source is automatically submitted for verification a few seconds after it confirms.</li>
+              </ol>
               <div id="tokenTemplateList" style="font-size:11px;margin-bottom:8px">Loading templates…</div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="tokTemplate">Template</label><select class="settings-input" id="tokTemplate"></select></div>
-                <div class="field"><label class="field-label" for="tokWallet">Wallet</label><select class="settings-input" id="tokWallet"></select></div>
-                <div class="field"><label class="field-label" for="tokNetwork">Network</label><select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="tokName">Token name</label><input class="settings-input" id="tokName" maxlength="64" placeholder="Token name"></div>
-                <div class="field"><label class="field-label" for="tokSymbol">Symbol</label><input class="settings-input" id="tokSymbol" maxlength="16" placeholder="Symbol"></div>
-                <div class="field"><label class="field-label" for="tokDecimals">Decimals</label><input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="Decimals"></div>
-                <div class="field"><label class="field-label" for="tokSupply">Initial supply</label><input class="settings-input" id="tokSupply" placeholder="Initial supply"></div>
-                <div class="field"><label class="field-label" for="tokCap">Cap</label><input class="settings-input" id="tokCap" placeholder="Mintable template only"></div>
-                <div class="field"><label class="field-label" for="tokOwner">Owner address</label><input class="settings-input" id="tokOwner" placeholder="Blank = deploying wallet"></div>
+              <div class="field-grid field-grid-wide">
+                <div class="field">
+                  <label class="field-label" for="tokTemplate">Template</label>
+                  <select class="settings-input" id="tokTemplate"></select>
+                  <div class="field-hint">Which contract behavior to deploy - see the descriptions above.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokWallet">Wallet</label>
+                  <select class="settings-input" id="tokWallet"></select>
+                  <div class="field-hint">Pays the gas fee and becomes the token's default owner.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokNetwork">Network</label>
+                  <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                  <div class="field-hint">Polygon usually has the lowest gas fees - good for a first try.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokName">Token name</label>
+                  <input class="settings-input" id="tokName" maxlength="64" placeholder="e.g. Rohas Coin">
+                  <div class="field-hint">The full display name people will see, e.g. "Rohas Coin".</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokSymbol">Symbol</label>
+                  <input class="settings-input" id="tokSymbol" maxlength="16" placeholder="e.g. RHS">
+                  <div class="field-hint">Short ticker shown in wallets, usually 3-5 capital letters.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokDecimals">Decimals</label>
+                  <input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="18">
+                  <div class="field-hint">How finely the token divides. 18 matches ETH/most tokens - leave it unless you have a specific reason not to.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokSupply">Initial supply</label>
+                  <input class="settings-input" id="tokSupply" placeholder="e.g. 1000000">
+                  <div class="field-hint">How many whole tokens to create at launch, e.g. 1000000 for one million.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokCap">Cap</label>
+                  <input class="settings-input" id="tokCap" placeholder="e.g. 10000000">
+                  <div class="field-hint">Mintable template only - the hard maximum that can ever exist. Leave blank on Fixed supply.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="tokOwner">Owner address</label>
+                  <input class="settings-input" id="tokOwner" placeholder="Blank = deploying wallet">
+                  <div class="field-hint">Who can mint more later (Mintable template) or holds the full supply (Fixed supply). Leave blank to use the wallet selected above.</div>
+                </div>
               </div>
-              <div style="display:flex;gap:6px;margin-top:8px">
+              <div style="display:flex;gap:6px;margin-top:10px">
                 <button class="settings-save-btn" onclick="previewTokenDeployment()">Preview deployment</button>
                 <button class="settings-save-btn" onclick="deployToken()">Deploy</button>
               </div>
@@ -2782,20 +2835,40 @@ async function _chatCheckRequest(id, bubbleId) {
 }
 
 // Focus toggle
-function toggleFocus() {
-  const btn = document.getElementById('focusBtn');
+// Focus and Dashboard modes are mutually exclusive - each hides everything
+// but one column (chat-only vs balance/ledger/etc-only), so entering one
+// always clears the other first.
+function _setExclusiveViewMode(mode) {
   const titleEl = document.getElementById('topbarTitle');
-  const entering = !shell.classList.contains('focus-mode');
-  shell.classList.toggle('focus-mode');
-  btn.classList.toggle('active');
-  btn.textContent = entering ? 'Exit Focus' : 'Focus';
-  if (entering) {
-    titleEl.dataset.prevHtml = titleEl.innerHTML;
-    titleEl.innerHTML = '<span style="margin-right:7px">🎯</span>Sara AI Wallet (alpha)';
-  } else if (titleEl.dataset.prevHtml !== undefined) {
+  const focusBtn = document.getElementById('focusBtn');
+  const dashboardBtn = document.getElementById('dashboardBtn');
+  const wasAny = shell.classList.contains('focus-mode') || shell.classList.contains('dashboard-mode');
+  shell.classList.remove('focus-mode', 'dashboard-mode');
+  focusBtn.classList.remove('active'); focusBtn.textContent = 'Focus';
+  dashboardBtn.classList.remove('active'); dashboardBtn.textContent = 'Dashboard';
+  if (wasAny && titleEl.dataset.prevHtml !== undefined) {
     titleEl.innerHTML = titleEl.dataset.prevHtml;
     delete titleEl.dataset.prevHtml;
   }
+  if (mode === 'focus') {
+    shell.classList.add('focus-mode');
+    focusBtn.classList.add('active'); focusBtn.textContent = 'Exit Focus';
+    titleEl.dataset.prevHtml = titleEl.innerHTML;
+    titleEl.innerHTML = '<span style="margin-right:7px">🎯</span>Sara AI Wallet (alpha)';
+  } else if (mode === 'dashboard') {
+    shell.classList.add('dashboard-mode');
+    dashboardBtn.classList.add('active'); dashboardBtn.textContent = 'Exit Dashboard';
+    titleEl.dataset.prevHtml = titleEl.innerHTML;
+    titleEl.innerHTML = '<span style="margin-right:7px">📊</span>Sara AI Wallet (alpha)';
+  }
+}
+
+function toggleFocus() {
+  _setExclusiveViewMode(shell.classList.contains('focus-mode') ? null : 'focus');
+}
+
+function toggleDashboardMode() {
+  _setExclusiveViewMode(shell.classList.contains('dashboard-mode') ? null : 'dashboard');
 }
 
 // ══════════════════════════════════════
@@ -3624,9 +3697,10 @@ async function loadTokenTemplates() {
   const templates = data.templates || [];
   document.getElementById('tokTemplate').innerHTML = templates.map(t => `<option value="${t.template_id}">${_escapeHtml(t.label)}</option>`).join('');
   document.getElementById('tokenTemplateList').innerHTML = templates.map(t => `
-    <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-      <strong>${_escapeHtml(t.label)}</strong> - ${_escapeHtml(t.description)}
-      ${t.centralisation_risks.length ? `<div style="color:var(--text-muted);margin-top:3px">${t.centralisation_risks.map(r => '⚠ ' + _escapeHtml(r)).join('<br>')}</div>` : ''}
+    <div class="result-card" style="margin-top:6px">
+      <strong>${_escapeHtml(t.label)}</strong>
+      <div style="color:var(--text-secondary);margin-top:3px;line-height:1.5">${_escapeHtml(t.description)}</div>
+      ${t.centralisation_risks.length ? `<div style="color:var(--red);margin-top:5px;line-height:1.5">${t.centralisation_risks.map(r => '⚠ ' + _escapeHtml(r)).join('<br>')}</div>` : `<div style="color:var(--green);margin-top:5px">✓ No centralisation risk - nothing about it can change after deployment.</div>`}
     </div>`).join('');
 }
 

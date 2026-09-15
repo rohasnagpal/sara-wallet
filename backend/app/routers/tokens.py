@@ -94,6 +94,8 @@ def prepare_deployment(body: DeploymentBody, db: Session = Depends(get_db)):
         )
     except (ValueError, token_factory.TokenFactoryError) as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, f"Could not reach the {body.network.capitalize()} network - try again in a moment.")
 
 
 class DeployBody(DeploymentBody):
@@ -125,6 +127,8 @@ def create_deployment(body: DeployBody, db: Session = Depends(get_db)):
         )
     except token_factory.TokenFactoryError as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, f"Could not reach the {body.network.capitalize()} network - try again in a moment.")
     finally:
         key = None
     return _deployment_row(row)
@@ -145,6 +149,8 @@ def deployment_supply(deployment_id: int, db: Session = Depends(get_db)):
         return token_factory.token_supply(row)
     except token_factory.TokenFactoryError as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, "Could not reach the network - try again in a moment.")
 
 
 class MintBody(BaseModel):
@@ -180,6 +186,8 @@ def mint(body: MintBody, db: Session = Depends(get_db)):
         return {"tx_hash": tx_hash}
     except (ValueError, token_factory.TokenFactoryError) as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, "Could not reach the network - try again in a moment.")
 
 
 class BurnBody(BaseModel):
@@ -215,6 +223,8 @@ def burn(body: BurnBody, db: Session = Depends(get_db)):
         return {"tx_hash": tx_hash}
     except (ValueError, token_factory.TokenFactoryError) as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, "Could not reach the network - try again in a moment.")
 
 
 class TransferBody(BaseModel):
@@ -254,6 +264,8 @@ def transfer(body: TransferBody, db: Session = Depends(get_db)):
         enforce_mandatory_screening(db, body.to_address, row.network)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, "Could not reach the network - try again in a moment.")
     key = decrypt_key(wallet.encrypted_key)
     try:
         prepared = prepare_erc20_transfer_raw(
@@ -270,5 +282,7 @@ def transfer(body: TransferBody, db: Session = Depends(get_db)):
         return {"tx_hash": tx_hash}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except (ConnectionError, OSError):
+        raise HTTPException(502, "Could not reach the network - try again in a moment.")
     finally:
         key = None

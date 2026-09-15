@@ -20,12 +20,57 @@
 
 Sara now combines four product layers:
 
-- **Wallet and payments:** natural-language USDC/native sends, payment links and QR codes, invoices, automatic on-chain reconciliation, proof-of-payment receipts, swaps, bridges, batch payments, recurring payments and crypto payroll.
-- **Business and accounting:** an exact-base-unit transaction ledger, fiat valuation, tags and notes, counterparties, income/expense reporting, FIFO cost basis and P&L, CSV/XLSX exports, approval workflows and scoped spending controls.
-- **Token and safety tools:** fixed-supply or capped mintable/burnable ERC-20 creation, mint/burn/transfer management, airdrops, allowance inspection and revocation, transaction simulation, verified-contract interaction, address risk screening, treasury monitoring and stablecoin route comparison.
-- **Sara Names:** commit/reveal registration, renewals, transfers, subnames and EIP-712 signed multi-network address/payment-preference records backed by the Sara Names Polygon registry contract.
+**Wallet and payments**
+1. Natural-language USDC/native sends
+2. Payment links and QR codes
+3. Invoices with automatic on-chain reconciliation
+4. Proof-of-payment receipts
+5. Swaps
+6. Bridges
+7. Batch payments
+8. Recurring payments
+9. Crypto payroll
 
-The portfolio and wallet-intelligence views provide historical performance, exposure, top-payee, category, recurring-counterparty and unusual-activity analysis. Alerts can monitor payments, invoices, transactions and balance thresholds through Telegram, email or signed webhooks.
+**Business and accounting**
+1. Exact-base-unit transaction ledger
+2. Fiat valuation
+3. Tags and notes
+4. Counterparties
+5. Income/expense reporting
+6. FIFO cost basis and P&L
+7. CSV/XLSX exports
+8. Approval workflows
+9. Scoped spending controls
+
+**Token and safety tools**
+1. Fixed-supply or capped mintable/burnable ERC-20 creation
+2. Mint/burn/transfer management
+3. Airdrops
+4. Allowance inspection and revocation
+5. Transaction simulation
+6. Verified-contract interaction
+7. Address risk screening
+8. Treasury monitoring
+9. Stablecoin route comparison
+
+**Sara Names**
+1. Commit/reveal registration
+2. Renewals
+3. Transfers
+4. Subnames
+5. EIP-712 signed multi-network address/payment-preference records
+
+Backed by the Sara Names Polygon registry contract, developed and tested in a separate repo - this codebase only holds the client that talks to it (`backend/app/tools/names/`, `backend/app/routers/names.py`).
+
+**Portfolio and wallet intelligence**
+1. Historical performance
+2. Exposure
+3. Top-payee analysis
+4. Spend by category
+5. Recurring-counterparty detection
+6. Unusual-activity detection
+
+**Alerts** can monitor payments, invoices, transactions and balance thresholds through Telegram, email or signed webhooks.
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server.
 
@@ -58,9 +103,9 @@ USDC contract addresses come from [Circle's official contract-address list](http
 
 ## 🛣️ Release Status and Roadmap
 
-Stages 0–5 are implemented locally. The Sara Names contract, client, signed records, indexer and deployment tooling are implemented and tested, but the registry has **not yet been broadcast to Polygon Amoy**. Sara Names remains unavailable until `SARA_NAME_REGISTRAR_ADDRESS` points to a verified deployment.
+Stages 0–5 are implemented locally. The Sara Names registry contract, its tests and deployment tooling live in a separate repo; this codebase's client, signed records and indexer are implemented and tested, but the registry has **not yet been broadcast to Polygon Amoy**. Sara Names remains unavailable until `SARA_NAME_REGISTRAR_ADDRESS` points to a verified deployment.
 
-Before any mainnet launch, the project still requires an independent smart-contract audit, a hardware-controlled multisig, authoritative reconfirmation of network/token addresses and a low-value canary deployment. See [`contracts/MAINNET_READINESS.md`](contracts/MAINNET_READINESS.md).
+Before any mainnet launch, the project still requires an independent smart-contract audit, a hardware-controlled multisig, authoritative reconfirmation of network/token addresses and a low-value canary deployment - see that separate repo's mainnet-readiness notes.
 
 Longer-term work includes broader live reconciliation coverage, realtime voice where supported and additional command languages.
 
@@ -130,7 +175,7 @@ ALCHEMY_API_KEY
 
 `ALCHEMY_API_KEY` enables USDC balance discovery and automatic EVM payment-request reconciliation (instead of requiring a manual "mark paid").
 
-**Optional — alerts, contract intelligence, risk screening and Sara Names:**
+**Optional - alerts, contract intelligence, risk screening and Sara Names:**
 
 ```env
 POLYGONSCAN_API_KEY=
@@ -171,8 +216,7 @@ Sara is designed as a local-first wallet and AI assistant.
 ```
 sara-wallet/
 ├── index.html              # Frontend app
-├── contracts/              # Foundry token templates and Sara Names registry
-├── docs/                   # Protocol and operational documentation
+├── contracts/              # Foundry ERC-20 templates for the token creator
 └── backend/
     ├── main.py             # FastAPI entrypoint
     ├── requirements.txt    # Developer dependency inputs

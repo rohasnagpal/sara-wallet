@@ -17,6 +17,8 @@ from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
 import json
+import shlex
+import subprocess
 from pathlib import Path
 
 from web3 import Web3
@@ -26,6 +28,14 @@ from app.core.events import publish
 from app.db.models import TokenDeployment, Wallet
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "tools" / "tokens" / "templates"
+
+# (source file under contracts/src, contract name) per template - used only
+# for source verification, kept in sync with contracts/scripts/export_artifacts.py's TEMPLATES.
+_TEMPLATE_SOURCES = {
+    "fixed_supply": ("FixedSupplyToken.sol", "FixedSupplyToken"),
+    "mintable_burnable_capped": ("MintableBurnableCappedToken.sol", "MintableBurnableCappedToken"),
+}
+_CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
 
 _TEMPLATE_DESCRIPTIONS = {
     "fixed_supply": {
@@ -184,9 +194,81 @@ def _apply_receipt(db, row: TokenDeployment, receipt) -> None:
                 event_key=f"token_deploy_confirmed:{row.network}:{row.deployment_tx_hash}")
         append_audit(db, "token.deployment_confirmed", "token_deployment", resource_id=str(row.id),
                      details={"contract_address": row.contract_address})
+        _submit_source_verification(row)
     else:
         row.status = "failed"
     db.commit()
+
+
+def _forge_binary() -> str | None:
+    import shutil
+    found = shutil.which("forge")
+    if found:
+        return found
+    candidate = Path.home() / ".foundry" / "bin" / "forge"
+    return str(candidate) if candidate.exists() else None
+
+
+def _encode_constructor_args(template_id: str, *, name: str, symbol: str, decimals: int,
+                              initial_supply_raw: int, cap_raw: int | None, owner_address: str) -> str | None:
+    from eth_abi import encode
+
+    owner_checksum = Web3.to_checksum_address(owner_address)
+    if template_id == "fixed_supply":
+        encoded = encode(["string", "string", "uint8", "uint256", "address"],
+                          [name, symbol, decimals, initial_supply_raw, owner_checksum])
+    elif template_id == "mintable_burnable_capped":
+        if cap_raw is None:
+            return None
+        encoded = encode(["string", "string", "uint8", "uint256", "uint256", "address"],
+                          [name, symbol, decimals, initial_supply_raw, cap_raw, owner_checksum])
+    else:
+        return None
+    return encoded.hex()
+
+
+def _submit_source_verification(row: TokenDeployment) -> None:
+    """Best-effort, fire-and-forget PolygonScan/Etherscan source
+    verification, submitted as a detached OS process so it survives this
+    backend process reloading/restarting. Silently does nothing if
+    POLYGONSCAN_API_KEY isn't set or `forge` isn't installed - verification
+    is a nice-to-have, it must never block or fail a deployment."""
+    try:
+        from app.core.config import settings
+        if not settings.POLYGONSCAN_API_KEY:
+            return
+        forge = _forge_binary()
+        if not forge:
+            return
+        source_file, contract_name = _TEMPLATE_SOURCES.get(row.template_id, (None, None))
+        if not source_file:
+            return
+        from app.chains.evm import _CHAIN_IDS
+        chain_id = _CHAIN_IDS.get(row.network)
+        if not chain_id or not _CONTRACTS_DIR.exists():
+            return
+        constructor_args = _encode_constructor_args(
+            row.template_id, name=row.name, symbol=row.symbol, decimals=row.decimals,
+            initial_supply_raw=int(row.initial_supply_raw), cap_raw=int(row.cap_raw) if row.cap_raw else None,
+            owner_address=row.owner_address,
+        )
+        if constructor_args is None:
+            return
+        log_path = _CONTRACTS_DIR / "verification.log"
+        forge_cmd = " ".join(shlex.quote(part) for part in [
+            forge, "verify-contract", row.contract_address, f"src/{source_file}:{contract_name}",
+            "--chain", str(chain_id), "--etherscan-api-key", settings.POLYGONSCAN_API_KEY,
+            "--constructor-args", "0x" + constructor_args, "--watch",
+        ])
+        # A short delay before submitting - PolygonScan's own indexer needs
+        # a moment to pick up the just-mined contract, or verification fails
+        # with "contract not found" even though it's already on-chain.
+        subprocess.Popen(
+            ["sh", "-c", f"sleep 20 && {forge_cmd} >> {shlex.quote(str(log_path))} 2>&1"],
+            cwd=_CONTRACTS_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+    except Exception:
+        pass
 
 
 def check_pending_deployments(db) -> int:
