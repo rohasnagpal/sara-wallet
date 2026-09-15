@@ -315,6 +315,8 @@ class PaymentBatchItem(Base):
     amount_raw       = Column(String, nullable=False)
     decimals         = Column(Integer, nullable=False)
     reference        = Column(String, nullable=True)
+    note             = Column(Text, nullable=True)
+    tags             = Column(Text, nullable=True)          # JSON string array
     status           = Column(String, nullable=False, default="draft", index=True)
     # draft | validated | awaiting_approval | approved | broadcasting | submitted | confirmed | failed | cancelled
     tx_hash          = Column(String, nullable=True, unique=True, index=True)

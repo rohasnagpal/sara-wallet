@@ -1,6 +1,7 @@
 import io
 import hashlib
 import hmac
+import json
 import secrets
 from datetime import datetime
 from decimal import Decimal
@@ -40,6 +41,13 @@ def _checker_principal(db: Session, api_key: str | None) -> str:
     return f"approver:{row.id}"
 
 
+def _clean_tags(tags: list[str]) -> list[str]:
+    cleaned = [t.strip() for t in tags if t.strip()]
+    if len(cleaned) > 20 or any(len(t) > 40 for t in cleaned):
+        raise HTTPException(400, "Use at most 20 tags of 40 characters each")
+    return list(dict.fromkeys(cleaned))
+
+
 def _batch_or_404(db: Session, batch_id: int) -> PaymentBatch:
     row = db.query(PaymentBatch).filter(PaymentBatch.id == batch_id).first()
     if not row:
@@ -64,7 +72,8 @@ def _item_row(item: PaymentBatchItem) -> dict:
     return {
         "id": item.id, "row_index": item.row_index, "recipient_address": item.recipient_address,
         "counterparty_id": item.counterparty_id, "amount": amount, "amount_raw": item.amount_raw,
-        "decimals": item.decimals, "reference": item.reference, "status": item.status,
+        "decimals": item.decimals, "reference": item.reference, "note": item.note,
+        "tags": json.loads(item.tags) if item.tags else [], "status": item.status,
         "tx_hash": item.tx_hash, "transaction_id": item.transaction_id, "failure_reason": item.failure_reason,
     }
 
@@ -144,6 +153,8 @@ class ItemBody(BaseModel):
     amount: str
     counterparty_id: int | None = None
     reference: str | None = Field(None, max_length=200)
+    note: str | None = Field(None, max_length=500)
+    tags: list[str] = Field(default_factory=list)
 
 
 @router.post("/{batch_id}/items")
@@ -164,7 +175,7 @@ def add_item(batch_id: int, body: ItemBody, db: Session = Depends(get_db)):
     item = PaymentBatchItem(
         batch_id=batch.id, row_index=next_row_index, recipient_address=resolved.address,
         counterparty_id=body.counterparty_id, amount_raw=str(amount_raw), decimals=decimals,
-        reference=body.reference, status="draft",
+        reference=body.reference, note=body.note, tags=json.dumps(_clean_tags(body.tags)), status="draft",
     )
     db.add(item)
     if batch.status in ("awaiting_approval", "approved"):
@@ -200,6 +211,8 @@ def update_item(batch_id: int, item_id: int, body: ItemBody, db: Session = Depen
     item.amount_raw = str(amount_raw)
     item.decimals = decimals
     item.reference = body.reference
+    item.note = body.note
+    item.tags = json.dumps(_clean_tags(body.tags))
     item.status = "draft"
     item.failure_reason = None
     if batch.status in ("awaiting_approval", "approved"):
@@ -227,9 +240,11 @@ def delete_item(batch_id: int, item_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{batch_id}/items/import-csv")
 async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """Airdrop/batch CSV import: strict required columns, row-level errors
-    that don't abort the whole import, duplicate-recipient detection, a size
-    cap, and (for airdrops) restriction to trusted/Sara-supported tokens."""
+    """Airdrop/batch CSV import: required columns recipient_address, amount;
+    optional columns reference, note, tags (comma- or semicolon-separated
+    within the cell, e.g. "vendor;q1"). Row-level errors that don't abort
+    the whole import, duplicate-recipient detection, a size cap, and (for
+    airdrops) restriction to trusted/Sara-supported tokens."""
     batch = _batch_or_404(db, batch_id)
     if batch.status != "draft":
         raise HTTPException(400, "Items can only be imported into a draft batch")
@@ -267,6 +282,13 @@ async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = 
         address = str(record.get("recipient_address", "")).strip()
         amount_str = str(record.get("amount", "")).strip()
         reference = str(record.get("reference", "")).strip() or None
+        note = str(record.get("note", "")).strip() or None
+        raw_tags = str(record.get("tags", "")).strip()
+        try:
+            tags = _clean_tags([t for chunk in raw_tags.split(",") for t in chunk.split(";")]) if raw_tags else []
+        except HTTPException as exc:
+            row_errors.append({"row": line_no, "error": exc.detail})
+            continue
         if not Web3.is_address(address):
             row_errors.append({"row": line_no, "error": "invalid recipient_address"})
             continue
@@ -281,7 +303,8 @@ async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = 
             continue
         db.add(PaymentBatchItem(
             batch_id=batch.id, row_index=next_row_index, recipient_address=address,
-            amount_raw=str(amount_raw), decimals=decimals, reference=reference, status="draft",
+            amount_raw=str(amount_raw), decimals=decimals, reference=reference,
+            note=note, tags=json.dumps(tags), status="draft",
         ))
         seen.add(key)
         next_row_index += 1

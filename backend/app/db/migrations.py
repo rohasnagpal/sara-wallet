@@ -104,6 +104,10 @@ def _migration_006_payment_safety(engine: Engine) -> None:
     _add_columns(engine, "spending_policies", {"principal_id": "VARCHAR"})
 
 
+def _migration_007_batch_item_tags_and_notes(engine: Engine) -> None:
+    _add_columns(engine, "payment_batch_items", {"note": "TEXT", "tags": "TEXT"})
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -111,6 +115,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("004_activity_identity", _migration_004_activity_identity),
     ("005_invoicing", _migration_005_invoicing),
     ("006_payment_safety", _migration_006_payment_safety),
+    ("007_batch_item_tags_and_notes", _migration_007_batch_item_tags_and_notes),
 )
 
 

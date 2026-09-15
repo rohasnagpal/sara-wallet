@@ -352,6 +352,7 @@ def execute_batch(db: Session, batch: PaymentBatch, wallet: Wallet, private_key:
                 from_address=wallet.address, to_address=item.recipient_address,
                 amount=amount_float, amount_raw=int(item.amount_raw), decimals=item.decimals,
                 token=batch.token.upper(), category=category, reference=item.reference,
+                note=item.note, tags=json.loads(item.tags) if item.tags else None,
             )
             item.tx_hash = tx_hash
             item.transaction_id = row.id

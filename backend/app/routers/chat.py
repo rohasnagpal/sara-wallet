@@ -1743,6 +1743,7 @@ def _record_submitted_transaction(
     db: Session, *, wallet_id: int, network: str, tx_hash: str,
     from_address: str, to_address: str, amount, amount_raw: int,
     decimals: int, token: str, category: str, reference: str | None = None,
+    note: str | None = None, tags: list[str] | None = None,
 ):
     """Persist the ledger row, audit record and outbox event atomically."""
     from datetime import datetime
@@ -1763,6 +1764,7 @@ def _record_submitted_transaction(
             amount=float(amount), amount_raw=str(amount_raw), decimals=decimals,
             token=token, status="submitted", direction="outgoing",
             category=category, counterparty=to_address, reference=reference,
+            note=note, tags=json.dumps(tags) if tags else None,
             timestamp=datetime.utcnow(),
         )
         db.add(row)
