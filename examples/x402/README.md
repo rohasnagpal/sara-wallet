@@ -19,6 +19,10 @@ separate processes you run alongside Sara to exercise the feature.
   script uses (`x402.org/facilitator`) currently only settles EVM
   payments there, confirmed by querying its own `/supported` endpoint
   live, not assumed.
+- **`demo_seller.ts`** - the same demo site, in TypeScript/Express
+  (`@x402/express`, `@x402/core`, `@x402/evm`), for anyone building their
+  x402 site on Node instead of Python. Same four resources, same prices,
+  same network. Use whichever language matches your own site.
 - **`local_agent.py`** - a real LLM agent (OpenRouter, tool-calling) with
   two tools: `browse_catalog` (free, reads the list) and
   `fetch_paid_resource` (pays via Sara's x402 endpoint and returns the
@@ -42,6 +46,19 @@ uvicorn demo_seller:app --app-dir /Users/samairahnagpal/sara-wallet/examples/x40
 Confirm it's alive: `curl http://127.0.0.1:8001/catalog` should return the
 four listed resources; `curl -i http://127.0.0.1:8001/weather` should
 return `402 Payment Required`.
+
+#### TypeScript version instead
+
+```bash
+cd /Users/samairahnagpal/sara-wallet/examples/x402
+npm install                                   # installs express, @x402/*, tsx, typescript
+export X402_PAY_TO=0xYourWalletAddressHere
+npx tsx demo_seller.ts                        # listens on 127.0.0.1:8002 by default (PORT to change)
+```
+
+Same checks apply, against port 8002 instead of 8001. Run either one (not
+both need to be up at once) - point Sara/the agent at whichever port you
+started.
 
 ### 2. Get free testnet USDC to pay with
 
