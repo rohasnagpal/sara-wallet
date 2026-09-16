@@ -19,6 +19,7 @@ pillow>=10.0
 yfinance>=1.5.1
 httpx>=0.27.0
 requests>=2.34.2
+x402[httpx,evm]>=2.23.0
 pandas>=2.2.0
 python-dateutil>=2.9.0
 python-multipart>=0.0.20

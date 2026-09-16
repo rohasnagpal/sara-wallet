@@ -1390,6 +1390,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <button class="col2-nav-btn" id="toolsTabRisk" onclick="showToolsTab('risk')">Risk</button>
               <button class="col2-nav-btn" id="toolsTabContracts" onclick="showToolsTab('contracts')">Contracts</button>
               <button class="col2-nav-btn" id="toolsTabNames" onclick="showToolsTab('names')">Names</button>
+              <button class="col2-nav-btn" id="toolsTabX402" onclick="showToolsTab('x402')">x402</button>
             </div>
           </div>
 
@@ -1609,6 +1610,50 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="publishRecord()">Publish record</button>
               <div id="recordPublishStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
+          </div>
+
+          <div id="toolsX402Pane" style="display:none">
+            <div class="card" style="margin-bottom:10px">
+              <div style="font-size:15px;font-weight:600">Pay &amp; fetch (x402)</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                x402 is an open standard that lets an API charge per request over plain HTTP.
+                Give Sara a URL - if it answers "402 Payment Required," Sara pays the exact
+                USDC price from the wallet below and fetches the resource, no account or API
+                key needed on either side. Set a spending policy scoped to this wallet/network
+                (Business &rarr; Policies) to let payments under your cap go through automatically;
+                without one, Sara asks for your passphrase before every payment, same as any other send.
+                New to this? Pick <strong>Base Sepolia (testnet)</strong> first - it's free (faucet USDC,
+                no real money) and isn't recorded in your ledger, so it's a safe way to try the whole flow.
+                Also supported for real payments: Base, Polygon, Ethereum, Arbitrum.
+              </div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="x402Wallet">Wallet</label><select class="settings-input" id="x402Wallet"></select></div>
+                <div class="field"><label class="field-label" for="x402Network">Network</label>
+                  <select class="settings-input" id="x402Network">
+                    <option value="base-sepolia">Base Sepolia (testnet - free)</option>
+                    <option value="base">Base</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="ethereum">Ethereum</option>
+                    <option value="arbitrum">Arbitrum</option>
+                  </select>
+                </div>
+                <div class="field"><label class="field-label" for="x402Method">Method</label>
+                  <select class="settings-input" id="x402Method"><option value="GET">GET</option><option value="POST">POST</option></select>
+                </div>
+              </div>
+              <div class="field" style="margin-top:7px"><label class="field-label" for="x402Url">Resource URL</label><input class="settings-input" id="x402Url" placeholder="https://api.example.com/paid-endpoint"></div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="x402Note">Note (optional)</label><input class="settings-input" id="x402Note" placeholder="Note (optional)"></div>
+                <div class="field"><label class="field-label" for="x402Tags">Tags (optional)</label><input class="settings-input" id="x402Tags" placeholder="e.g. api, data"></div>
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="x402Fetch()">Fetch</button>
+              <div id="x402Result" style="margin-top:10px"></div>
+            </div>
+
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Payment log</strong><button class="settings-save-btn" onclick="loadX402Payments()">Refresh</button></div>
+              <div id="x402PaymentsList" style="font-size:11px;margin-top:8px">Loading…</div>
             </div>
           </div>
         </div><!-- /toolsView -->
@@ -3701,18 +3746,19 @@ async function downloadAccountingExport(format) {
 let _toolsTab = 'tokens';
 
 async function loadToolsView() {
-  _fillWalletSelects(['tokWallet', 'routeWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet']);
+  _fillWalletSelects(['tokWallet', 'routeWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet', 'x402Wallet']);
   return showToolsTab(_toolsTab);
 }
 
 function showToolsTab(tab) {
   _toolsTab = tab;
-  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', contracts: 'toolsContractsPane', names: 'toolsNamesPane'};
-  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', contracts: 'toolsTabContracts', names: 'toolsTabNames'};
+  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', contracts: 'toolsContractsPane', names: 'toolsNamesPane', x402: 'toolsX402Pane'};
+  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', contracts: 'toolsTabContracts', names: 'toolsTabNames', x402: 'toolsTabX402'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(tabs).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
   if (tab === 'treasury') loadTreasuryOverview();
+  if (tab === 'x402') loadX402Payments();
 }
 
 // ---- Token creator ----
@@ -4105,6 +4151,65 @@ async function publishRecord() {
   status.textContent = r.ok
     ? `Published (sequence ${data.sequence})${data.published_externally ? ', synced to the record service' : ', cached locally only'}.`
     : (_apiErrorText(data, 'Publish failed.'));
+}
+
+// ---- x402: pay & fetch ----
+async function x402Fetch() {
+  const box = document.getElementById('x402Result');
+  const url = document.getElementById('x402Url').value.trim();
+  if (!url) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">Enter a URL first.</div>`; return; }
+  const body = {
+    wallet_id: Number(document.getElementById('x402Wallet').value),
+    network: document.getElementById('x402Network').value,
+    method: document.getElementById('x402Method').value,
+    url,
+    note: document.getElementById('x402Note').value.trim() || null,
+    tags: document.getElementById('x402Tags').value.split(',').map(t => t.trim()).filter(Boolean),
+  };
+  box.innerHTML = `<div class="result-desc">Checking…</div>`;
+  let r = await fetch('/api/x402/fetch', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  let data = await r.json().catch(() => ({}));
+
+  if (r.ok && data.requires_confirmation) {
+    box.innerHTML = `<div class="result-desc">This resource costs <strong>${_escapeHtml(data.amount)} ${_escapeHtml(data.token)}</strong> on ${_escapeHtml(data.network)} (no spending policy auto-approves it - ${_escapeHtml(data.reason)}). Confirm your passphrase to pay this once.</div>`;
+    const passphrase = await requestTransactionPassphrase();
+    if (!passphrase) { box.innerHTML += `<div class="result-desc" style="color:var(--red);margin-top:6px">Cancelled.</div>`; return; }
+    box.innerHTML = `<div class="result-desc">Paying…</div>`;
+    r = await fetch('/api/x402/fetch', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...body, passphrase})});
+    data = await r.json().catch(() => ({}));
+  }
+
+  if (!r.ok) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'x402 fetch failed.'))}</div>`; return; }
+
+  const bodyPreview = (data.body || '').slice(0, 2000);
+  box.innerHTML = `
+    <div class="result-card">
+      <div class="result-card-head">
+        <div>${data.paid ? 'Paid & fetched' : 'Fetched (free)'}${data.is_testnet ? ' <span class="status-pill" style="color:var(--accent)">TESTNET</span>' : ''}</div>
+        <span class="status-pill" style="color:${data.status_code < 400 ? 'var(--green)' : 'var(--red)'}">HTTP ${_escapeHtml(data.status_code)}</span>
+      </div>
+      ${data.paid ? `
+        <div class="result-row"><span>Amount</span><span>${_escapeHtml(_fmtBal(Number(data.amount_raw || 0) / 1e6))} USDC</span></div>
+        <div class="result-row"><span>Transaction</span><code title="${_escapeHtml(data.tx_hash)}">${_escapeHtml(_truncMid(data.tx_hash))}</code></div>
+        <div class="result-row"><span>Approval</span><span>${data.auto_approved ? 'Auto (spending policy)' : 'Passphrase confirmed'}</span></div>
+        ${data.is_testnet ? `<div class="result-desc">Testnet payment - not recorded in your ledger.</div>` : ''}
+      ` : ''}
+      <div class="result-desc" style="font-family:var(--font-mono);white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto">${_escapeHtml(bodyPreview)}${(data.body || '').length > 2000 ? '\n…' : ''}</div>
+    </div>`;
+  if (data.paid) await loadX402Payments();
+}
+
+async function loadX402Payments() {
+  const box = document.getElementById('x402PaymentsList');
+  try {
+    const data = await fetch('/api/x402/payments').then(r => r.json());
+    const rows = data.payments || [];
+    box.innerHTML = rows.length ? rows.map(p => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
+        <div style="display:flex;justify-content:space-between"><span>${_escapeHtml(p.amount)} USDC</span><span>${_escapeHtml(p.status)}</span></div>
+        <div style="color:var(--text-muted)">${_escapeHtml(p.network)} · ${_escapeHtml(_truncMid(p.to_address))}${p.reference ? ' · ' + _escapeHtml(p.reference) : ''}${p.note ? ' · ' + _escapeHtml(p.note) : ''}${(p.tags || []).length ? ' · ' + p.tags.map(t => _escapeHtml(t)).join(', ') : ''}</div>
+      </div>`).join('') : '<div style="color:var(--text-muted)">No x402 payments yet.</div>';
+  } catch (e) { box.textContent = 'Could not load payments.'; }
 }
 
 let _ledgerTransactions = [];

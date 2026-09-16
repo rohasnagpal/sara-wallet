@@ -18,7 +18,7 @@
 
 **Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending USDC as easy as sending a text message: Send 50 USDC to Maria.
 
-Sara now combines four product layers:
+Sara now combines five product layers:
 
 **Wallet and payments**
 1. **Natural-language USDC/native sends** - e.g. `send 100 USDC to rohas.sara`; Sara resolves the recipient, shows the exact amount and fee, and asks you to confirm before signing.
@@ -30,6 +30,13 @@ Sara now combines four product layers:
 7. **Batch payments** - pay or airdrop many recipients in one go from a list, each sent as its own on-chain transaction.
 8. **Recurring payments** - set a schedule (e.g. "every 1st of the month") that materializes a reviewable payment batch each time it's due.
 9. **Crypto payroll** - run payroll for a list of employees/contractors in one action, built on top of counterparties and batches.
+
+**Agentic payments (x402)**
+1. **Pay-per-call HTTP fetches** - give Sara a URL; if it answers `402 Payment Required`, Sara pays the exact USDC price and returns the resource - no account or API key on either side.
+2. **Policy-gated autonomous payment** - a spending policy scoped to a wallet/network (the same engine behind "Scoped spending controls" below) lets payments under your cap go through with no passphrase prompt, so an agent can pay for calls unattended; anything outside the policy falls back to your passphrase, same as any other send.
+3. **Trusted-asset only** - Sara only ever authorizes its own developer-verified USDC contract per network, never whatever asset address a 402 response itself claims.
+4. **Base, Polygon, Ethereum, Arbitrum** for real payments, plus **Base Sepolia** for free testnet trials (no real money, not recorded in your ledger) - each network's USDC/EIP-3009 support independently confirmed against x402's own asset registry, not assumed.
+5. **Demo seller + LLM agent included** - `examples/x402/` has a runnable multi-resource paid site (weather/trivia/stock/recipe, each a different price) with a free catalog, and a tool-calling agent that browses the catalog, picks the resource that matches its task, and pays for only that one - see `examples/x402/README.md`.
 
 **Business and accounting**
 1. **Exact-base-unit transaction ledger** - every send/receive is recorded in the token's exact base units (no floating-point rounding), searchable by tag or note.
@@ -217,6 +224,7 @@ Sara is designed as a local-first wallet and AI assistant.
 sara-wallet/
 ├── index.html              # Frontend app
 ├── contracts/              # Foundry ERC-20 templates for the token creator
+├── examples/x402/          # Runnable x402 demo seller + tool-calling agent
 └── backend/
     ├── main.py             # FastAPI entrypoint
     ├── requirements.txt    # Developer dependency inputs
@@ -224,7 +232,7 @@ sara-wallet/
     └── app/
         ├── routers/        # API routes
         ├── services/       # Batches, accounting, alerts, schedules and monitoring
-        ├── tools/          # Wallet, market, names, tokens, risk and contract tools
+        ├── tools/          # Wallet, market, names, tokens, risk, contract and x402 tools
         ├── chains/         # Chain-specific transaction logic
         ├── db/             # SQLite models and session setup
         ├── llm/            # AI provider integration
@@ -250,6 +258,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Token creation/management, allowance controls and transaction simulation
 - Treasury, wallet intelligence, risk screening and alerts
 - Sara Names registration, resolution, signed records and indexing
+- x402 pay-per-call payments, policy-gated for unattended/agent use
 - Market data requests
 - AI provider integration
 - Local SQLite persistence
@@ -283,6 +292,7 @@ Sara's tools live in `backend/app/tools/`, organized into:
 - Contract simulation, allowance and risk tools
 - Trading integrations (swaps & cross-chain bridging)
 - Payment, invoicing, receipt and reconciliation tools
+- x402 client (pay-per-call HTTP fetches, trusted-asset-only)
 
 The chat interface routes user messages into these tools when a command can be handled deterministically.
 

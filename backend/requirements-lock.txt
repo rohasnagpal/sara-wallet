@@ -59,6 +59,7 @@ MarkupSafe==3.0.3
 mdurl==0.1.2
 multidict==6.7.1
 multitasking==0.0.13
+nest-asyncio==1.6.0
 numpy==2.5.1
 openai==2.45.0
 openpyxl==3.1.5
@@ -112,6 +113,7 @@ uvloop==0.22.1
 watchfiles==1.2.0
 web3==7.16.0
 websockets==15.0.1
+x402==2.23.0
 yarl==1.24.2
 yfinance==1.5.1
 zipp==4.1.0
