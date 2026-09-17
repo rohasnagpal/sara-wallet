@@ -204,7 +204,7 @@ For the frontend (`index.html`), keep JavaScript readable and avoid abstractions
 
 ## Security
 
-Sara handles private keys and transaction signing. If you find a security vulnerability, **please do not open a public issue**. Contact the maintainer directly first.
+Sara handles private keys and transaction signing. If you find a security vulnerability, **please do not open a public issue** — see [SECURITY.md](SECURITY.md) for how to report it privately, and what's out of scope for public issues.
 
 When contributing code that touches wallets, keys, signing, or transaction logic:
 
