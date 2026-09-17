@@ -7,6 +7,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-e63946?style=flat-square)](ROADMAP.md)
 [![CI](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml/badge.svg)](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml)
+[![Foundry tests](https://github.com/rohasnagpal/sara-wallet/actions/workflows/contracts.yml/badge.svg)](https://github.com/rohasnagpal/sara-wallet/actions/workflows/contracts.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-264653?style=flat-square&logo=python&logoColor=white)](docs/architecture.md)
 [![Release](https://img.shields.io/github/v/release/rohasnagpal/sara-wallet?style=flat-square&include_prereleases&label=release&color=e76f51)](https://github.com/rohasnagpal/sara-wallet/releases)
 [![x402 supported](https://img.shields.io/badge/x402-supported-2a9d8f?style=flat-square)](docs/x402.md)

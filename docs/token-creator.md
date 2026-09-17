@@ -36,7 +36,12 @@ approvals, and are rebuilt and simulated immediately before signing.
 ## ERC-20 templates
 
 The Foundry-based templates the token creator deploys from live in
-`contracts/` at the repo root.
+`contracts/` at the repo root: a fixed-supply template with zero
+post-deployment mint/burn/owner capability, and an owner-mintable,
+holder-burnable, capped template (a disclosed centralization risk since
+minting authority exists). Both have a Foundry unit test suite that runs
+in CI on every change to `contracts/` — see the "Foundry tests" badge at
+the top of the main [README](../README.md).
 
 ## Related
 
