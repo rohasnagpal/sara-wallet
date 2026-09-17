@@ -1,6 +1,6 @@
 <div align="center">
 
-**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending USDC as easy as sending a text message: Send 50 USDC to Maria.
+**Sara AI Wallet** is an open-source, local-first AI wallet for stablecoin payments, x402 agentic payments, business tools and Web3.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open-Source-e76f51?style=flat-square&logo=github)](https://github.com)
