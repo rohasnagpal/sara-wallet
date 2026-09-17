@@ -110,11 +110,9 @@ USDC contract addresses come from [Circle's official contract-address list](http
 
 ## 🛣️ Release Status and Roadmap
 
-Stages 0–5 are implemented locally. The Sara Names registry contract, its tests and deployment tooling live in a separate repo; this codebase's client, signed records and indexer are implemented and tested, but the registry has **not yet been broadcast to Polygon Amoy**. Sara Names remains unavailable until `SARA_NAME_REGISTRAR_ADDRESS` points to a verified deployment.
+Stages 0–5 are implemented locally. Sara Names' contract, tests and deployment tooling live in a separate repo; the registry has **not yet been broadcast to Polygon Amoy**, so Sara Names is unavailable until `SARA_NAME_REGISTRAR_ADDRESS` points to a verified deployment.
 
-Before any mainnet launch, the project still requires an independent smart-contract audit, a hardware-controlled multisig, authoritative reconfirmation of network/token addresses and a low-value canary deployment - see that separate repo's mainnet-readiness notes.
-
-Longer-term work includes broader live reconciliation coverage, realtime voice where supported and additional command languages.
+See [ROADMAP.md](ROADMAP.md) for what's actively being worked on, what's next, and what's just being explored — each item links to its tracking issue.
 
 ---
 
