@@ -3,7 +3,7 @@
 # should use this file, not the open-ended developer requirements.txt.
 aiofiles==25.1.0
 aiohappyeyeballs==2.7.1
-aiohttp==3.14.1
+aiohttp==3.14.3
 aiosignal==1.4.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
@@ -21,7 +21,7 @@ click==8.3.3
 coincurve==20.0.0
 construct==2.10.70
 construct-typing==0.7.0
-cryptography==48.0.1
+cryptography==50.0.0
 curl_cffi==0.15.0
 cytoolz==1.1.0
 distro==1.9.0
