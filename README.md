@@ -2,11 +2,16 @@
 
 **Sara AI Wallet** is an open-source, local-first AI wallet for stablecoin payments, x402 agentic payments, business tools and Web3.
 
+> ⚠️ **Status: Alpha.** Use small amounts and testnets while Sara is under active development. No third-party security audit has been done yet — see [SECURITY.md](SECURITY.md).
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
-[![Open Source](https://img.shields.io/badge/Open-Source-e76f51?style=flat-square&logo=github)](https://github.com)
-[![AI Powered](https://img.shields.io/badge/AI-Powered-264653?style=flat-square&logoColor=white)](https://github.com)
-[![Runs Locally](https://img.shields.io/badge/Runs-Locally-2a9d8f?style=flat-square)](https://github.com)
-[![Security checks](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml/badge.svg)](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-e63946?style=flat-square)](ROADMAP.md)
+[![CI](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml/badge.svg)](https://github.com/rohasnagpal/sara-wallet/actions/workflows/security.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-264653?style=flat-square&logo=python&logoColor=white)](docs/architecture.md)
+[![Release](https://img.shields.io/github/v/release/rohasnagpal/sara-wallet?style=flat-square&include_prereleases&label=release&color=e76f51)](https://github.com/rohasnagpal/sara-wallet/releases)
+[![x402 supported](https://img.shields.io/badge/x402-supported-2a9d8f?style=flat-square)](docs/x402.md)
+[![Networks](https://img.shields.io/badge/networks-5%20chains-f4a261?style=flat-square)](https://developers.circle.com/stablecoins/usdc-contract-addresses)
+[![Runs Locally](https://img.shields.io/badge/Runs-Locally-2a9d8f?style=flat-square)](docs/architecture.md)
 [![GitHub stars](https://img.shields.io/github/stars/rohasnagpal/sara-wallet?style=flat-square&color=f4a261)](https://github.com/rohasnagpal/sara-wallet/stargazers)
 
 <br />
@@ -21,14 +26,14 @@ Interested in open-source AI wallets? ⭐ [Star Sara](https://github.com/rohasna
 
 ## ✦ What is Sara Wallet?
 
-**Sara AI Wallet** is an open source, AI-powered crypto wallet that makes sending USDC as easy as sending a text message: `send 50 USDC to Maria`.
+**Sara AI Wallet** is an open source, self-custodial, local-first AI wallet — a crypto wallet and stablecoin wallet that makes USDC payments as easy as sending a text message: `send 50 USDC to Maria`.
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server. It combines five product layers:
 
-- **Wallet and payments** — natural-language sends, payment links/QR, invoices with reconciliation, receipts, swaps and bridges
+- **Wallet and payments** — natural-language sends, payment links/QR, crypto invoicing with reconciliation, receipts, swaps and bridges
 - **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use
-- **Business and accounting** — batch payments, payroll, FIFO cost basis, dual-control approvals, CSV/XLSX exports
-- **Token and safety tools** — deploy ERC-20 tokens, manage allowances, screen addresses, simulate contract calls
+- **Business and accounting** — batch payments, crypto payroll, FIFO cost basis, dual-control approvals, CSV/XLSX exports
+- **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate contract calls
 - **Sara Names** — human-readable names for wallet addresses, with signed multi-network records
 
 Sara also includes a credential-free **BlockchainProof** evidence vault: hash a file locally, review and authorize an exact 1 USDC Polygon checkout from your own wallet, and verify the file later — no BlockchainProof API key or shared billing account required. See the `BLOCKCHAINPROOF_*` values in `.env` when pointing Sara at a compatible self-hosted service.
@@ -57,12 +62,12 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 
 ## ⭐ Key Features
 
-- 💸 **Natural-language sends** — resolve a recipient, show the exact amount and fee, confirm, sign
-- 🔗 **Payment links, QR codes & invoices** — shareable payment requests with automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
+- 💸 **Natural-language USDC payments** — resolve a recipient, show the exact amount and fee, confirm, sign
+- 🔗 **Payment links, QR codes & crypto invoicing** — shareable payment requests with automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
-- 🏢 **Business & accounting** — batch payments, payroll, spending policies, dual-control approvals, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
-- 🪙 **Token creator & safety tools** — deploy ERC-20 tokens, manage allowances, screen addresses, simulate and verify contract calls. → [docs/token-creator.md](docs/token-creator.md)
+- 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, dual-control approvals, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
+- 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate and verify contract calls. → [docs/token-creator.md](docs/token-creator.md)
 - 🪪 **Sara Names** — human-readable names for your wallet addresses, with signed multi-network records. → [docs/sara-names.md](docs/sara-names.md)
 - 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram/email/webhook alerts. → [docs/business-payments.md](docs/business-payments.md)
 

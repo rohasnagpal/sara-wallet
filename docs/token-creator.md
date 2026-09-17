@@ -1,4 +1,8 @@
-# Token Creator, Safety & Contract Tools
+# ERC-20 Token Creator, Safety & Contract Tools
+
+Sara's ERC-20 token creator lets you deploy your own token in a couple of
+clicks, from templates that have actually been reviewed and tested rather
+than hand-written per token.
 
 The **Tools** view provides pinned and tested ERC-20 templates, treasury
 and wallet intelligence, stablecoin routing, allowance management, address

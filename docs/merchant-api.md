@@ -1,4 +1,7 @@
-# Invoices & Merchant API
+# Crypto Invoicing & Merchant API
+
+Sara's crypto invoicing turns a request for payment into a link a customer
+can just pay — no manual bookkeeping to mark it received.
 
 The **Invoices** screen creates persistent Polygon USDC invoices and public
 payment pages. Sara checks active invoices in the background, links a
