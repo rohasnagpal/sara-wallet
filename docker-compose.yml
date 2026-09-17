@@ -1,0 +1,28 @@
+services:
+  sara:
+    build: .
+    # Pinned to amd64: several pinned backend dependencies (cryptography,
+    # coincurve, ckzg, pydantic_core, etc.) are only confirmed here to have
+    # prebuilt manylinux x86_64 wheels (verified against Sara's own CI logs).
+    # On Apple Silicon / arm64 hosts this runs under emulation (slower build,
+    # same result) rather than risk a from-source compile without a C/Rust
+    # toolchain in the image.
+    platform: linux/amd64
+    ports:
+      - "8888:8888"
+    environment:
+      # Required — get one at https://openrouter.ai/keys
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:?Set OPENROUTER_API_KEY in your shell or a .env file next to docker-compose.yml}
+      # Optional — see .env at the repo root for the full list
+      - LLM_PROVIDER=${LLM_PROVIDER:-openrouter}
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY:-}
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY:-}
+      # Point the database at the mounted volume below instead of the
+      # container's writable layer, so it survives `docker compose down`.
+      - DATABASE_URL=sqlite:////data/sara.db
+    volumes:
+      - sara-data:/data
+
+volumes:
+  sara-data:

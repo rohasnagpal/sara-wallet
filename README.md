@@ -112,14 +112,32 @@ See [ROADMAP.md](ROADMAP.md) for what's actively being worked on, what's next, a
 
 ## 🚀 Getting Started
 
-### 1. Clone the repo
+### Option A: Docker (fastest way to try it)
+
+```bash
+git clone https://github.com/rohasnagpal/sara-wallet.git
+cd sara-wallet
+export OPENROUTER_API_KEY=sk-or-...   # https://openrouter.ai/keys
+docker compose up --build
+```
+
+Then open `http://localhost:8888`. Your wallet database persists in a
+named Docker volume across restarts (`docker compose down` keeps it;
+`docker compose down -v` deletes it). This is meant for quickly
+evaluating Sara, not as its primary way to run — Sara is designed to run
+directly on your machine so your keys never leave it; see
+[docs/security-model.md](docs/security-model.md).
+
+### Option B: Run it directly
+
+#### 1. Clone the repo
 
 ```bash
 git clone https://github.com/rohasnagpal/sara-wallet.git
 cd sara-wallet/backend
 ```
 
-### 2. Create a Python 3.12 virtual environment
+#### 2. Create a Python 3.12 virtual environment
 
 Python 3.12 is the supported release runtime. Do not use Python 3.14: the
 security-fixed LiteLLM release in Sara's reviewed lockfile does not support it.
@@ -129,21 +147,21 @@ python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Install dependencies
+#### 3. Install dependencies
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -r requirements-lock.txt
 ```
 
-### 4. Configure your environment
+#### 4. Configure your environment
 
 ```bash
 cd ..
 cp .env .env.local
 ```
 
-### 5. Run the app
+#### 5. Run the app
 
 ```bash
 cd backend
@@ -157,7 +175,7 @@ Then open your browser at:
 http://127.0.0.1:8888
 ```
 
-### 6. First-run setup
+#### 6. First-run setup
 
 The first time you open Sara, you'll be asked to **create a passphrase**. This protects your wallets' private keys. Remember it; there's no recovery if you lose it (existing wallets become permanently undecryptable). Every time after, you'll unlock with the same passphrase, and Sara auto-locks after 1 hour of inactivity.
 

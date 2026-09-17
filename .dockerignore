@@ -1,0 +1,16 @@
+.git
+.github
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+backend/.venv
+backend/__pycache__
+**/__pycache__
+**/*.pyc
+.venv
+node_modules
+examples/x402/node_modules
+contracts/cache
+contracts/out
+contracts/broadcast
