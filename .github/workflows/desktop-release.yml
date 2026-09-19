@@ -40,11 +40,19 @@ jobs:
       - name: Build with PyInstaller (onedir)
         run: pyinstaller sara-wallet.spec
 
-      - name: Package build output (Unix)
-        if: runner.os != 'Windows'
+      - name: Package build output (macOS — zip the real .app bundle)
+        if: runner.os == 'macOS'
         run: |
           cd dist
-          zip -r "sara-wallet-${{ matrix.asset_name }}.zip" sara-wallet
+          zip -r -y "../sara-wallet-${{ matrix.asset_name }}.zip" Sara.app
+
+      - name: Package build output (Linux — bundle desktop-entry installer)
+        if: runner.os == 'Linux'
+        run: |
+          cp packaging/linux/sara-wallet.desktop packaging/linux/install-desktop-entry.sh dist/sara-wallet/
+          chmod +x dist/sara-wallet/install-desktop-entry.sh
+          cd dist
+          zip -r "../sara-wallet-${{ matrix.asset_name }}.zip" sara-wallet
 
       - name: Package build output (Windows)
         if: runner.os == 'Windows'
