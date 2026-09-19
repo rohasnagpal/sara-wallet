@@ -1,12 +1,12 @@
-"""The batch payment engine: validation, maker/checker approval and
-sequential on-chain execution shared by batch payments, airdrops, payroll
-runs and materialized recurring obligations (CLAUDE_STAGES_3_TO_7.md
-Stage 3 — "reuse the batch engine" / "produce payroll runs as reviewable
-batches").
+"""The batch payment engine: validation, explicit approval and sequential
+on-chain execution shared by batch payments, airdrops, payroll runs and
+materialized recurring obligations (CLAUDE_STAGES_3_TO_7.md Stage 3 —
+"reuse the batch engine" / "produce payroll runs as reviewable batches").
 
-Two-person control uses server-derived principal identifiers. The HTTP layer
-maps the local session to ``local-owner`` and checker API credentials to an
-``approver:<id>`` principal; caller-supplied display names are never trusted.
+Approval is a deliberate, separate step from execution — a batch must be
+reviewed and approved before it can be signed — but it is not a
+maker/checker control: Sara is a single-user, local wallet, so there is no
+independent second party to check the first one's work.
 """
 from __future__ import annotations
 
@@ -30,10 +30,6 @@ class BatchValidationError(Exception):
     def __init__(self, message: str, result: dict):
         super().__init__(message)
         self.result = result
-
-
-class SelfApprovalError(Exception):
-    pass
 
 
 class BatchExecutionError(Exception):
@@ -168,26 +164,6 @@ def approve_batch(db: Session, batch: PaymentBatch, actor: str, *, reason: str |
 
     items = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
     payload_hash = _payload_hash(batch, items)
-
-    require_dual = False
-    for item in items:
-        policy_result = spending_policy.evaluate(
-            db, wallet_id=batch.wallet_id, network=batch.network, token=batch.token,
-            counterparty_id=item.counterparty_id, destination_address=item.recipient_address,
-            amount_raw=int(item.amount_raw),
-        )
-        if policy_result.require_dual_control:
-            require_dual = True
-
-    if require_dual and actor == batch.created_by:
-        denial_reason = "self-approval is not permitted for this batch (a matching spending policy requires dual control)"
-        approval = BatchApproval(batch_id=batch.id, action="denied", actor=actor,
-                                  payload_hash=payload_hash, reason=denial_reason)
-        db.add(approval)
-        append_audit(db, "payment_batch.approval_denied", "payment_batch", resource_id=str(batch.id),
-                     details={"actor": actor, "reason": denial_reason}, actor_id=actor)
-        db.commit()
-        raise SelfApprovalError(denial_reason)
 
     batch.approved_by = actor
     batch.approved_at = datetime.utcnow()

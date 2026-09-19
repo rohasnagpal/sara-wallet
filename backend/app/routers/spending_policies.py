@@ -32,7 +32,6 @@ class PolicyBody(BaseModel):
     window_start: str | None = None
     window_end: str | None = None
     timezone: str = "UTC"
-    require_dual_control: bool = False
     active: bool = True
 
 
@@ -43,7 +42,7 @@ def _row(row: SpendingPolicy) -> dict:
         "token": row.token, "counterparty_id": row.counterparty_id, "destination_address": row.destination_address,
         "max_amount_raw": row.max_amount_raw, "period": row.period, "period_limit_raw": row.period_limit_raw,
         "window_start": row.window_start, "window_end": row.window_end, "timezone": row.timezone,
-        "require_dual_control": row.require_dual_control, "active": row.active,
+        "active": row.active,
         "created_at": row.created_at.isoformat() if row.created_at else None,
     }
 
@@ -83,7 +82,7 @@ def create_policy(body: PolicyBody, db: Session = Depends(get_db)):
         period=body.period,
         period_limit_raw=str(to_base_units(body.period_limit, body.decimals, "policy")) if body.period_limit else None,
         window_start=body.window_start, window_end=body.window_end, timezone=body.timezone,
-        require_dual_control=body.require_dual_control, active=body.active,
+        active=body.active,
     )
     db.add(row)
     db.flush()
@@ -111,7 +110,6 @@ def update_policy(policy_id: int, body: PolicyBody, db: Session = Depends(get_db
     row.window_start = body.window_start
     row.window_end = body.window_end
     row.timezone = body.timezone
-    row.require_dual_control = body.require_dual_control
     row.active = body.active
     append_audit(db, "spending_policy.updated", "spending_policy", resource_id=str(row.id), details={"name": row.name})
     db.commit()

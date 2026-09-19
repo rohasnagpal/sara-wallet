@@ -137,30 +137,14 @@ class ApprovalTests(BusinessPaymentsTestCase):
         self.add_item(batch, 0, ADDR_A)
         return batch
 
-    def test_self_approval_rejected_when_dual_control_required(self):
-        self.db.add(SpendingPolicy(name="dual-control", network="polygon", token="USDC",
-                                    require_dual_control=True, active=True))
-        self.db.commit()
+    def test_approve_batch_succeeds(self):
         batch = self._valid_batch(created_by="owner")
         b1, b2 = self.stub_balance_ok()
         with b1, b2:
-            with self.assertRaises(batch_engine.SelfApprovalError):
-                batch_engine.approve_batch(self.db, batch, "owner")
-        self.assertEqual(batch.status, "draft")
-        denial = self.db.query(batch_engine.BatchApproval).filter_by(batch_id=batch.id, action="denied").first()
-        self.assertIsNotNone(denial)
-
-    def test_different_actor_can_approve_under_dual_control(self):
-        self.db.add(SpendingPolicy(name="dual-control", network="polygon", token="USDC",
-                                    require_dual_control=True, active=True))
-        self.db.commit()
-        batch = self._valid_batch(created_by="owner")
-        b1, b2 = self.stub_balance_ok()
-        with b1, b2:
-            approval = batch_engine.approve_batch(self.db, batch, "bookkeeper")
+            approval = batch_engine.approve_batch(self.db, batch, "owner")
         self.assertEqual(approval.action, "approved")
         self.assertEqual(batch.status, "approved")
-        self.assertEqual(batch.approved_by, "bookkeeper")
+        self.assertEqual(batch.approved_by, "owner")
 
     def test_editing_item_after_approval_invalidates_it(self):
         batch = self._valid_batch(created_by="owner")

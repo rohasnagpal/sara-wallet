@@ -1,13 +1,10 @@
 import io
-import hashlib
-import hmac
 import json
-import secrets
 from datetime import datetime
 from decimal import Decimal
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from web3 import Web3
@@ -15,7 +12,7 @@ from web3 import Web3
 from app.core.amounts import to_base_units
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import ApprovalCredential, PaymentBatch, PaymentBatchItem, Wallet
+from app.db.models import PaymentBatch, PaymentBatchItem, Wallet
 from app.db.session import get_db
 from app.services import batch_engine
 
@@ -26,19 +23,6 @@ _CSV_MAX_BYTES = 2 * 1024 * 1024
 _CSV_MAX_ROWS = 5000
 _CSV_REQUIRED_COLUMNS = {"recipient_address", "amount"}
 _LOCAL_OWNER = "local-owner"
-
-
-def _checker_principal(db: Session, api_key: str | None) -> str:
-    if not api_key:
-        return _LOCAL_OWNER
-    prefix = api_key[:12]
-    row = db.query(ApprovalCredential).filter(
-        ApprovalCredential.key_prefix == prefix, ApprovalCredential.enabled == True,  # noqa: E712
-    ).first()
-    digest = hashlib.sha256(api_key.encode()).hexdigest()
-    if not row or not hmac.compare_digest(row.key_hash, digest):
-        raise HTTPException(401, "Invalid or disabled approver credential")
-    return f"approver:{row.id}"
 
 
 def _clean_tags(tags: list[str]) -> list[str]:
@@ -328,16 +312,12 @@ class ApproveBody(BaseModel):
 
 
 @router.post("/{batch_id}/approve")
-def approve_batch(batch_id: int, body: ApproveBody, db: Session = Depends(get_db),
-                  x_sara_approver_key: str | None = Header(None)):
+def approve_batch(batch_id: int, body: ApproveBody, db: Session = Depends(get_db)):
     batch = _batch_or_404(db, batch_id)
-    actor = _checker_principal(db, x_sara_approver_key)
     try:
-        batch_engine.approve_batch(db, batch, actor, reason=body.reason)
+        batch_engine.approve_batch(db, batch, _LOCAL_OWNER, reason=body.reason)
     except batch_engine.BatchValidationError as exc:
         raise HTTPException(400, {"message": str(exc), **exc.result})
-    except batch_engine.SelfApprovalError as exc:
-        raise HTTPException(403, str(exc))
     return _batch_row(db, batch, with_items=True)
 
 
@@ -364,36 +344,6 @@ def execute_batch(batch_id: int, body: ExecuteBody, db: Session = Depends(get_db
     finally:
         key = None
     return {**summary, "batch": _batch_row(db, batch, with_items=True)}
-
-
-class ApproverCredentialBody(BaseModel):
-    name: str = Field(..., min_length=1, max_length=120)
-
-
-@router.post("/approvers/credentials")
-def create_approver_credential(body: ApproverCredentialBody, db: Session = Depends(get_db)):
-    api_key = "sara_apr_" + secrets.token_urlsafe(32)
-    row = ApprovalCredential(
-        name=body.name.strip(), key_prefix=api_key[:12],
-        key_hash=hashlib.sha256(api_key.encode()).hexdigest(), enabled=True,
-    )
-    db.add(row)
-    db.flush()
-    append_audit(db, "approval_credential.created", "approval_credential", resource_id=str(row.id),
-                 details={"name": row.name})
-    db.commit()
-    return {"id": row.id, "name": row.name, "api_key": api_key}
-
-
-@router.delete("/approvers/credentials/{credential_id}")
-def disable_approver_credential(credential_id: int, db: Session = Depends(get_db)):
-    row = db.query(ApprovalCredential).filter(ApprovalCredential.id == credential_id).first()
-    if not row:
-        raise HTTPException(404, "Approver credential not found")
-    row.enabled = False
-    append_audit(db, "approval_credential.disabled", "approval_credential", resource_id=str(row.id), details={})
-    db.commit()
-    return {"disabled": credential_id}
 
 
 @router.post("/{batch_id}/cancel")

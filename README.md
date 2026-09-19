@@ -33,7 +33,7 @@ Sara runs locally on your laptop. The frontend is a single HTML app; the backend
 
 - **Wallet and payments** — natural-language sends, payment links/QR, crypto invoicing with reconciliation, receipts, swaps and bridges
 - **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use
-- **Business and accounting** — batch payments, crypto payroll, FIFO cost basis, dual-control approvals, CSV/XLSX exports
+- **Business and accounting** — batch payments, crypto payroll, FIFO cost basis, spending policies, CSV/XLSX exports
 - **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate contract calls
 - **Sara Names** — human-readable names for wallet addresses, with signed multi-network records
 
@@ -56,7 +56,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 - **Local-first & self-custodial** — your wallet database and keys live on your laptop; no cloud account, no custodian
 - **Talk to it like a person** — "send 50 USDC to Maria" instead of hunting through menus and pasting addresses
 - **Built for agents, not just humans** — x402 lets Sara pay machine-priced resources autonomously, within policies you set
-- **Business-grade from day one** — batch payments, payroll, FIFO accounting and dual-control approvals are built in, not bolted on
+- **Business-grade from day one** — batch payments, payroll, FIFO accounting and spending policies are built in, not bolted on
 - **Open source, Apache 2.0** — every line is auditable; you own your wallet code
 
 ---
@@ -67,7 +67,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 - 🔗 **Payment links, QR codes & crypto invoicing** — shareable payment requests with automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
-- 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, dual-control approvals, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
+- 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, approval workflow, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
 - 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate and verify contract calls. → [docs/token-creator.md](docs/token-creator.md)
 - 🪪 **Sara Names** — human-readable names for your wallet addresses, with signed multi-network records. → [docs/sara-names.md](docs/sara-names.md)
 - 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram/email/webhook alerts. → [docs/business-payments.md](docs/business-payments.md)

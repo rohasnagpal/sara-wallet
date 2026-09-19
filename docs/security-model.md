@@ -95,8 +95,8 @@ it falls back to a normal passphrase-confirmed send. See
 - Spending limits are enforced immediately before chat, token, batch and
   supported contract sends; time windows use the policy's configured IANA
   timezone
-- Dual-control approvals use independently generated, hashed checker
-  credentials rather than self-declared actor names
+- Payment batches require an explicit approval step, separate from
+  creation, before they can be signed
 - Risk screening can be configured to fail closed, and provider evidence is
   stored as bounded identifiers rather than allegation text
 - Verified contract writes are allowlisted, confirmation-bound,

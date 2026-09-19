@@ -1244,22 +1244,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Business View (counterparties / batches / schedules / payroll / policies) ── -->
         <div id="businessView" style="display:none">
           <div class="card" style="margin-bottom:10px">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center">
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="col2-nav-btn active" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
-                <button class="col2-nav-btn" id="bizTabSchedules" onclick="showBizTab('schedules')">Schedules</button>
-                <button class="col2-nav-btn" id="bizTabPayroll" onclick="showBizTab('payroll')">Payroll</button>
-                <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
-                <button class="col2-nav-btn" id="bizTabAccounting" onclick="showBizTab('accounting')">Accounting</button>
-              </div>
-              <div class="field-row" style="align-items:flex-end">
-                <div class="field"><label class="field-label" for="newCheckerName">New checker name</label><input class="settings-input" id="newCheckerName" maxlength="120" placeholder="e.g. Priya" style="width:130px;font-size:11px"></div>
-                <div class="field"><label class="field-label" for="bizApproverKey">Checker key</label><input class="settings-input" id="bizApproverKey" type="password" autocomplete="off" placeholder="generated key" style="width:150px;font-size:11px"></div>
-                <button class="settings-save-btn" onclick="createApproverCredential()">Create key</button>
-              </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="col2-nav-btn active" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
+              <button class="col2-nav-btn" id="bizTabSchedules" onclick="showBizTab('schedules')">Schedules</button>
+              <button class="col2-nav-btn" id="bizTabPayroll" onclick="showBizTab('payroll')">Payroll</button>
+              <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
+              <button class="col2-nav-btn" id="bizTabAccounting" onclick="showBizTab('accounting')">Accounting</button>
             </div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Dual-control approval requires a separately generated checker key. Keys are shown once and stored only as hashes.</div>
-            <div class="settings-status" id="checkerKeyStatus"></div>
           </div>
 
           <div id="bizBatchesPane">
@@ -1349,9 +1340,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <div class="field"><label class="field-label" for="polPeriod">Cap period</label><select class="settings-input" id="polPeriod"><option value="">No cumulative cap</option><option value="day">Per day</option><option value="week">Per week</option><option value="month">Per month</option></select></div>
                 <div class="field"><label class="field-label" for="polPeriodLimit">Cumulative cap</label><input class="settings-input" id="polPeriodLimit" placeholder="Cap for period"></div>
               </div>
-              <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text-secondary)">
-                <input type="checkbox" id="polDualControl"> Require a different approver than the preparer
-              </label>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createSpendingPolicy()">Add policy</button>
               <div class="settings-status" id="polCreateStatus"></div>
             </div>
@@ -3411,21 +3399,6 @@ async function disableMerchantClient(id) {
 // ══════════════════════════════════════
 let _bizTab = 'batches';
 
-function _bizApproverKey() { return (document.getElementById('bizApproverKey').value || '').trim(); }
-
-async function createApproverCredential() {
-  const status = document.getElementById('checkerKeyStatus');
-  const name = document.getElementById('newCheckerName').value.trim();
-  if (!name) { status.style.color = 'var(--red)'; status.textContent = 'Enter a checker name first.'; return; }
-  const r = await fetch('/api/payment-batches/approvers/credentials', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'Could not create checker key.'); return; }
-  document.getElementById('bizApproverKey').value = data.api_key;
-  document.getElementById('newCheckerName').value = '';
-  status.style.color = 'var(--green)';
-  status.textContent = 'Key created for ' + name + ' - copy it now, it is shown only once.';
-}
-
 function _fillWalletSelects(ids) {
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   const opts = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
@@ -3594,9 +3567,7 @@ async function validateBatch(id) {
 }
 
 async function approveBatch(id) {
-  const key = _bizApproverKey();
-  const headers = {'Content-Type': 'application/json'}; if (key) headers['X-Sara-Approver-Key'] = key;
-  const r = await fetch(`/api/payment-batches/${id}/approve`, {method: 'POST', headers, body: JSON.stringify({})});
+  const r = await fetch(`/api/payment-batches/${id}/approve`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({})});
   const data = await r.json().catch(() => ({}));
   if (!r.ok) { alert(_apiErrorText(data, 'Approval failed')); return; }
   await openBatch(id); await loadBatches();
@@ -3716,7 +3687,7 @@ async function loadSpendingPolicies() {
   document.getElementById('polList').innerHTML = rows.length ? rows.map(p => `
     <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.name)}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(p.network || 'any network')} · ${_escapeHtml(p.token || 'any token')}${p.max_amount_raw ? ' · max ' + _escapeHtml(p.max_amount_raw) + ' base units' : ''}${p.period ? ' · ' + _escapeHtml(p.period_limit_raw) + ' base units/' + _escapeHtml(p.period) : ''}${p.require_dual_control ? ' · dual control' : ''}</div>
+      <div style="color:var(--text-muted)">${_escapeHtml(p.network || 'any network')} · ${_escapeHtml(p.token || 'any token')}${p.max_amount_raw ? ' · max ' + _escapeHtml(p.max_amount_raw) + ' base units' : ''}${p.period ? ' · ' + _escapeHtml(p.period_limit_raw) + ' base units/' + _escapeHtml(p.period) : ''}</div>
       <button class="dir-del" onclick="deleteSpendingPolicy(${p.id})">Delete</button>
     </div>`).join('') : '<div style="color:var(--text-muted)">No spending policies yet - nothing is restricted.</div>';
 }
@@ -3729,7 +3700,6 @@ async function createSpendingPolicy() {
     max_amount: document.getElementById('polMaxAmount').value.trim() || null,
     period: document.getElementById('polPeriod').value || null,
     period_limit: document.getElementById('polPeriodLimit').value.trim() || null,
-    require_dual_control: document.getElementById('polDualControl').checked,
   };
   const r = await fetch('/api/spending-policies', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));

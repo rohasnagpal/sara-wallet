@@ -26,7 +26,6 @@ _PERIOD_DELTAS = {"day": timedelta(days=1), "week": timedelta(weeks=1), "month":
 @dataclass
 class PolicyResult:
     allowed: bool
-    require_dual_control: bool
     denial_reasons: list[str] = field(default_factory=list)
     matched_policy_ids: list[int] = field(default_factory=list)
 
@@ -119,10 +118,7 @@ def evaluate(
                     principal_id=principal_id)
     ]
     reasons: list[str] = []
-    require_dual_control = False
     for policy in matched:
-        if policy.require_dual_control:
-            require_dual_control = True
         if not _within_window(policy, when):
             reasons.append(
                 f"policy '{policy.name}' only permits sends between {policy.window_start} and {policy.window_end}"
@@ -138,6 +134,5 @@ def evaluate(
                     f"{policy.period_limit_raw} base units ({cumulative} already used in this window)"
                 )
     return PolicyResult(
-        allowed=not reasons, require_dual_control=require_dual_control,
-        denial_reasons=reasons, matched_policy_ids=[p.id for p in matched],
+        allowed=not reasons, denial_reasons=reasons, matched_policy_ids=[p.id for p in matched],
     )

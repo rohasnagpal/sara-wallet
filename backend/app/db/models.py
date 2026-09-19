@@ -342,27 +342,16 @@ class PaymentBatchItem(Base):
 
 
 class BatchApproval(Base):
-    """Full maker/checker decision trail — separate from the cached latest
-    state on PaymentBatch so every approve/deny/invalidate is preserved, not
-    just overwritten by the next one."""
+    """Approval decision trail — separate from the cached latest state on
+    PaymentBatch so every approve/invalidate is preserved, not just
+    overwritten by the next one."""
     __tablename__ = "batch_approvals"
     id           = Column(Integer, primary_key=True, index=True)
     batch_id     = Column(Integer, nullable=False, index=True)
-    action       = Column(String, nullable=False)  # approved | denied | invalidated
+    action       = Column(String, nullable=False)  # approved | invalidated
     actor        = Column(String, nullable=False)
     payload_hash = Column(String, nullable=False)
     reason       = Column(Text, nullable=True)
-    created_at   = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-class ApprovalCredential(Base):
-    """Hashed API credential for an independently authenticated checker."""
-    __tablename__ = "approval_credentials"
-    id           = Column(Integer, primary_key=True, index=True)
-    name         = Column(String, nullable=False)
-    key_prefix   = Column(String, nullable=False, unique=True, index=True)
-    key_hash     = Column(String, nullable=False)
-    enabled      = Column(Boolean, nullable=False, default=True)
     created_at   = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -385,7 +374,6 @@ class SpendingPolicy(Base):
     window_start          = Column(String, nullable=True)  # "HH:MM", local to `timezone`
     window_end            = Column(String, nullable=True)
     timezone               = Column(String, nullable=False, default="UTC")
-    require_dual_control  = Column(Boolean, nullable=False, default=False)
     active                = Column(Boolean, nullable=False, default=True)
     created_at             = Column(DateTime, default=datetime.utcnow, nullable=False)
 

@@ -37,15 +37,13 @@ duplicate.
 
 ## Controls
 
-1. **Approval workflows** — require a second, independently-generated
-   checker credential before a sensitive payment batch executes. Checker
-   keys are shown once and stored only as SHA-256 hashes; caller-supplied
-   names are not treated as identities.
+1. **Approval workflow** — every batch must be explicitly reviewed and
+   approved before it can be signed, as a separate step from creating it.
+   This is a deliberate speed bump against mistakes, not a maker/checker
+   control — Sara is a single-user, local wallet, so there's no
+   independent second party to approve on your behalf.
 2. **Scoped spending controls** — cap how much a wallet can send per
    transaction or per day/week/month, enforced right before signing.
-
-When a policy requires dual control, create a checker credential in the
-Business view and give it to the authorised approver.
 
 > Spending-policy enforcement currently covers batch payments (manual
 > batches, airdrops, schedules, payroll). Ad-hoc chat/safety sends are not
