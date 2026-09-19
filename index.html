@@ -634,6 +634,19 @@ select.settings-input { text-overflow: ellipsis; }
 .dashboard-mode .dashboard-right { display: none; }
 .dashboard-mode .dashboard-left { width: 100%; max-width: 900px; margin: 0 auto; }
 
+/* Narrow viewports (phones, small tablets): the topbar and the nav-button
+   grid are both built assuming desktop width and overflow horizontally
+   otherwise - let them wrap instead of clipping. Dashboard mode (which
+   hides the two fixed-width sidebars) is auto-engaged by JS below this
+   breakpoint, so this only needs to handle what dashboard mode itself
+   doesn't already fix. */
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
+  .topbar-right { flex-wrap: wrap; gap: 6px; }
+  .theme-label { display: none; }
+  #col2Nav.col2-panel-nav { display: flex; flex-wrap: wrap; }
+}
+
 .profile-pill {
   display: flex; align-items: center; gap: 7px;
   background: var(--bg-card); border: 1px solid var(--border-dark);
@@ -2535,6 +2548,16 @@ let _portfolioData = null;
 let _portfolioWallets = [];
 
 async function loadPortfolioView(isBackgroundPoll = false) {
+  // A user-triggered load (switching to Balance, adding a wallet, etc.) can
+  // take several seconds against live RPC providers - keep the last known
+  // total on screen (avoid a jarring blank/reset) but say plainly that it's
+  // stale while the refresh is in flight, rather than silently leaving
+  // "Updated just now" showing on numbers that are seconds away from
+  // changing. The silent 2-minute background poll stays unobtrusive.
+  if (!isBackgroundPoll && _portfolioData) {
+    const updated = document.getElementById('portfolioUpdated');
+    if (updated) { updated.textContent = 'Refreshing…'; updated.style.color = ''; }
+  }
   try {
     // The periodic setInterval refresh isn't real user activity - tagging it
     // lets the backend's auto-lock timer skip extending on these requests,
@@ -2985,12 +3008,39 @@ function _setExclusiveViewMode(mode) {
 }
 
 function toggleFocus() {
+  _userChoseViewMode = true;
   _setExclusiveViewMode(shell.classList.contains('focus-mode') ? null : 'focus');
 }
 
 function toggleDashboardMode() {
+  _userChoseViewMode = true;
   _setExclusiveViewMode(shell.classList.contains('dashboard-mode') ? null : 'dashboard');
 }
+
+// ══════════════════════════════════════
+// RESPONSIVE LAYOUT
+// ══════════════════════════════════════
+// dashboard-left is a fixed 480px and sidebar1+sidebar2 add another ~274px,
+// so anything narrower than ~1024px squeezes the chat column (dashboard-
+// right, flex:1) toward unusable widths - at ~756px it hits ~0px with no
+// indication it's even there. Below that width, auto-engage the existing
+// Dashboard mode (full-width forms, chat reachable via the still-visible
+// Focus button) instead of letting the squeeze happen silently. Once the
+// user manually picks a mode themselves, their choice is never overridden.
+const NARROW_LAYOUT_BREAKPOINT = 1024;
+let _userChoseViewMode = false;
+
+function _applyResponsiveViewMode() {
+  if (_userChoseViewMode) return;
+  const narrow = window.innerWidth < NARROW_LAYOUT_BREAKPOINT;
+  const inExclusiveMode = shell.classList.contains('focus-mode') || shell.classList.contains('dashboard-mode');
+  if (narrow && !inExclusiveMode) {
+    _setExclusiveViewMode('dashboard');
+  } else if (!narrow && inExclusiveMode) {
+    _setExclusiveViewMode(null);
+  }
+}
+window.addEventListener('resize', _applyResponsiveViewMode);
 
 // ══════════════════════════════════════
 // WALLET MODAL
@@ -5116,6 +5166,7 @@ async function deleteDirectoryEntry(nickname) {
 
 // ── Boot ──
 (async () => {
+  _applyResponsiveViewMode();
   await loadPortfolioView();
 
   // Refresh portfolio balances every 2 minutes

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeoutError
 from app.db.session import get_db
 from app.db.models import Wallet, PortfolioSnapshot
 from datetime import datetime, timedelta
@@ -29,40 +29,53 @@ def get_portfolio(db: Session = Depends(get_db)):
         }
 
     # Gather native gas assets and Circle-issued USDC on enabled networks.
+    # Every (wallet, network) balance/token fetch is an independent RPC call,
+    # so all of them - across every wallet, not just every network within one
+    # wallet - are submitted to a single shared pool. Looping wallets
+    # sequentially (each waiting on its own pool before the next wallet even
+    # starts) turned N wallets into N times the latency for no reason.
     holdings: list[dict] = []
     networks = list(enabled_networks())
-    for w in wallets:
-        if w.chain == "evm":
-            def _fetch(net, addr=w.address, wname=w.name):
-                try:
-                    b = evm_chain.get_balance(addr, net)
-                    if b["balance"] > 0.000001:
-                        sym = NATIVE_SYMBOLS.get(net, "ETH")
-                        return {"wallet": wname, "chain": net, "symbol": sym, "balance": b["balance"]}
-                except Exception:
-                    pass
-                return None
-            with ThreadPoolExecutor(max_workers=5) as ex:
-                for result in as_completed({ex.submit(_fetch, net): net for net in networks}, timeout=10):
-                    r = result.result()
-                    if r:
-                        holdings.append(r)
-            # ERC-20 tokens via Alchemy — checked on every network regardless
-            # of native balance there. A wallet can hold a bridged/received
-            # token on a chain it has zero native gas on (e.g. right after a
-            # cross-chain bridge, before ever funding gas there), so gating
-            # this on native balance made real token balances invisible.
-            def _fetch_tokens(net, addr=w.address):
-                try:
-                    return get_erc20_balances(addr, net)
-                except Exception:
-                    return []
-            with ThreadPoolExecutor(max_workers=5) as ex:
-                futures = {ex.submit(_fetch_tokens, net): net for net in networks}
-                for fut in as_completed(futures, timeout=10):
-                    net = futures[fut]
-                    for tok in fut.result():
-                        holdings.append({"wallet": w.name, "chain": net, "symbol": tok["symbol"], "balance": tok["balance"]})
+    evm_wallets = [w for w in wallets if w.chain == "evm"]
+
+    def _fetch_native(addr: str, net: str):
+        try:
+            b = evm_chain.get_balance(addr, net)
+            if b["balance"] > 0.000001:
+                return {"symbol": NATIVE_SYMBOLS.get(net, "ETH"), "balance": b["balance"]}
+        except Exception:
+            pass
+        return None
+
+    def _fetch_tokens(addr: str, net: str):
+        try:
+            return get_erc20_balances(addr, net)
+        except Exception:
+            return []
+
+    if evm_wallets and networks:
+        max_workers = min(32, max(5, len(evm_wallets) * len(networks) * 2))
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            future_map = {}
+            for w in evm_wallets:
+                for net in networks:
+                    future_map[ex.submit(_fetch_native, w.address, net)] = ("native", w, net)
+                    future_map[ex.submit(_fetch_tokens, w.address, net)] = ("tokens", w, net)
+            try:
+                for fut in as_completed(future_map, timeout=15):
+                    kind, w, net = future_map[fut]
+                    result = fut.result()
+                    if kind == "native" and result:
+                        holdings.append({"wallet": w.name, "chain": net, **result})
+                    elif kind == "tokens":
+                        for tok in result:
+                            holdings.append({"wallet": w.name, "chain": net, "symbol": tok["symbol"], "balance": tok["balance"]})
+            except FutureTimeoutError:
+                # Whatever hasn't resolved by the deadline is simply left out
+                # of this refresh (rather than failing the whole portfolio
+                # load) - one slow RPC provider on one network must not block
+                # every other wallet's already-available balances.
+                pass
 
     # Fetch live prices for all unique symbols
     symbols = list({h["symbol"] for h in holdings})
