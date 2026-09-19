@@ -62,6 +62,10 @@ material:
 - Nothing else. No telemetry, no analytics, no cloud sync, no external key
   custody.
 
+See [third-party-services.md](third-party-services.md) for the complete,
+code-verified list of every external service Sara connects to, and
+Sara's own no-markup policy on swaps/bridges/sends/x402 payments.
+
 ### Can the AI send money itself?
 
 Not without your say-so. Every send requires you to explicitly confirm

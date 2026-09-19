@@ -15,7 +15,6 @@ ALLOWED_KEYS = {
     "LLM_MODEL":          "Model Name",
     "OPENROUTER_API_KEY": "OpenRouter API Key",
     "COINGECKO_API_KEY":   "CoinGecko API Key (optional, higher rate limits)",
-    "CRYPTOPANIC_API_KEY": "CryptoPanic API Key (news & sentiment)",
     "ALCHEMY_API_KEY":    "Alchemy API Key (token balances + faster RPCs)",
 }
 

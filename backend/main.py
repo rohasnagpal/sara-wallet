@@ -53,7 +53,7 @@ def _clear_legacy_config_rows():
     """Remove settings that are no longer supported or user-configurable."""
     try:
         db = SessionLocal()
-        legacy_keys = ("SARA_MASTER_KEY", "HELIUS_RPC", "TRONGRID_API_KEY")
+        legacy_keys = ("SARA_MASTER_KEY", "HELIUS_RPC", "TRONGRID_API_KEY", "CRYPTOPANIC_API_KEY")
         rows = db.query(Config).filter(Config.key.in_(legacy_keys)).all()
         for row in rows:
             db.delete(row)

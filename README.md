@@ -262,6 +262,7 @@ See [`LICENSE`](LICENSE) for the full text, and [`DISCLAIMER.md`](DISCLAIMER.md)
 - [docs/token-creator.md](docs/token-creator.md) — ERC-20 creation, allowances, contract tools
 - [docs/sara-names.md](docs/sara-names.md) — human-readable wallet names
 - [docs/merchant-api.md](docs/merchant-api.md) — invoices, webhooks, merchant API
+- [docs/third-party-services.md](docs/third-party-services.md) — every external service Sara connects to, which need API keys, and Sara's no-markup policy
 - [ROADMAP.md](ROADMAP.md) — what's Now / Next / Exploring
 - [SECURITY.md](SECURITY.md) — supported versions, vulnerability reporting, audit status
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute

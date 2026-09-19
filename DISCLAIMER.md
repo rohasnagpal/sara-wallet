@@ -12,6 +12,8 @@ Any trading, swapping, bridging, lending, staking, perpetuals, derivatives, comm
 
 Sara Wallet does not operate, control, clear, settle, custody, intermediate, guarantee, or make markets for any transaction. All transactions are between you and the relevant third-party protocol or counterparty, and are subject to that protocol's or counterparty's own terms, risks, and limitations.
 
+Sara Wallet's own software does not add any markup, commission, spread, or fee on top of a swap, bridge, send, or x402 payment — you pay exactly what the underlying third-party protocol or network charges. Those third-party protocols, aggregators, and networks may charge their own fees, spreads, or commissions under their own terms, entirely outside Sara Wallet's control; see [docs/third-party-services.md](docs/third-party-services.md) for the full list of services Sara connects to. The one exception is Sara Names, a separate on-chain naming registry with its own transparent, on-chain, disclosed registration/renewal pricing set by that registry's own operators — not a markup hidden inside another service's quote.
+
 ## 3. No Advice
 
 Sara Wallet does not provide financial, investment, trading, legal, tax, accounting, or regulatory advice. Any information, AI-generated output, market data, prices, charts, news, sentiment, portfolio analytics, DeFi analytics, or transaction-related explanation shown in Sara Wallet is provided for general informational and educational purposes only.
