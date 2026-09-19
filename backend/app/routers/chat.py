@@ -1920,7 +1920,11 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
             validate_swap_transaction_static(swap_data, network, expected_value_wei)
             approve_hash = ensure_allowance(plain_key, src_addr, amount_wei, network)
             if approve_hash:
-                yield f"data: {json.dumps({'token': f'Approval tx: `{approve_hash}`\n', 'done': False})}\n\n"
+                approval_payload = {
+                    "token": f"Approval tx: `{approve_hash}`\n",
+                    "done": False,
+                }
+                yield f"data: {json.dumps(approval_payload)}\n\n"
             tx_hash = execute_swap(
                 plain_key, swap_data, network, expected_value_wei,
                 expected_recipient=wallet_addr,
