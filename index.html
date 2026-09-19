@@ -717,7 +717,9 @@ select.settings-input { text-overflow: ellipsis; }
 .tx-card-status { font-size: 9px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .tx-card-status.confirmed { background: rgba(46,139,87,0.16); color: #2e8b57; }
 .tx-card-status.pending, .tx-card-status.submitted { background: rgba(245,158,11,0.15); color: #d97706; }
-.tx-card-status.failed { background: rgba(192,57,43,0.16); color: var(--red); }
+.tx-card-status.failed, .tx-card-status.overdue { background: rgba(192,57,43,0.16); color: var(--red); }
+.tx-card-status.paid { background: rgba(46,139,87,0.16); color: #2e8b57; }
+.tx-card-status.cancelled { background: var(--pill-bg); color: var(--text-muted); }
 .tx-card-note { font-size: 10.5px; color: var(--text-muted); }
 .tx-card-actions { display: flex; gap: 6px; margin-top: 2px; }
 .tx-card-actions button {
@@ -3124,16 +3126,24 @@ async function loadInvoices() {
     fetch('/api/payments/invoices').then(r => r.ok ? r.json() : Promise.reject()),
     fetch('/api/payments/merchant/clients').then(r => r.ok ? r.json() : []).catch(() => [])
   ]).catch(() => [[], []]);
-  document.getElementById('invoiceList').innerHTML = invoices.length ? invoices.map(i => `<div style="padding:8px 0;border-bottom:1px solid var(--border-dark)">
-    <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(i.reference)}</strong><span>${_escapeHtml(i.status)}</span></div>
-    <div>${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.network || '')} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
-    <div style="color:var(--text-muted)">${_escapeHtml(i.description || '')}${i.due_date ? ' · due ' + _escapeHtml(i.due_date) : ''}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+  document.getElementById('invoiceList').innerHTML = invoices.length ? invoices.map(i => {
+    const dueText = i.due_date ? 'Due ' + new Date(i.due_date).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'}) : '';
+    const metaLine = [i.description, dueText].filter(Boolean).map(x => _escapeHtml(x)).join(' · ');
+    return `<div class="tx-card tx-neutral">
+    <div class="tx-card-top">
+      <div class="tx-card-title"><span class="tx-title-text">${_escapeHtml(i.reference)}</span></div>
+      <span class="tx-card-status ${_escapeHtml(i.status)}">${_escapeHtml(i.status)}</span>
+    </div>
+    <div class="tx-card-meta">${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.network || '')} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
+    ${metaLine ? `<div class="tx-card-meta">${metaLine}</div>` : ''}
+    <div class="tx-card-actions">
       <button class="mini-btn" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button>
       <button class="mini-btn" onclick="downloadInvoicePng('${_escapeHtml(i.reference)}')">Download PNG</button>
       ${i.status === 'paid' ? `<button class="mini-btn" onclick="openReceipt('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','Payment Receipt')">Receipt</button>` : ''}
+      <button class="mini-btn" onclick="confirmDeleteInvoice(this, ${Number(i.id)})" title="Delete this invoice">Delete</button>
     </div>
-  </div>`).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
+  </div>`;
+  }).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
   document.getElementById('merchantList').innerHTML = clients.map(c => `<div>${_escapeHtml(c.name)} · ${_escapeHtml(c.api_key_prefix)}… · ${c.enabled ? 'active' : 'disabled'}${c.enabled ? ` <button class="dir-del" onclick="disableMerchantClient(${Number(c.id)})">Disable</button>` : ''}</div>`).join('');
 }
 
@@ -3147,6 +3157,30 @@ async function createInvoice() {
   const data = await r.json().catch(()=>({}));
   if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not create invoice.'); return; }
   status.innerHTML = `<div>Created ${_escapeHtml(data.reference)}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><a class="mini-btn" href="${_escapeHtml(data.payment_page)}" target="_blank">Open payment page</a><a class="mini-btn" href="#" onclick="downloadInvoicePng('${_escapeHtml(data.reference)}');return false">Download PNG</a></div>`;
+  await loadInvoices();
+}
+
+// Click-to-confirm (same pattern as confirmDeleteWallet) rather than a
+// native confirm() popup — an invoice can be a real business record a
+// customer already has the link to, so deleting it needs a deliberate
+// second click, not a silent one-click delete.
+function confirmDeleteInvoice(btn, id) {
+  if (btn.dataset.confirming) { deleteInvoice(id); return; }
+  btn.dataset.confirming = '1';
+  const prevText = btn.textContent;
+  btn.textContent = 'Confirm delete?';
+  btn.style.color = 'var(--red)';
+  btn.style.borderColor = 'var(--red)';
+  btn._revert = setTimeout(() => {
+    delete btn.dataset.confirming;
+    btn.textContent = prevText;
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 3000);
+}
+
+async function deleteInvoice(id) {
+  await fetch('/api/payments/requests/' + id, {method: 'DELETE'});
   await loadInvoices();
 }
 
