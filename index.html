@@ -1136,7 +1136,11 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
-          <button class="col2-nav-btn" id="col2BtnBusiness" onclick="showCol2('business')">Business</button>
+          <button class="col2-nav-btn" id="col2BtnBatches" onclick="showCol2('batches')">Batches</button>
+          <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
+          <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
+          <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
+          <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounting</button>
           <button class="col2-nav-btn" id="col2BtnTools" onclick="showCol2('tools')">Tokens</button>
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')">Proofs</button>
@@ -1241,19 +1245,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           </div>
         </div>
 
-        <!-- ── Business View (counterparties / batches / schedules / payroll / policies) ── -->
-        <div id="businessView" style="display:none">
-          <div class="card" style="margin-bottom:10px">
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="col2-nav-btn active" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
-              <button class="col2-nav-btn" id="bizTabSchedules" onclick="showBizTab('schedules')">Schedules</button>
-              <button class="col2-nav-btn" id="bizTabPayroll" onclick="showBizTab('payroll')">Payroll</button>
-              <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
-              <button class="col2-nav-btn" id="bizTabAccounting" onclick="showBizTab('accounting')">Accounting</button>
-            </div>
-          </div>
-
-          <div id="bizBatchesPane">
+        <!-- ── Batches View ── -->
+        <div id="batchesView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New payment batch</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially - never one atomic transaction.</div>
@@ -1272,9 +1265,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div id="batchList" style="font-size:11px;margin-top:8px">Loading…</div>
             </div>
             <div class="card" id="batchDetailCard" style="display:none;margin-top:10px"></div>
-          </div>
+        </div><!-- /batchesView -->
 
-          <div id="bizSchedulesPane" style="display:none">
+        <!-- ── Schedules View ── -->
+        <div id="schedulesView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New recurring payment</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Materializes a reviewable batch each time it's due - it never signs by itself.</div>
@@ -1295,9 +1289,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="schedCreateStatus"></div>
             </div>
             <div class="card"><div id="schedList" style="font-size:11px">Loading…</div></div>
-          </div>
+        </div><!-- /schedulesView -->
 
-          <div id="bizPayrollPane" style="display:none">
+        <!-- ── Payroll View ── -->
+        <div id="payrollView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Add payroll person</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor entry in your Directory. Creates a monthly recurring salary instruction - it's only ever paid through an explicit payroll run below, never automatically.</div>
@@ -1326,9 +1321,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="prollRunStatus"></div>
             </div>
             <div class="card" style="margin-top:10px"><div id="prollRunsList" style="font-size:11px">Loading…</div></div>
-          </div>
+        </div><!-- /payrollView -->
 
-          <div id="bizPoliciesPane" style="display:none">
+        <!-- ── Policies View ── -->
+        <div id="policiesView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New spending policy</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Evaluated when a batch is approved and again immediately before each item is signed.</div>
@@ -1344,9 +1340,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="polCreateStatus"></div>
             </div>
             <div class="card"><div id="polList" style="font-size:11px">Loading…</div></div>
-          </div>
+        </div><!-- /policiesView -->
 
-          <div id="bizAccountingPane" style="display:none">
+        <!-- ── Accounting View ── -->
+        <div id="accountingView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Reconcile</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Links internal transfers and swap legs that share the same on-chain transaction hash - never a fuzzy guess.</div>
@@ -1405,8 +1402,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="downloadAccountingExport('xlsx')">Download XLSX</button>
               </div>
             </div>
-          </div>
-        </div><!-- /businessView -->
+        </div><!-- /accountingView -->
 
         <!-- ── Tools View (token creator / treasury / intelligence / risk / contracts) ── -->
         <div id="toolsView" style="display:none">
@@ -3064,29 +3060,38 @@ async function showCol2(mode) {
   _col2Mode = mode;
 
   // Show/hide the views
-  document.getElementById('assetView').style.display      = mode === 'asset'     ? '' : 'none';
-  document.getElementById('ledgerView').style.display     = mode === 'ledger'    ? '' : 'none';
-  document.getElementById('invoicesView').style.display   = mode === 'invoices'  ? '' : 'none';
-  document.getElementById('businessView').style.display   = mode === 'business'  ? '' : 'none';
-  document.getElementById('toolsView').style.display      = mode === 'tools'     ? '' : 'none';
-  document.getElementById('safetyView').style.display     = mode === 'safety'    ? '' : 'none';
-  document.getElementById('proofsView').style.display     = mode === 'proofs'    ? '' : 'none';
-  document.getElementById('settingsView').style.display   = mode === 'settings'  ? '' : 'none';
-  document.getElementById('directoryView').style.display  = mode === 'directory' ? '' : 'none';
+  document.getElementById('assetView').style.display      = mode === 'asset'      ? '' : 'none';
+  document.getElementById('ledgerView').style.display     = mode === 'ledger'     ? '' : 'none';
+  document.getElementById('invoicesView').style.display   = mode === 'invoices'   ? '' : 'none';
+  document.getElementById('batchesView').style.display    = mode === 'batches'    ? '' : 'none';
+  document.getElementById('schedulesView').style.display  = mode === 'schedules'  ? '' : 'none';
+  document.getElementById('payrollView').style.display    = mode === 'payroll'    ? '' : 'none';
+  document.getElementById('policiesView').style.display   = mode === 'policies'   ? '' : 'none';
+  document.getElementById('accountingView').style.display = mode === 'accounting' ? '' : 'none';
+  document.getElementById('toolsView').style.display      = mode === 'tools'      ? '' : 'none';
+  document.getElementById('safetyView').style.display     = mode === 'safety'     ? '' : 'none';
+  document.getElementById('proofsView').style.display     = mode === 'proofs'     ? '' : 'none';
+  document.getElementById('settingsView').style.display   = mode === 'settings'   ? '' : 'none';
+  document.getElementById('directoryView').style.display  = mode === 'directory'  ? '' : 'none';
 
   // Highlight active nav buttons (panel nav)
-  ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBusiness','col2BtnTools','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
+  ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
+   'col2BtnPolicies','col2BtnAccounting','col2BtnTools','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
-  if (mode === 'asset')     document.getElementById('col2BtnAsset')?.classList.add('active');
-  if (mode === 'ledger')    document.getElementById('col2BtnLedger')?.classList.add('active');
-  if (mode === 'invoices')  document.getElementById('col2BtnInvoices')?.classList.add('active');
-  if (mode === 'business')  document.getElementById('col2BtnBusiness')?.classList.add('active');
-  if (mode === 'tools')     document.getElementById('col2BtnTools')?.classList.add('active');
-  if (mode === 'safety')    document.getElementById('col2BtnSafety')?.classList.add('active');
-  if (mode === 'proofs')    document.getElementById('col2BtnProofs')?.classList.add('active');
-  if (mode === 'directory') document.getElementById('col2BtnDir')?.classList.add('active');
-  if (mode === 'settings')  document.getElementById('col2BtnSettings')?.classList.add('active');
+  if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
+  if (mode === 'ledger')     document.getElementById('col2BtnLedger')?.classList.add('active');
+  if (mode === 'invoices')   document.getElementById('col2BtnInvoices')?.classList.add('active');
+  if (mode === 'batches')    document.getElementById('col2BtnBatches')?.classList.add('active');
+  if (mode === 'schedules')  document.getElementById('col2BtnSchedules')?.classList.add('active');
+  if (mode === 'payroll')    document.getElementById('col2BtnPayroll')?.classList.add('active');
+  if (mode === 'policies')   document.getElementById('col2BtnPolicies')?.classList.add('active');
+  if (mode === 'accounting') document.getElementById('col2BtnAccounting')?.classList.add('active');
+  if (mode === 'tools')      document.getElementById('col2BtnTools')?.classList.add('active');
+  if (mode === 'safety')     document.getElementById('col2BtnSafety')?.classList.add('active');
+  if (mode === 'proofs')     document.getElementById('col2BtnProofs')?.classList.add('active');
+  if (mode === 'directory')  document.getElementById('col2BtnDir')?.classList.add('active');
+  if (mode === 'settings')   document.getElementById('col2BtnSettings')?.classList.add('active');
 
   // Highlight sidebar1 buttons
   document.getElementById('s1BtnDir')?.classList.toggle('active', mode === 'directory');
@@ -3095,7 +3100,14 @@ async function showCol2(mode) {
   if (mode === 'asset') await loadPortfolioView();
   if (mode === 'ledger') await loadLedger();
   if (mode === 'invoices') await loadInvoices();
-  if (mode === 'business') await loadBusinessView();
+  if (mode === 'batches') { _fillWalletSelects(['batchWallet']); await loadBatches(); }
+  if (mode === 'schedules') { _fillWalletSelects(['schedWallet']); await loadSchedules(); }
+  if (mode === 'payroll') {
+    _fillWalletSelects(['prollWallet', 'prollRunWallet']);
+    await Promise.all([_fillPayrollDirectorySelect(), loadPayrollPeople()]);
+    await loadPayrollRuns();
+  }
+  if (mode === 'policies') await loadSpendingPolicies();
   if (mode === 'tools') await loadToolsView();
   if (mode === 'safety') await loadSafety();
   if (mode === 'proofs') await loadProofsView();
@@ -3397,32 +3409,10 @@ async function disableMerchantClient(id) {
 // ══════════════════════════════════════
 // BUSINESS: batches / schedules / payroll / policies / accounting
 // ══════════════════════════════════════
-let _bizTab = 'batches';
-
 function _fillWalletSelects(ids) {
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   const opts = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
   ids.forEach(id => { const el = document.getElementById(id); if (el && !el.dataset.filled) { el.innerHTML = opts; el.dataset.filled = '1'; } });
-}
-
-async function loadBusinessView() {
-  _fillWalletSelects(['batchWallet', 'schedWallet', 'prollWallet', 'prollRunWallet']);
-  return showBizTab(_bizTab);
-}
-
-function showBizTab(tab) {
-  _bizTab = tab;
-  ['batches', 'schedules', 'payroll', 'policies', 'accounting'].forEach(t => {
-    const cap = t.charAt(0).toUpperCase() + t.slice(1);
-    const pane = document.getElementById('biz' + cap + 'Pane');
-    if (pane) pane.style.display = t === tab ? '' : 'none';
-    document.getElementById('bizTab' + cap)?.classList.toggle('active', t === tab);
-  });
-  if (tab === 'batches') return loadBatches();
-  if (tab === 'schedules') return loadSchedules();
-  if (tab === 'payroll') return Promise.all([_fillPayrollDirectorySelect(), loadPayrollPeople()]).then(loadPayrollRuns);
-  if (tab === 'policies') return loadSpendingPolicies();
-  if (tab === 'accounting') return Promise.resolve();
 }
 
 // Employee/contractor entries from the unified Directory feed the Payroll
@@ -3661,7 +3651,7 @@ async function loadPayrollRuns() {
   const data = await fetch('/api/payroll/runs').then(r => r.json()).catch(() => ({runs: []}));
   const rows = data.runs || [];
   document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showBizTab('batches'); openBatch(${b.id})">
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showCol2('batches'); openBatch(${b.id})">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(b.payroll_period || ('#' + b.id))}</strong><span>${_escapeHtml(b.status)}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} people · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</div>
     </div>`).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';
@@ -4972,7 +4962,7 @@ function renderDirectoryList() {
 function jumpToPayrollForEntry(id) {
   const el = document.getElementById('prollCounterparty');
   if (el) el.dataset.preselect = String(id);
-  showCol2('business').then(() => showBizTab('payroll'));
+  showCol2('payroll');
 }
 
 function jumpToInvoiceForCustomer(displayName) {
