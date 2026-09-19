@@ -10,6 +10,11 @@ class PassphraseBody(BaseModel):
     passphrase: str
 
 
+class ChangePassphraseBody(BaseModel):
+    old_passphrase: str
+    new_passphrase: str
+
+
 @router.get("/status")
 def status():
     return {"configured": lock_state.is_configured(), "unlocked": lock_state.is_unlocked()}
@@ -41,3 +46,16 @@ def unlock(body: PassphraseBody):
 def do_lock():
     lock_state.lock()
     return {"status": "locked"}
+
+
+@router.post("/change-passphrase", dependencies=[Depends(require_session)])
+def change_passphrase(body: ChangePassphraseBody):
+    try:
+        ok = lock_state.change_passphrase(body.old_passphrase, body.new_passphrase)
+    except lock_state.WalletThrottledError as e:
+        raise HTTPException(429, str(e))
+    except (ValueError, lock_state.WalletLockedError) as e:
+        raise HTTPException(400, str(e))
+    if not ok:
+        raise HTTPException(401, "Incorrect current passphrase.")
+    return {"status": "changed"}

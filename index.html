@@ -1806,6 +1806,17 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <button class="settings-save-btn" onclick="lockWalletNow()">Lock Now</button>
             </div>
 
+            <div class="settings-row">
+              <div class="settings-label">Passphrase <span style="font-weight:400;text-transform:none;letter-spacing:0">Re-encrypts all wallets with a new key — nothing is lost</span></div>
+              <div class="settings-input-row" style="flex-direction:column;align-items:stretch;gap:6px">
+                <input class="settings-input" id="cp-old" type="password" placeholder="Current passphrase" autocomplete="off">
+                <input class="settings-input" id="cp-new" type="password" placeholder="New passphrase (min 8 characters)" autocomplete="off">
+                <input class="settings-input" id="cp-confirm" type="password" placeholder="Confirm new passphrase" autocomplete="off">
+                <button class="settings-save-btn" onclick="changePassphrase()">Change Passphrase</button>
+              </div>
+              <div class="settings-status" id="sstatus-CHANGE_PASSPHRASE"></div>
+            </div>
+
           </div>
         </div><!-- /settingsView -->
 
@@ -4638,6 +4649,37 @@ async function saveSetting(key) {
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
   } catch(e) {
     statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+async function changePassphrase() {
+  const oldInp = document.getElementById('cp-old');
+  const newInp = document.getElementById('cp-new');
+  const confirmInp = document.getElementById('cp-confirm');
+  const statusEl = document.getElementById('sstatus-CHANGE_PASSPHRASE');
+  const oldPass = oldInp.value, newPass = newInp.value, confirmPass = confirmInp.value;
+
+  if (!oldPass || !newPass) { statusEl.textContent = 'Enter your current and new passphrase.'; statusEl.style.color = 'var(--red)'; return; }
+  if (newPass !== confirmPass) { statusEl.textContent = 'New passphrase and confirmation don\'t match.'; statusEl.style.color = 'var(--red)'; return; }
+  if (newPass.length < 8) { statusEl.textContent = 'New passphrase must be at least 8 characters.'; statusEl.style.color = 'var(--red)'; return; }
+
+  try {
+    const r = await fetch('/api/lock/change-passphrase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ old_passphrase: oldPass, new_passphrase: newPass })
+    });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      throw new Error(body.detail || 'Could not change passphrase.');
+    }
+    oldInp.value = ''; newInp.value = ''; confirmInp.value = '';
+    statusEl.textContent = 'Passphrase changed. All wallets remain fully usable.';
+    statusEl.style.color = 'var(--green)';
+    setTimeout(() => { statusEl.textContent = ''; }, 5000);
+  } catch(e) {
+    statusEl.textContent = e.message;
     statusEl.style.color = 'var(--red)';
   }
 }

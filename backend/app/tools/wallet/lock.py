@@ -180,19 +180,21 @@ def confirm_passphrase(passphrase: str) -> bool:
     return True
 
 
-def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
-    """One-time upgrade off the legacy scheme, where the persisted
-    SARA_MASTER_KEY *was* the literal AES key (or an unsalted SHA-256 of the
-    passphrase) — anyone with .env.local and the DB could decrypt every
-    wallet with no passphrase needed at all.
+def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> None:
+    """Core of both the legacy-format upgrade and an explicit user-
+    initiated passphrase change: re-encrypt every piece of master-key-
+    encrypted data from old_key to new_key, and persist the new salt/
+    verifier — used by _migrate_legacy_wallets and change_passphrase so
+    this security-critical sequence exists in exactly one place.
 
     This touches two separate resources (the DB and .env.local) that can't
     be updated in one real transaction, so the ordering here is deliberate:
       1. Stage the new env-format content to a deterministic, owner-only
          restart-recovery file — if this fails, nothing has changed at all.
-      2. Re-encrypt every wallet from the old key to a freshly salted/
-         scrypt-derived one, in one DB transaction. If anything here raises,
-         the staged file is discarded and nothing has changed.
+      2. Re-encrypt every wallet and every ProofRecord's encrypted fields
+         from the old key to the new one, in one DB transaction. If
+         anything here raises, the staged file is discarded and nothing
+         has changed.
       3. Only once the DB commit has actually succeeded, promote the staged
          file with a single atomic os.replace(). If promotion or the process
          fails after the DB commit, the deterministic pending file remains;
@@ -203,9 +205,6 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
     from app.tools.wallet import encrypt
     from app.db.session import SessionLocal
     from app.db.models import Wallet, ProofRecord
-
-    new_salt = os.urandom(16)
-    new_key = encrypt._scrypt_key(passphrase, new_salt)
 
     encrypt.stage_migration_update({
         "SARA_MASTER_KEY": None,
@@ -244,7 +243,67 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
             "with this passphrase will validate it against the migrated wallets and retry the "
             "atomic promotion."
         )
+
+
+def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
+    """One-time upgrade off the legacy scheme, where the persisted
+    SARA_MASTER_KEY *was* the literal AES key (or an unsalted SHA-256 of the
+    passphrase) — anyone with .env.local and the DB could decrypt every
+    wallet with no passphrase needed at all. See _stage_and_reencrypt for
+    the actual re-encryption sequence."""
+    from app.tools.wallet import encrypt
+
+    new_salt = os.urandom(16)
+    new_key = encrypt._scrypt_key(passphrase, new_salt)
+    _stage_and_reencrypt(new_salt, new_key, old_key)
     return new_key
+
+
+def change_passphrase(old_passphrase: str, new_passphrase: str) -> bool:
+    """User-initiated passphrase change: verifies old_passphrase, then
+    re-encrypts every wallet/proof-record from the current key to a
+    freshly salted/scrypt-derived key from new_passphrase, via the same
+    _stage_and_reencrypt sequence _migrate_legacy_wallets uses.
+
+    Requires an already-unlocked session on top of the correct old
+    passphrase — same reasoning as confirm_passphrase: a per-launch HTTP
+    session token alone isn't proof of a human, so this is belt-and-
+    suspenders on top of require_session, not redundant with it.
+
+    Returns False (not an exception) for an incorrect old_passphrase, so
+    the router can turn that into a 401 the same way unlock() does.
+    """
+    global _session_key, _last_activity
+    from app.tools.wallet import encrypt
+
+    if not is_unlocked():
+        raise WalletLockedError("Wallet is locked. Unlock Sara first.")
+    _check_not_throttled()
+
+    if not encrypt.has_new_format():
+        raise WalletLockedError(
+            "Unlock Sara once with your current passphrase before changing it "
+            "(this also finishes a one-time internal upgrade on older installs)."
+        )
+
+    old_key = encrypt.verify_new(old_passphrase)
+    if old_key is None:
+        _record_failure()
+        return False
+
+    encrypt._validate_new_passphrase(new_passphrase)
+
+    new_salt = os.urandom(16)
+    new_key = encrypt._scrypt_key(new_passphrase, new_salt)
+    _stage_and_reencrypt(new_salt, new_key, old_key)
+
+    # Stays unlocked under the new key — the user just typed both
+    # passphrases seconds ago; forcing an immediate re-unlock would be
+    # pure friction, not a real security gain.
+    _session_key = new_key
+    _last_activity = time.time()
+    _reset_failures()
+    return True
 
 
 def lock() -> None:
