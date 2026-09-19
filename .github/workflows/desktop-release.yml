@@ -70,9 +70,15 @@ jobs:
   # hidden-import failure) never touches the Releases page, only produces
   # downloadable workflow artifacts. See sara-wallet.spec's own comments
   # on iterating hidden imports/metadata from real build failures.
+  #
+  # !cancelled() (not the default "needs succeeded") so one failed matrix
+  # leg still lets whichever platforms *did* build get attached, instead
+  # of the whole publish step being skipped — confirmed this matters: the
+  # first real run here had macOS/Linux succeed and Windows fail, and the
+  # default condition skipped publish entirely, attaching nothing.
   publish:
     needs: build
-    if: github.event_name == 'release'
+    if: ${{ !cancelled() && github.event_name == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
