@@ -71,10 +71,22 @@ def get_portfolio(db: Session = Depends(get_db)):
     assets = []
     by_chain: dict[str, float] = {}
     total_usd = 0.0
+    any_price_unavailable = False
 
     for h in holdings:
         sym = h["symbol"]
-        p = prices.get(sym, {})
+        p = prices.get(sym)
+        if p is None:
+            # A missing price (rate-limited provider, unlisted symbol, etc.)
+            # must never be treated as $0 — that silently understates the
+            # portfolio and looks identical to a real zero-value asset.
+            any_price_unavailable = True
+            assets.append({
+                "wallet": h["wallet"], "symbol": sym, "balance": h["balance"],
+                "price": None, "usd_value": None, "change_24h": None,
+                "chain": h["chain"], "price_unavailable": True,
+            })
+            continue
         price = p.get("price", 0)
         change_24h = p.get("change_24h", 0)
         usd_value = h["balance"] * price
@@ -83,11 +95,13 @@ def get_portfolio(db: Session = Depends(get_db)):
         assets.append({
             "wallet": h["wallet"], "symbol": sym, "balance": h["balance"],
             "price": price, "usd_value": usd_value,
-            "change_24h": change_24h, "chain": h["chain"],
+            "change_24h": change_24h, "chain": h["chain"], "price_unavailable": False,
         })
 
+    priced = [a for a in assets if not a["price_unavailable"]]
+
     # Allocation slices (only wallets with non-zero value)
-    valued = [a for a in assets if a["usd_value"] > 0]
+    valued = [a for a in priced if a["usd_value"] > 0]
     allocation = []
     for i, a in enumerate(sorted(valued, key=lambda x: x["usd_value"], reverse=True)):
         pct = (a["usd_value"] / total_usd * 100) if total_usd else 0
@@ -97,7 +111,7 @@ def get_portfolio(db: Session = Depends(get_db)):
             "color": COLORS[i % len(COLORS)],
         })
 
-    weighted_change = sum(a["change_24h"] * a["usd_value"] for a in assets) / total_usd if total_usd else 0
+    weighted_change = sum(a["change_24h"] * a["usd_value"] for a in priced) / total_usd if total_usd else 0
 
     result = {
         "total_usd": round(total_usd, 2),
@@ -105,11 +119,16 @@ def get_portfolio(db: Session = Depends(get_db)):
         "assets": assets,
         "by_chain": {k: round(v, 2) for k, v in by_chain.items()},
         "allocation": allocation,
+        "prices_unavailable": any_price_unavailable,
     }
-    latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.captured_at.desc()).first()
-    if latest is None or latest.captured_at < datetime.utcnow() - timedelta(hours=1):
-        db.add(PortfolioSnapshot(total_usd=str(result["total_usd"]), holdings=json.dumps(assets, default=str)))
-        db.commit()
+    # Skip the durable snapshot when any price is missing — a rate-limited
+    # provider must not write an artificially low total into portfolio
+    # history (the 30-day chart) any more than it should show one live.
+    if not any_price_unavailable:
+        latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.captured_at.desc()).first()
+        if latest is None or latest.captured_at < datetime.utcnow() - timedelta(hours=1):
+            db.add(PortfolioSnapshot(total_usd=str(result["total_usd"]), holdings=json.dumps(assets, default=str)))
+            db.commit()
     return result
 
 

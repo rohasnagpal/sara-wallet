@@ -77,9 +77,24 @@ def _apply_remote(row: ProofRecord, data: dict) -> None:
 def list_proofs(db: Session = Depends(get_db)):
     try:
         lock_state.get_active_key()
-        return [_public(row) for row in db.query(ProofRecord).order_by(ProofRecord.created_at.desc()).all()]
     except WalletLockedError as exc:
         raise HTTPException(423, str(exc))
+    rows = []
+    for row in db.query(ProofRecord).order_by(ProofRecord.created_at.desc()).all():
+        try:
+            rows.append(_public(row))
+        except HTTPException:
+            raise
+        except Exception as exc:
+            # One record that can't be decrypted or resolved (e.g. written
+            # under a since-rotated key, or a malformed BlockchainProof
+            # config) must not take down the whole list — every other proof
+            # is still perfectly readable.
+            rows.append({
+                "id": row.id, "error": True, "error_message": str(exc) or exc.__class__.__name__,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            })
+    return rows
 
 
 @router.post("/checkouts", status_code=201)

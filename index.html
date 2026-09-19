@@ -998,6 +998,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   box-sizing: border-box; outline: none;
 }
 .wallet-form-input:focus, .wallet-form-select:focus { border-color: var(--accent); }
+.wallet-form-input.invalid, .wallet-form-select.invalid { border-color: var(--red); }
+.wallet-form-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
 .wallet-form-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .wallet-form-tab {
   flex: 1; padding: 7px; border-radius: 8px; border: 1.5px solid var(--border-dark);
@@ -1698,7 +1700,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Get alerted when a wallet's balance crosses a threshold you set, via the destinations below.</div>
             <div class="field-row" style="margin-top:8px">
               <div class="field"><label class="field-label" for="monitorCondition">Condition</label><select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select></div>
-              <div class="field"><label class="field-label" for="monitorThreshold">USDC threshold</label><input class="settings-input" id="monitorThreshold" placeholder="USDC threshold"></div>
+              <div class="field"><label class="field-label" for="monitorThreshold">Threshold (whole USDC, e.g. 5.00)</label><input class="settings-input" id="monitorThreshold" placeholder="e.g. 5.00"></div>
               <button class="settings-save-btn" onclick="createBalanceMonitor()">Add monitor</button>
             </div>
             <div id="monitorList" style="font-size:11px;margin-top:9px"></div>
@@ -1951,7 +1953,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     </div>
     <div class="wallet-form-group">
       <div class="wallet-form-label">Wallet Name</div>
-      <input class="wallet-form-input" id="walletName" placeholder="e.g. Main ETH" maxlength="32" />
+      <input class="wallet-form-input" id="walletName" placeholder="e.g. Main ETH" maxlength="32" required aria-describedby="walletNameError" />
+      <div class="wallet-form-error" id="walletNameError" role="alert">Enter a wallet name.</div>
     </div>
     <div class="wallet-form-group">
       <div class="wallet-form-label">Chain</div>
@@ -1961,7 +1964,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
     </div>
     <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
       <div class="wallet-form-label">Private Key (hex)</div>
-      <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" autocomplete="off" spellcheck="false" />
+      <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" autocomplete="off" spellcheck="false" required aria-describedby="walletPrivKeyError" />
+      <div class="wallet-form-error" id="walletPrivKeyError" role="alert">Enter the private key to import.</div>
     </div>
     <div class="wallet-modal-actions">
       <button class="wallet-btn-cancel" onclick="closeWalletModal()">Cancel</button>
@@ -2510,6 +2514,16 @@ function _symbolIcon(sym) { return SYMBOL_ICONS[sym] || (sym ? sym.charAt(0) : '
 function _fmtUsd(n) {
   return '$' + (n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
+function _fmtAssetValue(a) {
+  return a.price_unavailable
+    ? '<span style="color:var(--text-muted);font-style:italic">price unavailable</span>'
+    : _fmtUsd(a.usd_value);
+}
+function _assetSortValue(a) {
+  // Unavailable-price rows sort to the bottom rather than jumping around
+  // as if they were a real $0 holding.
+  return a.price_unavailable ? -1 : a.usd_value;
+}
 function _fmtBal(n) {
   n = n || 0;
   if (n >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits: 2});
@@ -2567,9 +2581,9 @@ function _renderHoldingsSidebar(data, wallets) {
   let html = '';
   Object.keys(byWallet).forEach(wname => {
     html += `<div class="watchlist-section-label">${_escapeHtml(wname)}</div>`;
-    byWallet[wname].sort((a, b) => b.usd_value - a.usd_value).forEach(a => {
+    byWallet[wname].sort((a, b) => _assetSortValue(b) - _assetSortValue(a)).forEach(a => {
       const safeSymbol = _escapeHtml(a.symbol);
-      html += `<div class="asset-item" style="cursor:default"><div class="asset-icon">${_escapeHtml(_symbolIcon(a.symbol))}</div><div class="asset-info"><div class="asset-name">${safeSymbol}</div><div class="asset-sym">${_escapeHtml(_chainLabel(a.chain))}</div></div><div class="asset-right"><div class="asset-price">${_fmtUsd(a.usd_value)}</div><div class="asset-chg">${_fmtBal(a.balance)}</div></div></div>`;
+      html += `<div class="asset-item" style="cursor:default"><div class="asset-icon">${_escapeHtml(_symbolIcon(a.symbol))}</div><div class="asset-info"><div class="asset-name">${safeSymbol}</div><div class="asset-sym">${_escapeHtml(_chainLabel(a.chain))}</div></div><div class="asset-right"><div class="asset-price">${_fmtAssetValue(a)}</div><div class="asset-chg">${_fmtBal(a.balance)}</div></div></div>`;
     });
   });
   el.innerHTML = html;
@@ -2587,7 +2601,13 @@ function _renderPortfolioHeadline(data) {
   chg.className = 'asset-headline-chg ' + (data.change_24h_pct >= 0 ? 'up' : 'down');
   const chains = Object.keys(data.by_chain || {});
   chainCount.textContent = chains.length ? ('Across ' + chains.length + ' chain' + (chains.length > 1 ? 's' : '')) : 'No funded chains yet';
-  updated.textContent = 'Updated just now';
+  if (data.prices_unavailable) {
+    updated.textContent = 'Some prices unavailable — total may be understated';
+    updated.style.color = 'var(--red)';
+  } else {
+    updated.textContent = 'Updated just now';
+    updated.style.color = '';
+  }
 }
 
 function _renderAllocDonut() {
@@ -2648,7 +2668,7 @@ function _renderHoldingsDetail(data, wallets) {
     el.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No funded holdings yet. Send crypto to a wallet address to see it here.</div>';
     return;
   }
-  const sorted = [...assets].sort((a, b) => b.usd_value - a.usd_value);
+  const sorted = [...assets].sort((a, b) => _assetSortValue(b) - _assetSortValue(a));
   el.innerHTML = sorted.map(a => `
     <div class="asset-item" style="cursor:default">
       <div class="asset-icon">${_escapeHtml(_symbolIcon(a.symbol))}</div>
@@ -2657,7 +2677,7 @@ function _renderHoldingsDetail(data, wallets) {
         <div class="asset-sym">${_escapeHtml(a.wallet)} · ${_escapeHtml(_chainLabel(a.chain))}</div>
       </div>
       <div class="asset-right">
-        <div class="asset-price">${_fmtUsd(a.usd_value)}</div>
+        <div class="asset-price">${_fmtAssetValue(a)}</div>
         <div class="asset-chg">${_fmtBal(a.balance)}</div>
       </div>
     </div>`).join('');
@@ -2981,6 +3001,8 @@ function openWalletModal() {
   document.getElementById('walletModalOverlay').classList.add('open');
   document.getElementById('walletName').value = '';
   document.getElementById('walletPrivKey').value = '';
+  _setFieldInvalid('walletName', 'walletNameError', false);
+  _setFieldInvalid('walletPrivKey', 'walletPrivKeyError', false);
   setWalletTab('create');
 }
 
@@ -3001,10 +3023,22 @@ function setWalletTab(tab) {
   document.getElementById('walletSubmitBtn').textContent = tab === 'create' ? 'Create Wallet' : 'Import Wallet';
 }
 
+function _setFieldInvalid(inputId, errorId, invalid) {
+  document.getElementById(inputId)?.classList.toggle('invalid', invalid);
+  document.getElementById(inputId)?.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+  const err = document.getElementById(errorId);
+  if (err) err.style.display = invalid ? 'block' : 'none';
+}
+
 async function submitWallet() {
   const name = document.getElementById('walletName').value.trim();
   const chain = document.getElementById('walletChain').value;
-  if (!name) { document.getElementById('walletName').focus(); return; }
+  _setFieldInvalid('walletName', 'walletNameError', false);
+  if (!name) {
+    _setFieldInvalid('walletName', 'walletNameError', true);
+    document.getElementById('walletName').focus();
+    return;
+  }
   const btn = document.getElementById('walletSubmitBtn');
   btn.textContent = 'Working…'; btn.disabled = true;
   try {
@@ -3013,7 +3047,13 @@ async function submitWallet() {
       endpoint = '/api/wallets/create'; body = { name, chain };
     } else {
       const pk = document.getElementById('walletPrivKey').value.trim();
-      if (!pk) { document.getElementById('walletPrivKey').focus(); btn.textContent = 'Import Wallet'; btn.disabled = false; return; }
+      _setFieldInvalid('walletPrivKey', 'walletPrivKeyError', false);
+      if (!pk) {
+        _setFieldInvalid('walletPrivKey', 'walletPrivKeyError', true);
+        document.getElementById('walletPrivKey').focus();
+        btn.textContent = 'Import Wallet'; btn.disabled = false;
+        return;
+      }
       endpoint = '/api/wallets/import'; body = { name, chain, private_key: pk };
     }
     const resp = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -4395,7 +4435,10 @@ async function createBalanceMonitor() {
 
 async function loadBalanceMonitors() {
   const rows = await fetch('/api/safety/monitors').then(r=>r.json()).catch(()=>[]);
-  document.getElementById('monitorList').innerHTML = rows.map(m=>`<div>${_escapeHtml(m.token)} ${_escapeHtml(m.condition)} ${_escapeHtml(m.threshold_raw)} base units · ${m.triggered?'triggered':'watching'} <button class="dir-del" onclick="deleteMonitor(${m.id})">×</button></div>`).join('') || 'No monitors.';
+  document.getElementById('monitorList').innerHTML = rows.map(m => {
+    const human = _fmtBal(Number(m.threshold_raw || 0) / (10 ** (m.decimals ?? 6)));
+    return `<div>${_escapeHtml(m.token)} balance ${_escapeHtml(m.condition)} ${_escapeHtml(human)} ${_escapeHtml(m.token)} · ${m.triggered?'triggered':'watching'} <button class="dir-del" onclick="deleteMonitor(${m.id})">×</button></div>`;
+  }).join('') || 'No monitors.';
 }
 async function deleteMonitor(id){await fetch('/api/safety/monitors/'+id,{method:'DELETE'});await loadBalanceMonitors();}
 
@@ -4471,7 +4514,11 @@ async function loadProofsView() {
 
 async function _proofJson(response) {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(_apiErrorText(data, 'BlockchainProof request failed.'));
+  if (!response.ok) {
+    const err = new Error(_apiErrorText(data, response.status ? `Request failed (HTTP ${response.status}).` : 'Request failed - no response from the server.'));
+    err.status = response.status;
+    throw err;
+  }
   return data;
 }
 
@@ -4562,13 +4609,23 @@ async function loadProofRecords() {
     const rows = await _proofJson(await fetch('/api/proofs'));
     if (!rows.length) { list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No proofs yet.</div>'; return; }
     list.innerHTML = rows.map(row => {
+      if (row.error) {
+        return `<div class="proof-entry"><div class="proof-meta">Proof #${row.id}${row.created_at ? ' · ' + _escapeHtml(new Date(row.created_at).toLocaleString()) : ''}</div><div class="proof-meta" style="color:var(--red)">Could not read this record: ${_escapeHtml(row.error_message || 'unknown error')}</div></div>`;
+      }
       const status = row.proof_status || row.status;
       const statusClass = status === 'complete' ? 'complete' : (status === 'failed' ? 'failed' : '');
       const publicLink = row.public_url ? `<a href="${_escapeHtml(row.public_url)}" target="_blank" rel="noopener">Public proof</a>` : '';
       const evidence = row.has_evidence ? `<a href="/api/proofs/${row.id}/evidence">Download evidence</a>` : '';
       return `<div class="proof-entry"><div class="proof-entry-head"><div><strong>${_escapeHtml(row.description || row.file_name || 'File proof')}</strong><div class="proof-meta">${_escapeHtml(row.file_name || '')}${row.file_name ? ' · ' : ''}${_escapeHtml(row.wallet_name || '')} · ${_escapeHtml(new Date(row.created_at).toLocaleString())}</div></div><span class="proof-status ${statusClass}">${_escapeHtml(status)}</span></div><div class="proof-meta proof-hash">${_escapeHtml(row.hash)}</div><div class="proof-actions"><button class="wallet-btn-cancel" onclick="refreshProofRecord(${row.id})">Refresh</button>${publicLink}${evidence}</div>${row.last_error ? `<div class="proof-meta" style="color:var(--red)">${_escapeHtml(row.last_error)}</div>` : ''}</div>`;
     }).join('');
-  } catch(e) { list.innerHTML = `<div style="font-size:11px;color:var(--red)">${_escapeHtml(e.message)}</div>`; }
+  } catch(e) {
+    const statusText = e.status ? `HTTP ${e.status}` : 'no response from the server';
+    list.innerHTML = `<div style="font-size:11px;color:var(--red)">
+      <div>Could not load proofs (${_escapeHtml(statusText)}): ${_escapeHtml(e.message)}</div>
+      <div style="color:var(--text-muted);margin-top:2px">${_escapeHtml(new Date().toLocaleString())}</div>
+      <button class="wallet-btn-cancel" style="margin-top:6px" onclick="loadProofRecords()">Retry</button>
+    </div>`;
+  }
 }
 
 async function verifyProofHash() {
