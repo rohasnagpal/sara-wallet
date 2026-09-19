@@ -17,7 +17,7 @@ from app.db.models import Wallet, PaymentRequest, MerchantClient, AlertDestinati
 from app.tools.payments.links import decode_payload, create_payment_request, encode_payload
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
-from app.core.assets import NETWORKS
+from app.core.assets import NETWORKS, token_enabled
 
 
 def _eip681_uri(token: str, network: str, payment_address: str | None, amount_raw) -> str | None:
@@ -86,8 +86,20 @@ def _invoice_dict(row: PaymentRequest, wallet_name: str | None = None, *, public
 
 
 def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest, merchant_id: int | None = None):
-    if body.network != "polygon" or body.token.upper() != "USDC":
-        raise HTTPException(400, "Merchant invoices currently support USDC on Polygon")
+    # USDC-only is deliberate, not a current-scope gap: an invoice fixes an
+    # amount at creation time, and reconciliation (reconcile.py) matches it
+    # exactly with no price tolerance — a stablecoin is what makes that a
+    # fixed receivable rather than something exposed to price movement
+    # between invoice creation and payment. The network choice itself isn't
+    # similarly constrained: reconciliation already supports all of
+    # Ethereum/Arbitrum/Base/Optimism/Polygon via the same Alchemy lookup
+    # (see ALCHEMY_NETWORK_SLUGS in app/chains/evm.py), so any network the
+    # user has USDC enabled for (Settings -> Manage Networks & Tokens) works.
+    if body.token.upper() != "USDC" or not token_enabled("USDC", body.network):
+        raise HTTPException(
+            400,
+            "Invoices currently support USDC only, on a network enabled for USDC in Settings.",
+        )
     due_date = body.due_date
     if due_date and due_date.tzinfo:
         due_date = due_date.astimezone(timezone.utc).replace(tzinfo=None)

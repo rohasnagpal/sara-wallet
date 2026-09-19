@@ -689,6 +689,55 @@ select.settings-input { text-overflow: ellipsis; }
 .card-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 5px; font-family: var(--font-body); }
 .badge-warn { background: rgba(245,158,11,0.12); color: #d97706; }
 
+/* Transaction ledger cards.
+   Category colors are deliberately fixed (not theme-derived color-mix) —
+   tried theme variables first, but on themes where --accent and --green
+   are close in hue (e.g. Pearl's sage-green accent vs its green), a subtle
+   tint made "sent" and "received" look identical. Fixed hues guarantee
+   the four groups stay visually distinct on every one of the app's themes. */
+.tx-card {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 12px 14px; margin-bottom: 8px;
+  border-radius: 12px; border: 1px solid var(--border-dark);
+  border-left: 4px solid var(--tx-accent, var(--border-dark));
+  background: var(--bg-card2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.tx-card:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.09); }
+.tx-card.tx-in      { --tx-accent: #2e8b57; }
+.tx-card.tx-out     { --tx-accent: #3b6fa8; }
+.tx-card.tx-token   { --tx-accent: #8b5cf6; }
+.tx-card.tx-neutral { --tx-accent: #94a3b8; }
+.tx-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tx-card-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12.5px; color: var(--text-primary); font-family: var(--font-body); min-width: 0; }
+.tx-card-title span.tx-title-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-card-icon { width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--tx-accent, var(--pill-bg)) 20%, transparent); color: var(--tx-accent, var(--text-secondary)); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.tx-card-amount { font-size: 12.5px; font-weight: 700; color: var(--text-primary); white-space: nowrap; font-family: var(--font-mono); }
+.tx-card-meta { font-size: 10.5px; color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tx-card-status { font-size: 9px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.tx-card-status.confirmed { background: rgba(46,139,87,0.16); color: #2e8b57; }
+.tx-card-status.pending, .tx-card-status.submitted { background: rgba(245,158,11,0.15); color: #d97706; }
+.tx-card-status.failed { background: rgba(192,57,43,0.16); color: var(--red); }
+.tx-card-note { font-size: 10.5px; color: var(--text-muted); }
+.tx-card-actions { display: flex; gap: 6px; margin-top: 2px; }
+.tx-card-actions button {
+  background: var(--pill-bg); border: 1px solid var(--border-dark); color: var(--text-secondary);
+  font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tx-card-actions button:hover { background: var(--sidebar-nav-active); color: var(--accent); border-color: var(--accent); }
+
+/* Small pill button — for secondary actions that were previously plain
+   underlined <a> links or the borderless .dir-del style (meant for a
+   delete-link context, not a real button) and read as unstyled/broken. */
+.mini-btn {
+  background: var(--pill-bg); border: 1px solid var(--border-dark); color: var(--text-secondary);
+  font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mini-btn:hover { background: var(--sidebar-nav-active); color: var(--accent); border-color: var(--accent); }
+
 /* Bar chart */
 .bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 32px; }
 .bar { width: 7px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.35; transition: opacity 0.2s; }
@@ -1155,17 +1204,21 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <div id="invoicesView" style="display:none">
           <div class="card" style="margin-bottom:10px">
             <div style="font-size:15px;font-weight:600">Create USDC invoice</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Polygon payment page with automatic on-chain reconciliation.</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">USDC payment page with automatic on-chain reconciliation, on any network you've enabled USDC for.</div>
             <div class="field-grid">
               <div class="field"><label class="field-label" for="invoiceWallet">Wallet</label><select class="settings-input" id="invoiceWallet"></select></div>
+              <div class="field"><label class="field-label" for="invoiceNetwork">Network</label><select class="settings-input" id="invoiceNetwork"></select></div>
               <div class="field"><label class="field-label" for="invoiceAmount">Amount (USDC)</label><input class="settings-input" id="invoiceAmount" type="number" min="0" step="0.000001" placeholder="0.00"></div>
               <div class="field"><label class="field-label" for="invoiceCustomer">Customer name</label><input class="settings-input" id="invoiceCustomer" maxlength="120" placeholder="Customer name"></div>
               <div class="field"><label class="field-label" for="invoiceEmail">Customer email</label><input class="settings-input" id="invoiceEmail" type="email" maxlength="254" placeholder="Customer email"></div>
               <div class="field"><label class="field-label" for="invoiceDue">Due date</label><input class="settings-input" id="invoiceDue" type="datetime-local"></div>
-              <div class="field"><label class="field-label" for="invoiceDescription">Description</label><input class="settings-input" id="invoiceDescription" maxlength="1000" placeholder="Description"></div>
             </div>
-            <button class="settings-save-btn" style="margin-top:8px" onclick="createInvoice()">Create invoice</button>
-            <div class="settings-status" id="invoiceStatus"></div>
+            <div class="field" style="margin-top:10px">
+              <label class="field-label" for="invoiceDescription">Description</label>
+              <textarea class="settings-input" id="invoiceDescription" maxlength="1000" placeholder="Description" rows="3" style="resize:vertical;min-height:64px;font-family:var(--font-body);line-height:1.5"></textarea>
+            </div>
+            <button class="settings-save-btn" style="margin-top:10px" onclick="createInvoice()">Create invoice</button>
+            <div class="settings-status" id="invoiceStatus" style="height:auto;min-height:16px;margin-top:8px;line-height:1.8"></div>
           </div>
           <div class="card" style="margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:center"><strong>Invoices</strong><button class="settings-save-btn" onclick="loadInvoices()">Refresh</button></div>
@@ -3058,15 +3111,28 @@ async function loadInvoices() {
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   const walletSelect = document.getElementById('invoiceWallet');
   if (!walletSelect.options.length) walletSelect.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+  const networkSelect = document.getElementById('invoiceNetwork');
+  if (!networkSelect.options.length) {
+    let assetData = _assetSettings;
+    if (!assetData) { try { assetData = await fetch('/api/settings/assets').then(r => r.json()); } catch(e) { assetData = {networks:[]}; } }
+    const usdcNetworks = (assetData.networks || []).filter(n => n.enabled && n.usdc_enabled);
+    networkSelect.innerHTML = usdcNetworks.length
+      ? usdcNetworks.map(n => `<option value="${_escapeHtml(n.id)}">${_escapeHtml(n.label)}</option>`).join('')
+      : '<option value="">No USDC networks enabled</option>';
+  }
   const [invoices, clients] = await Promise.all([
     fetch('/api/payments/invoices').then(r => r.ok ? r.json() : Promise.reject()),
     fetch('/api/payments/merchant/clients').then(r => r.ok ? r.json() : []).catch(() => [])
   ]).catch(() => [[], []]);
   document.getElementById('invoiceList').innerHTML = invoices.length ? invoices.map(i => `<div style="padding:8px 0;border-bottom:1px solid var(--border-dark)">
     <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(i.reference)}</strong><span>${_escapeHtml(i.status)}</span></div>
-    <div>${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
+    <div>${_escapeHtml(i.amount)} ${_escapeHtml(i.token)} · ${_escapeHtml(i.network || '')} · ${_escapeHtml(i.customer_name || 'No customer')}</div>
     <div style="color:var(--text-muted)">${_escapeHtml(i.description || '')}${i.due_date ? ' · due ' + _escapeHtml(i.due_date) : ''}</div>
-    <button class="dir-del" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button><button class="dir-del" onclick="downloadInvoicePng('${_escapeHtml(i.reference)}')">Download PNG</button>${i.status === 'paid' ? `<button class="dir-del" onclick="openReceipt('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','Payment Receipt')">Receipt</button>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+      <button class="mini-btn" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button>
+      <button class="mini-btn" onclick="downloadInvoicePng('${_escapeHtml(i.reference)}')">Download PNG</button>
+      ${i.status === 'paid' ? `<button class="mini-btn" onclick="openReceipt('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','Payment Receipt')">Receipt</button>` : ''}
+    </div>
   </div>`).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
   document.getElementById('merchantList').innerHTML = clients.map(c => `<div>${_escapeHtml(c.name)} · ${_escapeHtml(c.api_key_prefix)}… · ${c.enabled ? 'active' : 'disabled'}${c.enabled ? ` <button class="dir-del" onclick="disableMerchantClient(${Number(c.id)})">Disable</button>` : ''}</div>`).join('');
 }
@@ -3076,11 +3142,11 @@ async function createInvoice() {
   const due = document.getElementById('invoiceDue').value;
   const body = {wallet_id:Number(document.getElementById('invoiceWallet').value), customer_name:document.getElementById('invoiceCustomer').value,
     customer_email:document.getElementById('invoiceEmail').value, amount:document.getElementById('invoiceAmount').value,
-    token:'USDC', network:'polygon', due_date:due ? new Date(due).toISOString() : null, description:document.getElementById('invoiceDescription').value};
+    token:'USDC', network:document.getElementById('invoiceNetwork').value || 'polygon', due_date:due ? new Date(due).toISOString() : null, description:document.getElementById('invoiceDescription').value};
   const r = await fetch('/api/payments/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data = await r.json().catch(()=>({}));
   if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not create invoice.'); return; }
-  status.innerHTML = `Created ${_escapeHtml(data.reference)} · <a href="${_escapeHtml(data.payment_page)}" target="_blank">open payment page</a> · <a href="#" onclick="downloadInvoicePng('${_escapeHtml(data.reference)}');return false">download PNG</a>`;
+  status.innerHTML = `<div>Created ${_escapeHtml(data.reference)}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><a class="mini-btn" href="${_escapeHtml(data.payment_page)}" target="_blank">Open payment page</a><a class="mini-btn" href="#" onclick="downloadInvoicePng('${_escapeHtml(data.reference)}');return false">Download PNG</a></div>`;
   await loadInvoices();
 }
 
@@ -4244,13 +4310,61 @@ function filterLedger() {
   _renderLedgerList(rows, q);
 }
 
+// Plain-language label, icon, and money-in/out/token color grouping for
+// every category the backend actually writes (see docs/business-payments.md
+// and the various routers/services that create Transaction rows) — raw
+// values like "token_mint" or "transfer" are never shown to the user directly.
+function _txDisplayInfo(t) {
+  const token = _escapeHtml(t.token || '');
+  const dir = t.direction || '';
+  const sent = { label: `You sent ${token}`, icon: '↑', color: 'tx-out' };
+  const received = { label: `You received ${token}`, icon: '↓', color: 'tx-in' };
+  const byCategory = {
+    transfer: dir === 'incoming' ? received
+             : dir === 'self' ? { label: `You moved ${token} between your wallets`, icon: '⇄', color: 'tx-neutral' }
+             : sent,
+    swap: { label: `You swapped ${token}`, icon: '⇄', color: 'tx-neutral' },
+    bridge: { label: `You bridged ${token} to another network`, icon: '🌉', color: 'tx-neutral' },
+    token_mint: { label: `New ${token} minted`, icon: '🪙', color: 'tx-token' },
+    token_burn: { label: `${token} burned`, icon: '🔥', color: 'tx-token' },
+    token_transfer: sent,
+    x402_payment: { label: 'Paid for a resource', icon: '⚡', color: 'tx-out' },
+    allowance_revocation: { label: 'Revoked a spending allowance', icon: '🛡️', color: 'tx-token' },
+    contract_interaction: { label: t.reference ? `Contract call: ${_escapeHtml(t.reference)}` : 'Contract call', icon: '📄', color: 'tx-token' },
+    invoice_payment: { label: 'Invoice paid', icon: '↓', color: 'tx-in' },
+    name_registration: { label: 'Registered a Sara Name', icon: '🪪', color: 'tx-neutral' },
+    name_renewal: { label: 'Renewed a Sara Name', icon: '🪪', color: 'tx-neutral' },
+    name_registry_revenue: { label: 'Sara Names registry fee', icon: '🪪', color: 'tx-in' },
+    payroll: { label: 'Payroll payment', icon: '↑', color: 'tx-out' },
+    airdrop: { label: 'Airdrop sent', icon: '↑', color: 'tx-out' },
+    batch_payment: { label: 'Batch payment', icon: '↑', color: 'tx-out' },
+  };
+  if (t.category && byCategory[t.category]) return byCategory[t.category];
+  if (dir === 'incoming') return received;
+  if (dir === 'outgoing') return sent;
+  return { label: 'Transaction', icon: '•', color: 'tx-neutral' };
+}
+
 function _renderLedgerList(rows, q) {
   const box = document.getElementById('ledgerList');
-  box.innerHTML = rows.length ? rows.map(t => `<div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div style="display:flex;justify-content:space-between;gap:6px"><strong>${_escapeHtml(t.category || t.direction || 'transaction')}</strong><span>${_escapeHtml(t.status)}</span></div>
-      <div>${_escapeHtml(t.amount)} ${_escapeHtml(t.token || '')} · ${_escapeHtml(t.network || t.chain || '')}${t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''}</div>
-      <div style="color:var(--text-muted)">${_escapeHtml(t.counterparty || t.to || '')}${t.note ? ' · ' + _escapeHtml(t.note) : ''}${(t.tags || []).length ? ' · ' + t.tags.map(x => _escapeHtml(x)).join(', ') : ''}</div>
-      <div style="display:flex;gap:6px;margin-top:4px">
+  box.innerHTML = rows.length ? rows.map(t => {
+    const info = _txDisplayInfo(t);
+    const meta = [
+      _escapeHtml(t.amount) + ' ' + _escapeHtml(t.token || '') + (t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''),
+      _escapeHtml(t.network || t.chain || ''),
+      t.counterparty ? _escapeHtml(t.counterparty) : '',
+    ].filter(Boolean).join(' · ');
+    const noteLine = (t.note || (t.tags || []).length)
+      ? `<div class="tx-card-note">${t.note ? _escapeHtml(t.note) : ''}${t.note && (t.tags || []).length ? ' · ' : ''}${(t.tags || []).map(x => _escapeHtml(x)).join(', ')}</div>`
+      : '';
+    return `<div class="tx-card ${info.color}">
+      <div class="tx-card-top">
+        <div class="tx-card-title"><span class="tx-card-icon">${info.icon}</span><span class="tx-title-text">${info.label}</span></div>
+        <span class="tx-card-status ${_escapeHtml(t.status || '')}">${_escapeHtml(t.status || '')}</span>
+      </div>
+      <div class="tx-card-meta">${meta}</div>
+      ${noteLine}
+      <div class="tx-card-actions">
         <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Tag / note</button>
         <button class="dir-del" onclick="openReceipt('/api/ledger/${t.id}/receipt','Transaction Receipt')">Receipt</button>
       </div>
@@ -4260,7 +4374,8 @@ function _renderLedgerList(rows, q) {
         <button class="settings-save-btn" onclick="saveLedgerEdit(${t.id})">Save</button>
         <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Cancel</button>
       </div>
-    </div>`).join('') : `<div style="font-size:11px;color:var(--text-muted)">${q ? 'No transactions match "' + _escapeHtml(q) + '".' : 'No recorded transactions yet.'}</div>`;
+    </div>`;
+  }).join('') : `<div style="font-size:11px;color:var(--text-muted)">${q ? 'No transactions match "' + _escapeHtml(q) + '".' : 'No recorded transactions yet.'}</div>`;
 }
 
 function toggleLedgerEdit(id) {
