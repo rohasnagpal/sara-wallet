@@ -13,9 +13,29 @@ from app.core.access import ensure_local_owner
 from app.core.events import process_pending
 from app.db.migrations import run_migrations
 import os
+import sys
 import secrets
 import asyncio
 import logging
+
+def _resource_path(name: str) -> str:
+    """Resolve a bundled resource by logical name, PyInstaller-aware.
+
+    Frozen builds compile main.py into a PYZ archive, so __file__-relative
+    lookups (the source-tree layout below) point at a synthetic path with no
+    file on disk. sys._MEIPASS is the real, extracted bundle directory
+    PyInstaller sets at runtime — sara-wallet.spec's `datas` places both
+    index.html and images/ directly under it, so frozen lookups are always
+    one level shallower than their source-tree equivalents.
+    """
+    frozen = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+    if name == "index.html":
+        return os.path.join(sys._MEIPASS, "index.html") if frozen \
+            else os.path.join(os.path.dirname(__file__), "..", "index.html")
+    if name == "images":
+        return os.path.join(sys._MEIPASS, "images") if frozen \
+            else os.path.join(os.path.dirname(__file__), "images")
+    raise ValueError(f"Unknown bundled resource: {name!r}")
 
 def _load_db_config():
     """Override os.environ with any keys saved in the Config table."""
@@ -189,7 +209,7 @@ app.add_middleware(
 )
 
 # Serve crypto logo images
-_images_dir = os.path.join(os.path.dirname(__file__), "images")
+_images_dir = _resource_path("images")
 if os.path.isdir(_images_dir):
     app.mount("/images", StaticFiles(directory=_images_dir), name="images")
 
@@ -229,7 +249,7 @@ async def root():
     # per-launch session token can be injected fresh on every page load —
     # it lives only in this process's memory (app/core/session_auth.py),
     # never written to disk, so this is the only way the frontend gets it.
-    index_path = os.path.join(os.path.dirname(__file__), "..", "index.html")
+    index_path = _resource_path("index.html")
     html = open(os.path.abspath(index_path), encoding="utf-8").read()
     injected = f'<script>window.__SARA_SESSION__={LAUNCH_TOKEN!r};</script>\n'
     if "<head>" in html:

@@ -25,9 +25,12 @@ from web3 import Web3
 
 from app.core.audit import append_audit
 from app.core.events import publish
+from app.core.resource_paths import backend_path
 from app.db.models import TokenDeployment, Wallet
 
-_TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "tools" / "tokens" / "templates"
+# __file__-relative would break under a frozen (PyInstaller) build — see
+# app/core/resource_paths.py.
+_TEMPLATES_DIR = backend_path("app", "tools", "tokens", "templates")
 
 # (source file under contracts/src, contract name) per template - used only
 # for source verification, kept in sync with contracts/scripts/export_artifacts.py's TEMPLATES.
@@ -35,6 +38,8 @@ _TEMPLATE_SOURCES = {
     "fixed_supply": ("FixedSupplyToken.sol", "FixedSupplyToken"),
     "mintable_burnable_capped": ("MintableBurnableCappedToken.sol", "MintableBurnableCappedToken"),
 }
+# Not bundled in a frozen build (source-verification is best-effort and
+# already no-ops when this path doesn't exist, see its usage below).
 _CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
 
 _TEMPLATE_DESCRIPTIONS = {

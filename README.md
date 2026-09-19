@@ -112,7 +112,17 @@ See [ROADMAP.md](ROADMAP.md) for what's actively being worked on, what's next, a
 
 ## 🚀 Getting Started
 
-### Option A: Docker (fastest way to try it)
+### Option A: Download a build
+
+Grab a `sara-wallet-<macos|windows|linux>.zip` from the [Releases page](https://github.com/rohasnagpal/sara-wallet/releases), unzip it, and run the `sara-wallet` executable inside — it opens your browser to `http://localhost:8888` on its own. Your wallet database and config live in your OS's standard app-data directory (e.g. `~/Library/Application Support/Sara` on macOS), not next to the executable.
+
+These builds are unsigned, so the OS will warn you on first launch — this is expected for an alpha, source-available project without a paid code-signing certificate, not a sign anything's wrong:
+- **macOS:** right-click the app → **Open** → **Open** again in the Gatekeeper prompt
+- **Windows:** click **More info** → **Run anyway** in the SmartScreen prompt
+
+If no build is listed for your platform yet, or you'd rather run from source, use one of the options below.
+
+### Option B: Docker (fastest way to try it from source)
 
 ```bash
 git clone https://github.com/rohasnagpal/sara-wallet.git
@@ -128,7 +138,7 @@ evaluating Sara, not as its primary way to run — Sara is designed to run
 directly on your machine so your keys never leave it; see
 [docs/security-model.md](docs/security-model.md).
 
-### Option B: Run it directly
+### Option C: Run it directly
 
 #### 1. Clone the repo
 

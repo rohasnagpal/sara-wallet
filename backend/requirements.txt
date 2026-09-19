@@ -6,6 +6,7 @@ sqlalchemy>=2.0.51
 litellm>=1.84.0
 python-dotenv>=1.2.2
 pydantic-settings>=2.14.2
+platformdirs>=4.10.0  # OS-correct user-data dir for the desktop_launcher.py packaged build
 aiofiles>=23.0.0
 web3>=7.0.0
 eth-account>=0.13.0

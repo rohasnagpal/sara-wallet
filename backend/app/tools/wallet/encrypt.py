@@ -5,7 +5,14 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-_ENV_FILE = pathlib.Path(__file__).parents[4] / ".env.local"  # sara-wallet/.env.local (gitignored; .env is the tracked template)
+# Resolved relative to the current working directory — matching
+# app/core/config.py's env_file="../.env.local" — not __file__: a
+# __file__-relative climb breaks under a frozen (PyInstaller) build, where
+# this module is compiled into an archive with no real file on disk to
+# climb from. Both a source run (`cd backend && uvicorn main:app`) and the
+# packaged desktop build (backend/desktop_launcher.py chdir's into the
+# equivalent directory first) guarantee the cwd this resolves against.
+_ENV_FILE = (pathlib.Path.cwd() / ".." / ".env.local").resolve()  # sara-wallet/.env.local (gitignored; .env is the tracked template)
 _PENDING_MIGRATION_FILE = _ENV_FILE.with_name(_ENV_FILE.name + ".migration-pending")
 _HEX_CHARS = set("0123456789abcdefABCDEF")
 

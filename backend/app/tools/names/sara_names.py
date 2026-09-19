@@ -16,14 +16,17 @@ from __future__ import annotations
 from decimal import Decimal
 from functools import lru_cache
 import json
-from pathlib import Path
 import re
 
 from eth_utils import keccak
 from web3 import Web3
 
+from app.core.resource_paths import backend_path
+
 AMOY_CHAIN_ID = 80002
-_ABI_PATH = Path(__file__).resolve().parent / "registry_abi.json"
+# __file__-relative would break under a frozen (PyInstaller) build — see
+# app/core/resource_paths.py.
+_ABI_PATH = backend_path("app", "tools", "names", "registry_abi.json")
 
 # Same DNS-label-style rule as the contract's isValidLabel(): lowercase
 # a-z0-9-, no leading/trailing hyphen, 3-63 chars. A full name is one or
