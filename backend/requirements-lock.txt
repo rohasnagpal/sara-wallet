@@ -70,7 +70,7 @@ peewee==4.2.3
 pillow==12.3.0
 platformdirs==4.10.0
 propcache==0.5.2
-protobuf==7.35.1
+protobuf==7.36.1
 pycparser==3.0
 pycryptodome==3.23.0
 pydantic==2.13.4
