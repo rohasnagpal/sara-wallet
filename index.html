@@ -444,6 +444,8 @@ select.settings-input { text-overflow: ellipsis; }
 .dir-nick { font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 60px; }
 .dir-addr { font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dir-chain { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; background: var(--pill-bg); padding: 2px 6px; border-radius: 5px; }
+.dir-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.dir-nick-input { font-size: 12px; font-weight: 600; color: var(--text-primary); font-family: var(--font-body); min-width: 60px; width: 90px; padding: 3px 6px; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-input); outline: none; }
 .dir-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; transition: color 0.15s; }
 .dir-del:hover { color: var(--red); }
 .dir-status { font-size: 11px; color: var(--green); margin-top: 2px; }
@@ -1885,7 +1887,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
           <div class="card">
             <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Address Book</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Free, local aliases - saved as "name<strong>.sara</strong>" so they never collide with a paid Sara Name. Say "send 1 POL from test to <strong>rohas.sara</strong>". Want the bare name "rohas" to work instead? Register it under Tools → Names.</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Free, local aliases saved as "name<strong>.sara</strong>".</div>
 
             <div class="dir-add-form">
               <div class="dir-add-row">
@@ -4994,11 +4996,14 @@ async function loadDirectory() {
       return;
     }
     list.innerHTML = entries.map(e => `
-      <div class="dir-entry">
-        <div class="dir-nick">${_escapeHtml(e.nickname)}</div>
+      <div class="dir-entry" id="dirEntry${Number(e.id)}">
+        <div class="dir-nick" id="dirNickDisplay${Number(e.id)}">${_escapeHtml(e.nickname)}</div>
         <div class="dir-addr" title="${_escapeHtml(e.address)}">${_escapeHtml(e.address)}</div>
         <div class="dir-chain">${_escapeHtml(e.chain)}</div>
-        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
+        <div class="dir-actions" id="dirActions${Number(e.id)}">
+          <button class="dir-del" onclick="startRenameDirectoryEntry(${Number(e.id)})" title="Rename">✎</button>
+          <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
+        </div>
       </div>`).join('');
   } catch(err) {
     list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading directory.</div>';
@@ -5027,6 +5032,40 @@ async function addDirectoryEntry() {
   } catch(e) {
     status.textContent = 'Error: ' + e.message;
     status.style.color = 'var(--red)';
+  }
+}
+
+function startRenameDirectoryEntry(id) {
+  const display = document.getElementById('dirNickDisplay' + id);
+  const actions = document.getElementById('dirActions' + id);
+  if (!display || !actions) return;
+  const currentPlain = display.textContent.replace(/\.sara$/, '');
+  display.outerHTML = `<input class="dir-nick-input" id="dirNickInput${id}" value="${_escapeHtml(currentPlain)}" maxlength="60">`;
+  actions.innerHTML = `<button class="dir-del" onclick="saveRenameDirectoryEntry(${id})" title="Save">✓</button><button class="dir-del" onclick="loadDirectory()" title="Cancel">✕</button>`;
+  const input = document.getElementById('dirNickInput' + id);
+  input.focus(); input.select();
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') saveRenameDirectoryEntry(id);
+    if (ev.key === 'Escape') loadDirectory();
+  });
+}
+
+async function saveRenameDirectoryEntry(id) {
+  const input = document.getElementById('dirNickInput' + id);
+  if (!input) return;
+  const newNick = input.value.trim();
+  if (!newNick) return;
+  try {
+    const r = await fetch('/api/directory/' + id, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({nickname: newNick}),
+    });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      alert(_apiErrorText(body, 'Could not rename this entry.'));
+    }
+  } finally {
+    await loadDirectory();
   }
 }
 

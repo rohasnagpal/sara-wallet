@@ -14,6 +14,10 @@ class DirectoryEntry(BaseModel):
     chain: str = "evm"
 
 
+class RenameDirectoryEntry(BaseModel):
+    nickname: str
+
+
 @router.get("")
 def list_entries(db: Session = Depends(get_db)):
     rows = db.query(AddressBook).filter(AddressBook.chain == "evm").order_by(AddressBook.nickname).all()
@@ -45,6 +49,26 @@ def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
         db.add(AddressBook(nickname=nick, address=body.address, chain="evm"))
     db.commit()
     return {"status": "saved", "nickname": nick}
+
+
+@router.patch("/{entry_id}", dependencies=[Depends(require_session)])
+def rename_entry(entry_id: int, body: RenameDirectoryEntry, db: Session = Depends(get_db)):
+    row = db.query(AddressBook).filter(AddressBook.id == entry_id).first()
+    if not row:
+        raise HTTPException(404, "Not found")
+    nick = body.nickname.strip().lower()
+    if not nick:
+        raise HTTPException(400, "Nickname required")
+    # Same ".sara" namespacing rule as add_entry — a rename must not be able
+    # to produce a bare label that could shadow a paid Sara Name either.
+    if not nick.endswith(".sara"):
+        nick = nick + ".sara"
+    conflict = db.query(AddressBook).filter(AddressBook.nickname == nick, AddressBook.id != entry_id).first()
+    if conflict:
+        raise HTTPException(400, f'"{nick}" is already used by another saved address')
+    row.nickname = nick
+    db.commit()
+    return {"status": "renamed", "nickname": nick}
 
 
 @router.delete("/{nickname}", dependencies=[Depends(require_session)])
