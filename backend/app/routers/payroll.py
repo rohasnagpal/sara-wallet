@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.amounts import to_base_units
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import Counterparty, PaymentBatch, PaymentBatchItem, PayrollProfile, Schedule, ScheduleRun, Wallet
+from app.db.models import AddressBook, PaymentBatch, PaymentBatchItem, PayrollProfile, Schedule, ScheduleRun, Wallet
 from app.db.session import get_db
 from app.routers.schedules import _resolve_decimals
 from app.services.schedules import _lock_fiat_amount, _next_after, _resolve_recipient
@@ -31,12 +31,12 @@ router = APIRouter(prefix="/payroll", tags=["payroll"], dependencies=[Depends(re
 
 
 def _profile_row(db: Session, profile: PayrollProfile) -> dict:
-    counterparty = db.query(Counterparty).filter(Counterparty.id == profile.counterparty_id).first()
+    entry = db.query(AddressBook).filter(AddressBook.id == profile.counterparty_id).first()
     schedule = db.query(Schedule).filter(Schedule.id == profile.schedule_id).first() if profile.schedule_id else None
     return {
         "id": profile.id, "counterparty_id": profile.counterparty_id,
-        "display_name": counterparty.display_name if counterparty else None,
-        "type": counterparty.type if counterparty else None,
+        "display_name": (entry.display_name or entry.nickname) if entry else None,
+        "type": entry.type if entry else None,
         "schedule_id": profile.schedule_id,
         "amount_raw": schedule.amount_raw if schedule else None,
         "fiat_amount": schedule.fiat_amount if schedule else None,
@@ -63,11 +63,11 @@ class PayrollPersonBody(BaseModel):
 
 @router.post("/people")
 def create_payroll_person(body: PayrollPersonBody, db: Session = Depends(get_db)):
-    counterparty = db.query(Counterparty).filter(Counterparty.id == body.counterparty_id).first()
-    if not counterparty:
-        raise HTTPException(404, "Counterparty not found")
-    if counterparty.type not in ("employee", "contractor"):
-        raise HTTPException(400, "Counterparty must be type employee or contractor")
+    entry = db.query(AddressBook).filter(AddressBook.id == body.counterparty_id).first()
+    if not entry:
+        raise HTTPException(404, "Directory entry not found")
+    if entry.type not in ("employee", "contractor"):
+        raise HTTPException(400, "Directory entry must be type employee or contractor")
     if db.query(PayrollProfile).filter(
         PayrollProfile.counterparty_id == body.counterparty_id, PayrollProfile.active == True  # noqa: E712
     ).first():

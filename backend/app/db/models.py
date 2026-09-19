@@ -27,12 +27,23 @@ class Wallet(Base):
     created_at    = Column(DateTime, default=datetime.utcnow)
 
 class AddressBook(Base):
+    """The single "who do I know" list — a free, local nickname/address
+    entry, optionally typed (vendor/customer/employee/etc.) for use in
+    batches, payroll and invoicing. Used to be split across this table and
+    a separate Counterparty table; unified here so there's one list, not
+    two overlapping ones. Counterparty itself is kept in the schema
+    (unused) rather than dropped, so nothing already in it is destroyed."""
     __tablename__ = "address_book"
-    id         = Column(Integer, primary_key=True, index=True)
-    nickname   = Column(String, unique=True, nullable=False)
-    address    = Column(String, nullable=False)
-    chain      = Column(String, default="evm")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id           = Column(Integer, primary_key=True, index=True)
+    nickname     = Column(String, unique=True, nullable=False)
+    address      = Column(String, nullable=False)
+    chain        = Column(String, default="evm")
+    type         = Column(String, nullable=False, default="friend")  # vendor | customer | employee | contractor | friend | other
+    display_name = Column(String, nullable=True)  # friendlier label; falls back to nickname (minus .sara) if blank
+    tags         = Column(Text, nullable=True, default="[]")  # JSON string array
+    notes        = Column(Text, nullable=True)
+    active       = Column(Boolean, nullable=False, default=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -256,9 +267,11 @@ class ProofRecord(Base):
 
 
 class Counterparty(Base):
-    """Vendors, employees and contractors — kept separate from the simple
-    address_book nickname list because business payments need type, default
-    routing and lifecycle state the address book was never meant to carry."""
+    """DEPRECATED — superseded by AddressBook's type/tags/notes/active
+    columns, which unified this and the address book into one list at the
+    user's request. No longer read or written by application code; kept
+    here only so the table itself (and anything already in it) isn't
+    dropped. Do not add new code paths against this model."""
     __tablename__ = "counterparties"
     id                 = Column(Integer, primary_key=True, index=True)
     display_name       = Column(String, nullable=False)

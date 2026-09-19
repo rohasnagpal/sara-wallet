@@ -10,7 +10,6 @@ a second actor.
 from __future__ import annotations
 
 from datetime import datetime
-import json
 
 from dateutil.rrule import rrulestr
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.events import publish
-from app.db.models import Counterparty, PaymentBatch, PaymentBatchItem, Schedule, ScheduleRun
+from app.db.models import AddressBook, PaymentBatch, PaymentBatchItem, Schedule, ScheduleRun
 
 # A run of missed periods (the app was off) must not fan out into one send
 # per missed period — only the single most-recent due occurrence is
@@ -79,11 +78,13 @@ def _resolve_recipient(db: Session, schedule: Schedule) -> str | None:
         return schedule.recipient_address
     if not schedule.counterparty_id:
         return None
-    counterparty = db.query(Counterparty).filter(Counterparty.id == schedule.counterparty_id).first()
-    if not counterparty:
-        return None
-    addresses = json.loads(counterparty.addresses or "{}")
-    return addresses.get(schedule.network)
+    # counterparty_id now references AddressBook (the unified directory) —
+    # see AddressBook's docstring. AddressBook holds one address (Sara only
+    # supports EVM, so it's valid on any of the EVM networks Sara supports
+    # regardless of which one this schedule pays on), unlike the old
+    # Counterparty.addresses per-network dict this replaced.
+    entry = db.query(AddressBook).filter(AddressBook.id == schedule.counterparty_id).first()
+    return entry.address if entry else None
 
 
 def _materialize_one(db: Session, schedule: Schedule, occurrence: datetime) -> PaymentBatch:

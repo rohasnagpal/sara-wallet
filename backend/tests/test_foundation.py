@@ -44,7 +44,7 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual([v[0] for v in versions], [
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
-                "007_batch_item_tags_and_notes",
+                "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
             ])
 
 

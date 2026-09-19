@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import AccountingClassification, Counterparty, CostLot, Disposal, Transaction, Wallet
+from app.db.models import AccountingClassification, AddressBook, CostLot, Disposal, Transaction, Wallet
 from app.db.session import get_db
 from app.routers.payments import _csv_safe
 from app.services import accounting_matcher, cost_basis
@@ -102,7 +102,7 @@ def list_transactions(
         db, start_date=start_date, end_date=end_date, wallet_id=wallet_id, token=token, network=network,
         classification=classification, counterparty_id=counterparty_id, client=client, project=project,
     )[:limit]
-    counterparty_names = {c.id: c.display_name for c in db.query(Counterparty).all()}
+    counterparty_names = {c.id: (c.display_name or c.nickname) for c in db.query(AddressBook).all()}
     return {"transactions": [
         _tx_row(tx, cls, counterparty_names.get(cls.counterparty_id) if cls else None) for tx, cls in rows
     ]}
@@ -338,7 +338,7 @@ def _export_rows(db: Session, *, start_date, end_date, wallet_id, token, network
         db, start_date=start_date, end_date=end_date, wallet_id=wallet_id, token=token, network=network,
         classification=None, counterparty_id=None, client=None, project=None, status=None,
     )
-    counterparty_names = {c.id: c.display_name for c in db.query(Counterparty).all()}
+    counterparty_names = {c.id: (c.display_name or c.nickname) for c in db.query(AddressBook).all()}
     out = []
     for tx, cls in rows:
         row = _tx_row(tx, cls, counterparty_names.get(cls.counterparty_id) if cls else None)

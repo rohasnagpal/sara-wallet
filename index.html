@@ -1246,8 +1246,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div class="card" style="margin-bottom:10px">
             <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center">
               <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="col2-nav-btn active" id="bizTabCounterparties" onclick="showBizTab('counterparties')">Counterparties</button>
-                <button class="col2-nav-btn" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
+                <button class="col2-nav-btn active" id="bizTabBatches" onclick="showBizTab('batches')">Batches</button>
                 <button class="col2-nav-btn" id="bizTabSchedules" onclick="showBizTab('schedules')">Schedules</button>
                 <button class="col2-nav-btn" id="bizTabPayroll" onclick="showBizTab('payroll')">Payroll</button>
                 <button class="col2-nav-btn" id="bizTabPolicies" onclick="showBizTab('policies')">Policies</button>
@@ -1263,23 +1262,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="settings-status" id="checkerKeyStatus"></div>
           </div>
 
-          <div id="bizCounterpartiesPane">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Counterparties</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Vendors, employees and contractors - separate from your address book.</div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="cpName">Display name</label><input class="settings-input" id="cpName" maxlength="160" placeholder="Display name"></div>
-                <div class="field"><label class="field-label" for="cpType">Type</label><select class="settings-input" id="cpType"><option value="vendor">Vendor</option><option value="employee">Employee</option><option value="contractor">Contractor</option></select></div>
-                <div class="field"><label class="field-label" for="cpNetwork">Network</label><select class="settings-input" id="cpNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="cpAddress">Wallet address</label><input class="settings-input" id="cpAddress" placeholder="Wallet address (0x…)"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="createCounterparty()">Add counterparty</button>
-              <div class="settings-status" id="cpStatus"></div>
-            </div>
-            <div class="card"><div id="cpList" style="font-size:11px">Loading…</div></div>
-          </div>
-
-          <div id="bizBatchesPane" style="display:none">
+          <div id="bizBatchesPane">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New payment batch</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially - never one atomic transaction.</div>
@@ -1326,9 +1309,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="bizPayrollPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Add payroll person</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor counterparty. Creates a monthly recurring salary instruction - it's only ever paid through an explicit payroll run below, never automatically.</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Requires an existing employee/contractor entry in your Directory. Creates a monthly recurring salary instruction - it's only ever paid through an explicit payroll run below, never automatically.</div>
               <div class="field-grid">
-                <div class="field"><label class="field-label" for="prollCounterparty">Counterparty</label><select class="settings-input" id="prollCounterparty"></select></div>
+                <div class="field"><label class="field-label" for="prollCounterparty">Directory entry</label><select class="settings-input" id="prollCounterparty"></select></div>
                 <div class="field"><label class="field-label" for="prollWallet">Wallet</label><select class="settings-input" id="prollWallet"></select></div>
                 <div class="field"><label class="field-label" for="prollNetwork">Network</label><select class="settings-input" id="prollNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
                 <div class="field"><label class="field-label" for="prollToken">Token symbol</label><input class="settings-input" id="prollToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
@@ -1886,21 +1869,42 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           </div>
 
           <div class="card">
-            <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Address Book</div>
+            <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Directory</div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Free, local aliases saved as "name<strong>.sara</strong>".</div>
 
             <div class="dir-add-form">
               <div class="dir-add-row">
                 <input class="dir-input" id="dirNick" placeholder="Nickname (e.g. rohas)" maxlength="32" style="max-width:130px">
+                <select class="dir-input" id="dirType" style="max-width:110px" title="Type">
+                  <option value="friend">Friend</option>
+                  <option value="vendor">Vendor</option>
+                  <option value="customer">Customer</option>
+                  <option value="employee">Employee</option>
+                  <option value="contractor">Contractor</option>
+                  <option value="other">Other</option>
+                </select>
                 <select class="dir-input" id="dirChain" style="max-width:90px">
                   <option value="evm">EVM</option>
                 </select>
               </div>
               <div class="dir-add-row">
-                <input class="dir-input" id="dirAddr" placeholder="Wallet address (0x… or base58)">
+                <input class="dir-input" id="dirAddr" placeholder="Wallet address (0x…)">
                 <button class="dir-add-btn" onclick="addDirectoryEntry()">Add</button>
               </div>
               <div class="dir-status" id="dirStatus"></div>
+            </div>
+
+            <div class="field" style="margin:12px 0 10px;max-width:200px">
+              <label class="field-label" for="dirFilterType">Show</label>
+              <select class="settings-input" id="dirFilterType" onchange="renderDirectoryList()">
+                <option value="">All</option>
+                <option value="vendor">Vendors</option>
+                <option value="customer">Customers</option>
+                <option value="employee">Employees</option>
+                <option value="contractor">Contractors</option>
+                <option value="friend">Friends</option>
+                <option value="other">Other</option>
+              </select>
             </div>
 
             <div class="dir-list" id="dirList"></div>
@@ -3403,10 +3407,9 @@ async function disableMerchantClient(id) {
 }
 
 // ══════════════════════════════════════
-// BUSINESS: counterparties / batches / schedules / payroll / policies
+// BUSINESS: batches / schedules / payroll / policies / accounting
 // ══════════════════════════════════════
-let _bizTab = 'counterparties';
-let _bizCounterparties = [];
+let _bizTab = 'batches';
 
 function _bizApproverKey() { return (document.getElementById('bizApproverKey').value || '').trim(); }
 
@@ -3436,58 +3439,32 @@ async function loadBusinessView() {
 
 function showBizTab(tab) {
   _bizTab = tab;
-  ['counterparties', 'batches', 'schedules', 'payroll', 'policies', 'accounting'].forEach(t => {
+  ['batches', 'schedules', 'payroll', 'policies', 'accounting'].forEach(t => {
     const cap = t.charAt(0).toUpperCase() + t.slice(1);
     const pane = document.getElementById('biz' + cap + 'Pane');
     if (pane) pane.style.display = t === tab ? '' : 'none';
     document.getElementById('bizTab' + cap)?.classList.toggle('active', t === tab);
   });
-  if (tab === 'counterparties') return loadCounterparties();
   if (tab === 'batches') return loadBatches();
   if (tab === 'schedules') return loadSchedules();
-  if (tab === 'payroll') return loadPayrollPeople().then(loadPayrollRuns);
+  if (tab === 'payroll') return Promise.all([_fillPayrollDirectorySelect(), loadPayrollPeople()]).then(loadPayrollRuns);
   if (tab === 'policies') return loadSpendingPolicies();
   if (tab === 'accounting') return Promise.resolve();
 }
 
-// ---- Counterparties ----
-async function loadCounterparties() {
-  const data = await fetch('/api/counterparties').then(r => r.json()).catch(() => ({counterparties: []}));
-  _bizCounterparties = data.counterparties || [];
-  document.getElementById('cpList').innerHTML = _bizCounterparties.length ? _bizCounterparties.map(c => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark)">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(c.display_name)}</strong><span>${_escapeHtml(c.type)}${c.active ? '' : ' · inactive'}</span></div>
-      <div style="color:var(--text-muted)">${Object.entries(c.addresses || {}).map(([n, a]) => `${_escapeHtml(n)}: ${_escapeHtml(a)}`).join(' · ') || 'No addresses on file'}</div>
-      ${c.active ? `<button class="dir-del" onclick="deactivateCounterparty(${c.id})">Deactivate</button>` : ''}
-    </div>`).join('') : '<div style="color:var(--text-muted)">No counterparties yet.</div>';
-  _fillCounterpartySelects();
-}
-
-function _fillCounterpartySelects() {
-  const employees = _bizCounterparties.filter(c => c.active && (c.type === 'employee' || c.type === 'contractor'));
+// Employee/contractor entries from the unified Directory feed the Payroll
+// tab's dropdown - Directory entries replaced the old separate
+// Counterparty system, so this is the only place that list still surfaces.
+async function _fillPayrollDirectorySelect() {
   const el = document.getElementById('prollCounterparty');
-  if (el) el.innerHTML = employees.length
-    ? employees.map(c => `<option value="${c.id}">${_escapeHtml(c.display_name)} (${_escapeHtml(c.type)})</option>`).join('')
-    : '<option value="">No employee/contractor counterparties yet</option>';
-}
-
-async function createCounterparty() {
-  const network = document.getElementById('cpNetwork').value;
-  const address = document.getElementById('cpAddress').value.trim();
-  const body = {
-    display_name: document.getElementById('cpName').value.trim(),
-    type: document.getElementById('cpType').value,
-    addresses: address ? {[network]: address} : {},
-  };
-  const r = await fetch('/api/counterparties', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('cpStatus').textContent = r.ok ? 'Added.' : (_apiErrorText(data, 'Could not add counterparty.'));
-  if (r.ok) { document.getElementById('cpName').value = ''; document.getElementById('cpAddress').value = ''; await loadCounterparties(); }
-}
-
-async function deactivateCounterparty(id) {
-  await fetch('/api/counterparties/' + id, {method: 'DELETE'});
-  await loadCounterparties();
+  if (!el) return;
+  const rows = await fetch('/api/directory').then(r => r.json()).catch(() => []);
+  const people = (rows || []).filter(r => r.active && (r.type === 'employee' || r.type === 'contractor'));
+  const preselect = el.dataset.preselect;
+  el.innerHTML = people.length
+    ? people.map(p => `<option value="${p.id}">${_escapeHtml(p.display_name)} (${_escapeHtml(p.type)})</option>`).join('')
+    : '<option value="">No employee/contractor entries in Directory yet</option>';
+  if (preselect) { el.value = preselect; delete el.dataset.preselect; }
 }
 
 // ---- Payment batches ----
@@ -4986,41 +4963,67 @@ function copyExportedKey() {
   });
 }
 
+const DIR_TYPE_LABELS = {vendor:'Vendor', customer:'Customer', employee:'Employee', contractor:'Contractor', friend:'Friend', other:'Other'};
+let _directoryEntries = [];
+
 async function loadDirectory() {
   const list = document.getElementById('dirList');
   list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Loading…</div>';
   try {
-    const entries = await fetch('/api/directory').then(r => r.json());
-    if (!entries.length) {
-      list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No entries yet. Add one above.</div>';
-      return;
-    }
-    list.innerHTML = entries.map(e => `
-      <div class="dir-entry" id="dirEntry${Number(e.id)}">
-        <div class="dir-nick" id="dirNickDisplay${Number(e.id)}">${_escapeHtml(e.nickname)}</div>
-        <div class="dir-addr" title="${_escapeHtml(e.address)}">${_escapeHtml(e.address)}</div>
-        <div class="dir-chain">${_escapeHtml(e.chain)}</div>
-        <div class="dir-actions" id="dirActions${Number(e.id)}">
-          <button class="dir-del" onclick="startRenameDirectoryEntry(${Number(e.id)})" title="Rename">✎</button>
-          <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
-        </div>
-      </div>`).join('');
+    _directoryEntries = await fetch('/api/directory').then(r => r.json());
+    renderDirectoryList();
   } catch(err) {
     list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading directory.</div>';
   }
+}
+
+function renderDirectoryList() {
+  const list = document.getElementById('dirList');
+  const filterType = document.getElementById('dirFilterType')?.value || '';
+  const entries = filterType ? _directoryEntries.filter(e => e.type === filterType) : _directoryEntries;
+  if (!entries.length) {
+    list.innerHTML = `<div style="font-size:11px;color:var(--text-muted)">${_directoryEntries.length ? 'No entries of this type.' : 'No entries yet. Add one above.'}</div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => `
+    <div class="dir-entry" id="dirEntry${Number(e.id)}">
+      <div class="dir-nick" id="dirNickDisplay${Number(e.id)}">${_escapeHtml(e.nickname)}</div>
+      <div class="dir-addr" title="${_escapeHtml(e.address)}">${_escapeHtml(e.address)}</div>
+      <div class="dir-chain">${_escapeHtml(DIR_TYPE_LABELS[e.type] || e.type)}</div>
+      <div class="dir-actions" id="dirActions${Number(e.id)}">
+        ${e.type === 'employee' || e.type === 'contractor' ? `<button class="mini-btn" onclick="jumpToPayrollForEntry(${Number(e.id)})" title="Set up salary">Set up salary</button>` : ''}
+        ${e.type === 'customer' ? `<button class="mini-btn" onclick="jumpToInvoiceForCustomer('${_jsAttrString(e.display_name || '')}')" title="Create invoice">Create invoice</button>` : ''}
+        <button class="dir-del" onclick="startRenameDirectoryEntry(${Number(e.id)})" title="Rename">✎</button>
+        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function jumpToPayrollForEntry(id) {
+  const el = document.getElementById('prollCounterparty');
+  if (el) el.dataset.preselect = String(id);
+  showCol2('business').then(() => showBizTab('payroll'));
+}
+
+function jumpToInvoiceForCustomer(displayName) {
+  showCol2('invoices').then(() => {
+    const el = document.getElementById('invoiceCustomer');
+    if (el) el.value = displayName;
+  });
 }
 
 async function addDirectoryEntry() {
   const nick = document.getElementById('dirNick').value.trim();
   const addr = document.getElementById('dirAddr').value.trim();
   const chain = document.getElementById('dirChain').value;
+  const type = document.getElementById('dirType').value;
   const status = document.getElementById('dirStatus');
   if (!nick || !addr) { status.textContent = 'Nickname and address are required.'; status.style.color = 'var(--red)'; return; }
   try {
     const r = await fetch('/api/directory', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nickname: nick, address: addr, chain })
+      body: JSON.stringify({ nickname: nick, address: addr, chain, type })
     });
     if (!r.ok) throw new Error(await r.text());
     document.getElementById('dirNick').value = '';

@@ -6,7 +6,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from app.db.session import init_db, SessionLocal, engine
 from app.db.models import Config
-from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, proofs, system, ledger, safety, counterparties, payment_batches, schedules, payroll, spending_policies, accounting, treasury, risk, contracts, names, x402
+from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, proofs, system, ledger, safety, payment_batches, schedules, payroll, spending_policies, accounting, treasury, risk, contracts, names, x402
 from app.tools.wallet import lock as lock_state
 from app.core.session_auth import LAUNCH_TOKEN
 from app.core.access import ensure_local_owner
@@ -227,7 +227,6 @@ app.include_router(proofs.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
 app.include_router(ledger.router, prefix="/api")
 app.include_router(safety.router, prefix="/api")
-app.include_router(counterparties.router, prefix="/api")
 app.include_router(payment_batches.router, prefix="/api")
 app.include_router(schedules.router, prefix="/api")
 app.include_router(payroll.router, prefix="/api")

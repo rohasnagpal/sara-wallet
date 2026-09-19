@@ -108,6 +108,22 @@ def _migration_007_batch_item_tags_and_notes(engine: Engine) -> None:
     _add_columns(engine, "payment_batch_items", {"note": "TEXT", "tags": "TEXT"})
 
 
+def _migration_008_unify_directory_and_counterparties(engine: Engine) -> None:
+    """Schema-only: no data is copied from the (now-unused) counterparties
+    table — the user confirmed existing test counterparties don't need to
+    survive this unification. See app/db/models.py's AddressBook/
+    Counterparty docstrings. Inline DEFAULTs (as migration 002 already
+    does for transactions.confirmations) backfill existing rows without a
+    separate UPDATE pass."""
+    _add_columns(engine, "address_book", {
+        "type": "VARCHAR NOT NULL DEFAULT 'friend'",
+        "display_name": "VARCHAR",
+        "tags": "TEXT",
+        "notes": "TEXT",
+        "active": "BOOLEAN NOT NULL DEFAULT 1",
+    })
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -116,6 +132,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("005_invoicing", _migration_005_invoicing),
     ("006_payment_safety", _migration_006_payment_safety),
     ("007_batch_item_tags_and_notes", _migration_007_batch_item_tags_and_notes),
+    ("008_unify_directory_and_counterparties", _migration_008_unify_directory_and_counterparties),
 )
 
 

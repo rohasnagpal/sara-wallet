@@ -9,10 +9,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core import spending_policy
 from app.db.models import (
-    Base, Counterparty, PaymentBatch, PaymentBatchItem, PayrollProfile,
+    AddressBook, Base, PaymentBatch, PaymentBatchItem, PayrollProfile,
     Schedule, ScheduleRun, SpendingPolicy, Transaction, Wallet,
 )
-from app.routers import counterparties, payment_batches, payroll, schedules
+from app.routers import address_book, payment_batches, payroll, schedules
 from app.services import batch_engine
 from app.services import schedules as schedules_service
 
@@ -62,28 +62,32 @@ class BusinessPaymentsTestCase(unittest.TestCase):
         )
 
 
-class CounterpartyTests(BusinessPaymentsTestCase):
-    def test_create_list_and_deactivate_counterparty(self):
-        row = counterparties.create_counterparty(
-            counterparties.CounterpartyBody(display_name="Acme Vendor", type="vendor", addresses={"polygon": ADDR_A}),
+class DirectoryTests(BusinessPaymentsTestCase):
+    """AddressBook is the unified directory (address book + counterparties
+    merged at the user's request — see AddressBook's docstring)."""
+
+    def test_create_list_and_delete_entry(self):
+        row = address_book.add_entry(
+            address_book.DirectoryEntry(nickname="acme", address=ADDR_A, type="vendor", display_name="Acme Vendor"),
             self.db,
         )
         self.assertEqual(row["display_name"], "Acme Vendor")
-        self.assertEqual(row["addresses"], {"polygon": ADDR_A})
+        self.assertEqual(row["address"], ADDR_A)
+        self.assertEqual(row["type"], "vendor")
 
-        listed = counterparties.list_counterparties(None, None, self.db)
-        self.assertEqual(len(listed["counterparties"]), 1)
+        self.assertEqual(len(address_book.list_entries(None, None, self.db)), 1)
+        self.assertEqual(len(address_book.list_entries("vendor", None, self.db)), 1)
+        self.assertEqual(address_book.list_entries("friend", None, self.db), [])
 
-        deactivated = counterparties.deactivate_counterparty(row["id"], self.db)
-        self.assertFalse(deactivated["active"])
-        still_listed = counterparties.list_counterparties(None, True, self.db)
-        self.assertEqual(still_listed["counterparties"], [])
+        deleted = address_book.delete_entry(row["nickname"], self.db)
+        self.assertEqual(deleted["status"], "deleted")
+        self.assertEqual(address_book.list_entries(None, None, self.db), [])
 
     def test_invalid_address_rejected(self):
         from fastapi import HTTPException
         with self.assertRaises(HTTPException):
-            counterparties.create_counterparty(
-                counterparties.CounterpartyBody(display_name="Bad", addresses={"polygon": "not-an-address"}),
+            address_book.add_entry(
+                address_book.DirectoryEntry(nickname="bad", address="not-an-address", type="vendor"),
                 self.db,
             )
 
@@ -333,13 +337,13 @@ class ScheduleTests(BusinessPaymentsTestCase):
 
 class PayrollTests(BusinessPaymentsTestCase):
     def test_payroll_run_reuses_the_batch_engine_pipeline(self):
-        counterparty = Counterparty(display_name="Jane", type="employee", addresses='{"polygon": "%s"}' % ADDR_A)
-        self.db.add(counterparty)
+        entry = AddressBook(nickname="jane.sara", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
+        self.db.add(entry)
         self.db.commit()
 
         profile_row = payroll.create_payroll_person(
             payroll.PayrollPersonBody(
-                counterparty_id=counterparty.id, wallet_id=self.wallet.id, network="polygon", token="USDC",
+                counterparty_id=entry.id, wallet_id=self.wallet.id, network="polygon", token="USDC",
                 amount="500", rrule="FREQ=MONTHLY;INTERVAL=1", start_date=datetime(2026, 1, 1),
             ),
             self.db,
