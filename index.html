@@ -417,7 +417,7 @@ select.settings-input { text-overflow: ellipsis; }
 .asset-settings-main, .asset-settings-token { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .asset-settings-main { font-size: 11.5px; font-weight: 600; color: var(--text-primary); }
 .asset-settings-token { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-dark); font-size: 10.5px; color: var(--text-secondary); }
-.asset-settings-row input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+.asset-settings-row input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 17px; height: 17px; }
 .gas-required { font-size: 9px; color: var(--text-muted); border: 1px solid var(--border-dark); border-radius: 5px; padding: 1px 5px; }
 
 /* Directory inline view */
@@ -446,7 +446,7 @@ select.settings-input { text-overflow: ellipsis; }
 .dir-chain { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; background: var(--pill-bg); padding: 2px 6px; border-radius: 5px; }
 .dir-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .dir-nick-input { font-size: 12px; font-weight: 600; color: var(--text-primary); font-family: var(--font-body); min-width: 60px; width: 90px; padding: 3px 6px; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-input); outline: none; }
-.dir-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; transition: color 0.15s; }
+.dir-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 6px 8px; min-height: 28px; display: inline-flex; align-items: center; line-height: 1; transition: color 0.15s; }
 .dir-del:hover { color: var(--red); }
 .dir-status { font-size: 11px; color: var(--green); margin-top: 2px; }
 
@@ -946,8 +946,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 }
 .watchlist-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
 .wallet-add-btn {
-  width: 22px; height: 22px; border-radius: 6px; border: none;
-  background: var(--accent); color: var(--accent-text); font-size: 15px; line-height: 1;
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  background: var(--accent); color: var(--accent-text); font-size: 16px; line-height: 1;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .wallet-add-btn:hover { opacity: 0.85; }
@@ -1102,9 +1102,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   <div class="sidebar1">
     <div class="s1-logo">🎯</div>
     <div class="s1-coins" id="s1Coins"></div>
-    <div class="s1-add" onclick="openWalletModal()" title="Add wallet">+</div>
-    <div class="s1-btn" id="s1BtnDir" onclick="showCol2('directory')" title="Address Book">📖</div>
-    <div class="s1-btn" id="s1BtnSettings" onclick="showCol2('settings')" title="API Keys & Settings">⚙</div>
+    <div class="s1-add" onclick="openWalletModal()" title="Add wallet" role="button" tabindex="0" aria-label="Add wallet">+</div>
+    <div class="s1-btn" id="s1BtnDir" onclick="showCol2('directory')" title="Address Book" role="button" tabindex="0" aria-label="Address Book">📖</div>
+    <div class="s1-btn" id="s1BtnSettings" onclick="showCol2('settings')" title="API Keys & Settings" role="button" tabindex="0" aria-label="API Keys &amp; Settings">⚙</div>
   </div>
 
   <!-- ── Sidebar 2 : Asset Watchlist ── -->
@@ -1769,7 +1769,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Verify a file</div>
             <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 9px">Hash locally and check BlockchainProof for matching public records.</div>
             <div class="proof-form">
-              <input id="proofVerifyFile" type="file" onchange="hashProofFile(this, 'proofVerifyHash')">
+              <label class="proof-file" for="proofVerifyFile"><span><strong id="proofVerifyFileTitle">Choose a file</strong><span>The file never leaves Sara</span></span></label>
+              <input id="proofVerifyFile" type="file" hidden onchange="hashProofFile(this, 'proofVerifyHash', 'proofVerifyFileTitle')">
               <div class="field"><label class="field-label" for="proofVerifyHash">SHA-256 fingerprint</label><input class="settings-input proof-hash" id="proofVerifyHash" maxlength="64" placeholder="SHA-256 fingerprint"></div>
               <button class="settings-save-btn" onclick="verifyProofHash()">Verify fingerprint</button>
               <div id="proofVerifyResult" style="font-size:11px;color:var(--text-secondary)"></div>
@@ -1789,6 +1790,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div id="aiProviderFields">
               <div class="settings-row">
                 <div class="settings-label">Model <span id="aiModelNote"></span></div>
+                <div class="settings-input-row" style="margin-bottom:6px">
+                  <input class="settings-input" id="modelSearchInput" placeholder="Search models…" oninput="_renderModelOptions()" style="max-width:200px">
+                  <select class="settings-input" id="modelProviderSelect" onchange="_renderModelOptions()" style="max-width:150px"><option value="">All providers</option></select>
+                </div>
                 <div class="settings-input-row">
                   <select class="settings-input" id="sinput-LLM_MODEL" style="font-family:var(--font-mono)"></select>
                   <button class="settings-save-btn" onclick="saveAIProvider()">Apply</button>
@@ -1944,8 +1949,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-input-wrap">
           <textarea class="chat-input" id="chatInput" placeholder="Ask Sara anything…" rows="1"></textarea>
-          <button class="chat-send" id="chatSend">
-            <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+          <button class="chat-send" id="chatSend" aria-label="Send message">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
           </button>
         </div>
 
@@ -2277,14 +2282,42 @@ const shell = document.getElementById('appShell');
 const appBg = document.getElementById('appBg');
 
 document.querySelectorAll('.theme-dot').forEach(dot => {
+  dot.setAttribute('role', 'button');
+  dot.setAttribute('tabindex', '0');
+  dot.setAttribute('aria-label', dot.title || dot.dataset.theme);
+  dot.setAttribute('aria-pressed', dot.classList.contains('active') ? 'true' : 'false');
   dot.addEventListener('click', () => {
     const theme = dot.dataset.theme;
-    document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.theme-dot').forEach(d => { d.classList.remove('active'); d.setAttribute('aria-pressed', 'false'); });
     dot.classList.add('active');
+    dot.setAttribute('aria-pressed', 'true');
     themes.forEach(t => { shell.classList.remove('theme-'+t); appBg.classList.remove('theme-'+t); });
     if (theme !== 'default') { shell.classList.add('theme-'+theme); appBg.classList.add('theme-'+theme); }
     _renderAllocDonut();
   });
+});
+
+// A role="button" div isn't natively keyboard-operable the way a real
+// button element is - this single delegated listener is what makes every
+// one of them (theme dots, chat quick actions, sidebar rail controls,
+// dynamically rendered rows) respond to Enter/Space, instead of hand-wiring
+// the same keydown handler onto each one individually.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target;
+  if (!(el instanceof HTMLElement) || el.tagName === 'BUTTON' || el.tagName === 'A' || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
+  if (el.getAttribute('role') === 'button') {
+    e.preventDefault();
+    el.click();
+  }
+});
+
+// The chat quick-action chips are clickable divs (styled as pill buttons,
+// not real button elements), so they need the same role/tabindex treatment
+// the delegated keydown listener above expects to find.
+document.querySelectorAll('.chat-chip').forEach(chip => {
+  chip.setAttribute('role', 'button');
+  chip.setAttribute('tabindex', '0');
 });
 
 // ══════════════════════════════════════
@@ -2583,7 +2616,7 @@ function _renderSidebarWallets(wallets) {
   if (!el) return;
   el.innerHTML = wallets.map(w => {
     const initial = _escapeHtml((w.name || '?').trim().charAt(0).toUpperCase() || '?');
-    return `<div class="s1-coin" title="${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})" onclick="showCol2('directory')">${initial}</div>`;
+    return `<div class="s1-coin" title="${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})" onclick="showCol2('directory')" role="button" tabindex="0" aria-label="${_escapeHtml(w.name)} (${_escapeHtml(w.chain)})">${initial}</div>`;
   }).join('');
 }
 
@@ -3143,6 +3176,7 @@ function copyAddr(el) {
 // ══════════════════════════════════════
 const SETTING_KEYS = ['COINGECKO_API_KEY','ALCHEMY_API_KEY'];
 let _openrouterModels = [];
+let _currentModelId = '';
 let _col2Mode = 'asset';
 let _assetSettings = null;
 
@@ -3525,7 +3559,7 @@ async function loadBatches() {
   const data = await fetch('/api/payment-batches').then(r => r.json()).catch(() => ({batches: []}));
   const rows = data.batches || [];
   document.getElementById('batchList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id})">
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id})" role="button" tabindex="0" aria-label="Open batch #${b.id}">
       <div style="display:flex;justify-content:space-between"><strong>#${b.id} ${_escapeHtml(b.kind)}</strong><span>${_escapeHtml(b.status)}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}${b.payroll_period ? ' · ' + _escapeHtml(b.payroll_period) : ''}</div>
     </div>`).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
@@ -3741,7 +3775,7 @@ async function loadPayrollRuns() {
   const data = await fetch('/api/payroll/runs').then(r => r.json()).catch(() => ({runs: []}));
   const rows = data.runs || [];
   document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showCol2('batches'); openBatch(${b.id})">
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showCol2('batches'); openBatch(${b.id})" role="button" tabindex="0" aria-label="Open payroll run ${_escapeHtml(b.payroll_period || ('#' + b.id))}">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(b.payroll_period || ('#' + b.id))}</strong><span>${_escapeHtml(b.status)}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} people · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</div>
     </div>`).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';
@@ -4405,6 +4439,7 @@ function _txDisplayInfo(t) {
   if (t.category && byCategory[t.category]) return byCategory[t.category];
   if (dir === 'incoming') return received;
   if (dir === 'outgoing') return sent;
+  if (dir === 'self') return { label: `You moved ${token} between your wallets`, icon: '⇄', color: 'tx-neutral' };
   return { label: 'Transaction', icon: '•', color: 'tx-neutral' };
 }
 
@@ -4414,7 +4449,12 @@ function _renderLedgerList(rows, q) {
     const info = _txDisplayInfo(t);
     const meta = [
       _escapeHtml(t.amount) + ' ' + _escapeHtml(t.token || '') + (t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''),
-      _escapeHtml(t.network || t.chain || ''),
+      // t.chain is the chain *type* ("evm"), not a network - showing it as
+      // if it were one ("POL · evm") was exactly the inconsistency users
+      // hit. Omit the network segment entirely for pre-migration rows that
+      // never got a real network value instead of showing something
+      // technically true but meaningless.
+      t.network ? _escapeHtml(t.network) : '',
       t.counterparty ? _escapeHtml(t.counterparty) : '',
     ].filter(Boolean).join(' · ');
     const noteLine = (t.note || (t.tags || []).length)
@@ -4711,10 +4751,10 @@ async function _loadSettingsView() {
     document.getElementById('sinput-AI_KEY').dataset.settingKey = 'OPENROUTER_API_KEY';
     const keyInfo = data['OPENROUTER_API_KEY'];
     _applyKeyPlaceholder(document.getElementById('sinput-AI_KEY'), keyInfo && keyInfo.set);
-    await _loadOpenrouterModels();
     const modelInfo = data['LLM_MODEL'];
     const savedModel = (modelInfo && modelInfo.raw) ? modelInfo.raw : '';
-    if (savedModel) document.getElementById('sinput-LLM_MODEL').value = savedModel;
+    _currentModelId = savedModel;
+    await _loadOpenrouterModels();
     _updateAIActiveLabel(savedModel);
     await _loadAssetSettings();
   } catch(e) {}
@@ -4777,13 +4817,43 @@ async function saveAssetSettings() {
 
 async function _loadOpenrouterModels() {
   const select = document.getElementById('sinput-LLM_MODEL');
-  if (_openrouterModels.length) return;
+  if (_openrouterModels.length) { _renderModelOptions(); return; }
   try {
     _openrouterModels = await fetch('/api/settings/openrouter-models').then(r => r.json());
-    select.innerHTML = _openrouterModels.map(m => `<option value="${_escapeHtml(m.id)}">${_escapeHtml(m.name)}</option>`).join('');
+    _populateModelProviderFilter();
+    _renderModelOptions();
   } catch(e) {
     select.innerHTML = `<option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>`;
   }
+}
+
+function _populateModelProviderFilter() {
+  const sel = document.getElementById('modelProviderSelect');
+  if (!sel) return;
+  const providers = [...new Set(_openrouterModels.map(m => (m.id || '').split('/')[0]).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All providers</option>' + providers.map(p => `<option value="${_escapeHtml(p)}">${_escapeHtml(p)}</option>`).join('');
+}
+
+// Hundreds of models in one flat <select> with no way to narrow it down was
+// the actual complaint - search/provider filtering narrows the *visible*
+// list, but the currently-configured model is always kept selectable even
+// if it doesn't match the filter, so filtering can never silently change
+// what "Apply" would save.
+function _renderModelOptions() {
+  const select = document.getElementById('sinput-LLM_MODEL');
+  if (!select) return;
+  const q = (document.getElementById('modelSearchInput')?.value || '').trim().toLowerCase();
+  const provider = document.getElementById('modelProviderSelect')?.value || '';
+  const prevValue = select.value || _currentModelId;
+  let list = _openrouterModels;
+  if (provider) list = list.filter(m => (m.id || '').startsWith(provider + '/'));
+  if (q) list = list.filter(m => (m.id || '').toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q));
+  if (_currentModelId && !list.some(m => m.id === _currentModelId)) {
+    const current = _openrouterModels.find(m => m.id === _currentModelId);
+    if (current) list = [current, ...list];
+  }
+  select.innerHTML = list.map(m => `<option value="${_escapeHtml(m.id)}">${_escapeHtml(m.name)}</option>`).join('');
+  if (list.some(m => m.id === prevValue)) select.value = prevValue;
 }
 
 function _updateAIActiveLabel(model) {
@@ -4797,6 +4867,7 @@ async function saveAIProvider() {
   try {
     await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_PROVIDER', value: 'openrouter'}) });
     await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'LLM_MODEL', value: model}) });
+    _currentModelId = model;
     _updateAIActiveLabel(model);
     const statusEl = document.getElementById('sstatus-AI_KEY');
     statusEl.textContent = 'Model set!';
