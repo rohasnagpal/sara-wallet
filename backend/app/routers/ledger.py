@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import Transaction, Wallet
+from app.db.models import TokenDeployment, Transaction, Wallet
 from app.db.session import get_db
 
 router = APIRouter(prefix="/ledger", tags=["ledger"], dependencies=[Depends(require_session)])
@@ -34,6 +34,16 @@ def _row(row: Transaction, wallet_name: str | None = None) -> dict:
     }
 
 
+_TOKEN_CATEGORIES = {"token_mint", "token_burn", "token_transfer"}
+
+
+def _deployed_token_contracts(db: Session) -> dict[tuple[str, str], set[str]]:
+    contracts: dict[tuple[str, str], set[str]] = {}
+    for dep in db.query(TokenDeployment).filter(TokenDeployment.contract_address.isnot(None)).all():
+        contracts.setdefault((dep.network, dep.symbol.upper()), set()).add(dep.contract_address)
+    return contracts
+
+
 @router.get("")
 def list_ledger(
     wallet_id: int | None = None, network: str | None = None, token: str | None = None,
@@ -48,7 +58,17 @@ def list_ledger(
             query = query.filter(column == value)
     rows = query.order_by(Transaction.timestamp.desc(), Transaction.id.desc()).limit(limit).all()
     names = {w.id: w.name for w in db.query(Wallet).all()}
-    return {"transactions": [_row(row, names.get(row.wallet_id)) for row in rows]}
+    contracts = _deployed_token_contracts(db)
+    out = []
+    for row in rows:
+        item = _row(row, names.get(row.wallet_id))
+        # Link a mint/burn/transfer to the token's contract page - but only when the
+        # network+symbol maps to exactly one deployment, so we never link the wrong one.
+        found = contracts.get((row.network, (row.token or "").upper()), set())
+        if row.category in _TOKEN_CATEGORIES and len(found) == 1:
+            item["token_contract"] = next(iter(found))
+        out.append(item)
+    return {"transactions": out}
 
 
 class LedgerUpdate(BaseModel):

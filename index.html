@@ -729,6 +729,9 @@ select.settings-input { text-overflow: ellipsis; }
 .tx-card-icon { width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--tx-accent, var(--pill-bg)) 20%, transparent); color: var(--tx-accent, var(--text-secondary)); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
 .tx-card-amount { font-size: 12.5px; font-weight: 700; color: var(--text-primary); white-space: nowrap; font-family: var(--font-mono); }
 .tx-card-meta { font-size: 10.5px; color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tx-card-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; font-size: 11px; }
+.tx-card-details dt { color: var(--text-muted); font-weight: 600; }
+.tx-card-details dd { margin: 0; color: var(--text-primary); overflow-wrap: anywhere; }
 .tx-card-status { font-size: 9px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .tx-card-status.confirmed { background: rgba(46,139,87,0.16); color: #2e8b57; }
 .tx-card-status.pending, .tx-card-status.submitted { background: rgba(245,158,11,0.15); color: #d97706; }
@@ -4004,6 +4007,94 @@ const _EXPLORERS = {
   arbitrum: 'https://arbiscan.io/address/', base: 'https://basescan.org/address/',
   optimism: 'https://optimistic.etherscan.io/address/',
 };
+const _TX_EXPLORERS = {
+  ethereum: 'https://etherscan.io/tx/', polygon: 'https://polygonscan.com/tx/',
+  arbitrum: 'https://arbiscan.io/tx/', base: 'https://basescan.org/tx/',
+  optimism: 'https://optimistic.etherscan.io/tx/',
+};
+
+const _NETWORK_NAMES = {
+  ethereum: 'Ethereum', polygon: 'Polygon', arbitrum: 'Arbitrum', base: 'Base', optimism: 'OP Mainnet',
+};
+
+// Shortened value that links to the block explorer when the network is known;
+// otherwise plain text. The full value is always in the hover title.
+function _explorerValue(kind, network, value) {
+  if (!value) return '';
+  const short = value.length > 20 ? value.slice(0, 8) + '…' + value.slice(-6) : value;
+  const base = (kind === 'tx' ? _TX_EXPLORERS : _EXPLORERS)[(network || '').toLowerCase()];
+  const valid = kind === 'tx' ? /^0x[0-9a-fA-F]{64}$/.test(value) : /^0x[0-9a-fA-F]{40}$/.test(value);
+  const style = 'font-family:var(--font-mono)';
+  if (!base || !valid) return `<span title="${_escapeHtml(value)}" style="${style}">${_escapeHtml(short)}</span>`;
+  return `<a href="${_escapeHtml(base + value)}" target="_blank" rel="noopener" title="${_escapeHtml(value)} — view on block explorer" style="${style};color:var(--accent);text-decoration:none">${_escapeHtml(short)} ↗</a>`;
+}
+
+// Labeled detail rows for a ledger card. Labels depend on what the transaction
+// actually was, so a mint says "Minted to" and a send says "Sent to".
+function _ledgerDetails(t) {
+  const net = t.network;
+  const addr = (v) => _explorerValue('address', net, v);
+  const dir = t.direction;
+  const rows = [];
+  const add = (label, html) => { if (html) rows.push([label, html]); };
+
+  add('Amount', _escapeHtml(t.amount) + ' ' + _escapeHtml(t.token || '') + (t.fiat_usd_value ? ` <span style="color:var(--text-muted)">(≈ $${_escapeHtml(t.fiat_usd_value)})</span>` : ''));
+  add('Network', _escapeHtml(_NETWORK_NAMES[(net || '').toLowerCase()] || net || ''));
+  add('Tx ID', t.tx_hash ? _explorerValue('tx', net, t.tx_hash) : '');
+
+  // A friendly counterparty name (not just a repeat of the address), if there is one.
+  const cp = t.counterparty && t.counterparty !== t.from && t.counterparty !== t.to && !/^0x[0-9a-fA-F]{40}$/.test(t.counterparty)
+    ? _escapeHtml(t.counterparty) + ' · ' : '';
+  const to = t.to || (/^0x[0-9a-fA-F]{40}$/.test(t.counterparty || '') ? t.counterparty : '');
+  switch (t.category) {
+    case 'token_mint':
+      add('Minted to', cp + addr(t.to));
+      add('Token contract', addr(t.token_contract));
+      if (t.from && t.from.toLowerCase() !== (t.to || '').toLowerCase()) add('Minted by', addr(t.from));
+      break;
+    case 'token_burn':
+      add('Burned from', addr(t.from));
+      add('Token contract', addr(t.token_contract || t.to));
+      break;
+    case 'allowance_revocation':
+      add('Token contract', addr(t.to));
+      add('Wallet address', addr(t.from));
+      break;
+    case 'contract_interaction':
+      add('Contract', addr(t.to));
+      add('Method', t.reference ? _escapeHtml(t.reference) : '');
+      add('From wallet', addr(t.from));
+      break;
+    case 'x402_payment':
+      add('Paid to', addr(t.to));
+      add('Resource', t.reference ? _escapeHtml(t.reference) : '');
+      break;
+    case 'name_registration': case 'name_renewal': case 'name_registry_revenue':
+      add('Name', t.reference ? _escapeHtml(t.reference) : '');
+      add('Registry', addr(t.to));
+      break;
+    case 'swap': case 'bridge':
+      add('Wallet address', addr(t.from));
+      add('Via contract', addr(t.to));
+      break;
+    default:
+      if (dir === 'incoming') {
+        add('Received from', cp + addr(t.from || t.counterparty));
+        add('Received at', addr(t.to));
+      } else if (dir === 'self') {
+        add('Moved from', addr(t.from));
+        add('Moved to', addr(t.to));
+      } else {
+        add('Sent from', addr(t.from));
+        add('Sent to', cp + addr(to));
+      }
+      if (t.token_contract) add('Token contract', addr(t.token_contract));
+      if (t.reference) add('Reference', _escapeHtml(t.reference));
+  }
+  if (t.wallet) add('Wallet', _escapeHtml(t.wallet));
+  if (t.timestamp) add('Date', _escapeHtml(new Date(t.timestamp.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(t.timestamp) ? t.timestamp : t.timestamp + 'Z').toLocaleString()));
+  return `<dl class="tx-card-details">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+}
 
 async function loadTokenDeployments() {
   const data = await fetch('/api/tokens/deployments').then(r => r.json()).catch(() => ({deployments: []}));
@@ -4447,16 +4538,6 @@ function _renderLedgerList(rows, q) {
   const box = document.getElementById('ledgerList');
   box.innerHTML = rows.length ? rows.map(t => {
     const info = _txDisplayInfo(t);
-    const meta = [
-      _escapeHtml(t.amount) + ' ' + _escapeHtml(t.token || '') + (t.fiat_usd_value ? ' · $' + _escapeHtml(t.fiat_usd_value) : ''),
-      // t.chain is the chain *type* ("evm"), not a network - showing it as
-      // if it were one ("POL · evm") was exactly the inconsistency users
-      // hit. Omit the network segment entirely for pre-migration rows that
-      // never got a real network value instead of showing something
-      // technically true but meaningless.
-      t.network ? _escapeHtml(t.network) : '',
-      t.counterparty ? _escapeHtml(t.counterparty) : '',
-    ].filter(Boolean).join(' · ');
     const noteLine = (t.note || (t.tags || []).length)
       ? `<div class="tx-card-note">${t.note ? _escapeHtml(t.note) : ''}${t.note && (t.tags || []).length ? ' · ' : ''}${(t.tags || []).map(x => _escapeHtml(x)).join(', ')}</div>`
       : '';
@@ -4465,7 +4546,7 @@ function _renderLedgerList(rows, q) {
         <div class="tx-card-title"><span class="tx-card-icon">${info.icon}</span><span class="tx-title-text">${info.label}</span></div>
         <span class="tx-card-status ${_escapeHtml(t.status || '')}">${_escapeHtml(t.status || '')}</span>
       </div>
-      <div class="tx-card-meta">${meta}</div>
+      ${_ledgerDetails(t)}
       ${noteLine}
       <div class="tx-card-actions">
         <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Tag / note</button>
