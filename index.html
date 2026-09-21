@@ -1676,25 +1676,26 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div id="monitorList" style="font-size:11px;margin-top:9px"></div>
           </div>
           <div class="card">
-            <div style="font-size:13px;font-weight:600">Alerts</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Telegram, email and signed HTTPS webhook destinations - where balance-monitor alerts get sent.</div>
-            <div class="field-row">
-              <div class="field"><label class="field-label" for="alertKind">Type</label>
-                <select class="settings-input" id="alertKind" onchange="_updateAlertKindHints()">
-                  <option value="telegram">Telegram</option>
-                  <option value="email">Email</option>
-                  <option value="webhook">Webhook</option>
-                </select>
-              </div>
-              <div class="field"><label class="field-label" for="alertTarget" id="alertTargetLabel">Telegram chat ID</label><input class="settings-input" id="alertTarget" placeholder="Chat ID"></div>
+            <div style="font-size:15px;font-weight:600">Alerts</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Get a Telegram message when something needs your attention, for example when a balance drops below a limit you set in Balance monitoring above. Sara has to be running to send alerts.</div>
+            <div style="font-size:11px;font-weight:600;margin-bottom:4px">How to set it up</div>
+            <ol class="howto-steps">
+              <li>In Telegram, message <strong>@BotFather</strong> and send <strong>/newbot</strong>. Follow the prompts and it gives you a <strong>bot token</strong>, a long code like 123456789:ABC-DEF…</li>
+              <li>Open your new bot in Telegram and press <strong>Start</strong>. A bot can't message you until you do.</li>
+              <li>In Telegram, message <strong>@userinfobot</strong>. It replies with your <strong>chat ID</strong>, a number.</li>
+              <li>Paste both below, choose what you want to hear about, and press <strong>Send a test message</strong> to check it works. Then press <strong>Save</strong>.</li>
+            </ol>
+            <div class="field-stack" style="margin-top:8px">
+              <div class="field"><label class="field-label" for="alertBotToken">Bot token</label><input class="settings-input" id="alertBotToken" type="password" autocomplete="off" placeholder="123456789:ABC-DEF…"><div class="field-hint">The code @BotFather gave you. Treat it like a password.</div></div>
+              <div class="field"><label class="field-label" for="alertChatId">Chat ID</label><input class="settings-input" id="alertChatId" inputmode="numeric" autocomplete="off" placeholder="e.g. 123456789"><div class="field-hint">The number @userinfobot sent you.</div></div>
+              <div class="field"><span class="field-label">Tell me about</span><div id="alertTriggers" style="margin-top:2px"></div></div>
             </div>
-            <div class="field" style="margin-top:7px">
-              <label class="field-label" for="alertConfig" id="alertConfigLabel">Config (JSON) - bot token</label>
-              <textarea class="settings-input" id="alertConfig" rows="2" style="font-family:var(--font-mono);resize:vertical" placeholder='{"bot_token":"..."}'>{}</textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <button class="settings-save-btn" onclick="testAlert()">Send a test message</button>
+              <button class="settings-save-btn" onclick="saveAlert()">Save</button>
             </div>
-            <button class="settings-save-btn" style="margin-top:8px" onclick="addAlertDestination()">Add destination</button>
-            <div class="settings-status" id="alertAddStatus"></div>
-            <div id="alertList" style="font-size:11px;margin-top:9px"></div>
+            <div id="alertAddStatus" style="font-size:11px;margin-top:8px"></div>
+            <div id="alertList" style="font-size:11px;margin-top:10px"></div>
           </div>
         </div>
 
@@ -4604,6 +4605,7 @@ async function loadSafety() {
   const select = document.getElementById('safetyWallet');
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   select.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+  await loadAlertOptions();
   await Promise.all([loadBalanceMonitors(), loadAlertDestinations()]);
 }
 
@@ -4660,42 +4662,84 @@ async function loadBalanceMonitors() {
 }
 async function deleteMonitor(id){await fetch('/api/safety/monitors/'+id,{method:'DELETE'});await loadBalanceMonitors();}
 
-function _updateAlertKindHints() {
-  const kind = document.getElementById('alertKind').value;
-  const targetLabel = document.getElementById('alertTargetLabel');
-  const targetInput = document.getElementById('alertTarget');
-  const configLabel = document.getElementById('alertConfigLabel');
-  const configInput = document.getElementById('alertConfig');
-  if (kind === 'telegram') {
-    targetLabel.textContent = 'Telegram chat ID'; targetInput.placeholder = 'Chat ID';
-    configLabel.textContent = 'Config (JSON) - bot token'; configInput.placeholder = '{"bot_token":"..."}';
-  } else if (kind === 'email') {
-    targetLabel.textContent = 'Recipient email'; targetInput.placeholder = 'you@example.com';
-    configLabel.textContent = 'Config (JSON) - SMTP settings'; configInput.placeholder = '{"smtp_host":"...","smtp_port":587,"from_address":"...","username":"...","password":"..."}';
-  } else {
-    targetLabel.textContent = 'Webhook URL'; targetInput.placeholder = 'https://…';
-    configLabel.textContent = 'Config (JSON) - signing secret'; configInput.placeholder = '{"signing_secret":"..."}';
-  }
+let _alertGroups = [];
+
+async function loadAlertOptions() {
+  const data = await fetch('/api/safety/alerts/options').then(r => r.json()).catch(() => ({groups: []}));
+  _alertGroups = data.groups || [];
+  document.getElementById('alertTriggers').innerHTML =
+    _alertGroups.map(g => `<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0"><input type="checkbox" class="alert-trigger" value="${_escapeHtml(g.id)}"${g.id === 'balance' ? ' checked' : ''}> ${_escapeHtml(g.label)}</label>`).join('') +
+    `<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0"><input type="checkbox" id="alertEverything" onchange="syncAlertTriggers()"> Everything <span style="color:var(--text-muted)">(very noisy: every transaction and internal update)</span></label>`;
 }
 
-async function addAlertDestination() {
-  const status = document.getElementById('alertAddStatus');
-  const kind = document.getElementById('alertKind').value;
-  const target = document.getElementById('alertTarget').value.trim();
-  if (!target) { status.style.color = 'var(--red)'; status.textContent = 'Enter a target first.'; return; }
-  let config;
-  try { config = JSON.parse(document.getElementById('alertConfig').value.trim() || '{}'); }
-  catch (e) { status.style.color = 'var(--red)'; status.textContent = 'Config must be valid JSON.'; return; }
-  const r = await fetch('/api/safety/alerts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind, target, config})});
+function syncAlertTriggers() {
+  const all = document.getElementById('alertEverything').checked;
+  document.querySelectorAll('.alert-trigger').forEach(c => { c.disabled = all; });
+}
+
+function _alertBody() {
+  const config = {bot_token: document.getElementById('alertBotToken').value.trim()};
+  if (!document.getElementById('alertEverything')?.checked) {
+    const chosen = [...document.querySelectorAll('.alert-trigger:checked')].map(c => c.value);
+    config.event_types = _alertGroups.filter(g => chosen.includes(g.id)).flatMap(g => g.event_types);
+  }
+  return {kind: 'telegram', target: document.getElementById('alertChatId').value.trim(), config};
+}
+
+function _alertStatus(text, color) {
+  const el = document.getElementById('alertAddStatus');
+  el.style.color = color; el.textContent = text;
+}
+
+async function testAlert() {
+  _alertStatus('Sending a test message…', 'var(--text-muted)');
+  const r = await fetch('/api/safety/alerts/test', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_alertBody())});
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'Could not add destination.'); return; }
-  document.getElementById('alertTarget').value = '';
-  document.getElementById('alertConfig').value = '{}';
-  status.style.color = 'var(--green)'; status.textContent = 'Destination added.';
+  if (r.ok) _alertStatus('✓ Test message sent. Check Telegram, then press Save.', 'var(--green)');
+  else _alertStatus(_apiErrorText(data, 'Could not send the test message.'), 'var(--red)');
+}
+
+async function saveAlert() {
+  const r = await fetch('/api/safety/alerts', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_alertBody())});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { _alertStatus(_apiErrorText(data, 'Could not save.'), 'var(--red)'); return; }
+  document.getElementById('alertBotToken').value = '';
+  document.getElementById('alertChatId').value = '';
+  _alertStatus('Saved. Alerts will be sent to that chat.', 'var(--green)');
   await loadAlertDestinations();
 }
-async function loadAlertDestinations(){const rows=await fetch('/api/safety/alerts').then(r=>r.json()).catch(()=>[]);document.getElementById('alertList').innerHTML=rows.map(d=>`<div>${_escapeHtml(d.kind)} · ${_escapeHtml(d.target)} <button class="dir-del" onclick="deleteAlert(${d.id})">×</button></div>`).join('')||'No alert destinations.';}
-async function deleteAlert(id){await fetch('/api/safety/alerts/'+id,{method:'DELETE'});await loadAlertDestinations();}
+
+// Which of the trigger groups a saved destination covers, in plain words.
+function _alertCovers(eventTypes) {
+  if (!eventTypes) return 'Everything';
+  const names = _alertGroups.filter(g => g.event_types.every(e => eventTypes.includes(e))).map(g => g.label);
+  return names.length ? names.join(', ') : 'Custom';
+}
+
+async function loadAlertDestinations() {
+  const rows = await fetch('/api/safety/alerts').then(r => r.json()).catch(() => []);
+  document.getElementById('alertList').innerHTML = rows.length ? rows.map(d => {
+    const telegram = d.kind === 'telegram';
+    return _listCard({
+      title: telegram ? 'Telegram' : `${d.kind} (no longer supported)`,
+      status: d.enabled ? 'active' : 'inactive',
+      details: telegram ? [['Chat ID', d.target], ['Tells you about', _alertCovers(d.event_types)]] : [['Sent to', d.target]],
+      actions: (telegram ? `<button class="mini-btn" onclick="testSavedAlert(${Number(d.id)}, this)">Send test</button>` : '') +
+        `<button class="mini-btn" onclick="confirmDeleteAlert(this, ${Number(d.id)})" title="Stop sending alerts here">Delete</button>`,
+    });
+  }).join('') : '<div style="color:var(--text-muted)">No alert destinations yet.</div>';
+}
+
+async function testSavedAlert(id, btn) {
+  const label = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
+  const r = await fetch(`/api/safety/alerts/${id}/test`, {method: 'POST'});
+  const data = await r.json().catch(() => ({}));
+  btn.disabled = false; btn.textContent = label;
+  _alertStatus(r.ok ? '✓ Test message sent. Check Telegram.' : _apiErrorText(data, 'Could not send the test message.'), r.ok ? 'var(--green)' : 'var(--red)');
+}
+
+function confirmDeleteAlert(btn, id) { _armConfirm(btn, () => deleteAlert(id)); }
+async function deleteAlert(id) { await fetch('/api/safety/alerts/' + id, {method: 'DELETE'}); await loadAlertDestinations(); }
 
 // ══════════════════════════════════════
 // BLOCKCHAIN PROOFS

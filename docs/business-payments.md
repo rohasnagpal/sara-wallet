@@ -99,9 +99,13 @@ duplicate.
 
 ## Alerts
 
-Alerts can monitor payments, invoices, transactions and balance thresholds
-(e.g. "alert me if my Treasury wallet drops below 50 USDC") through
-Telegram, email or signed webhooks.
+Sara can send you a Telegram message when a balance crosses a limit you set
+(e.g. "alert me if my Treasury wallet drops below 50 USDC"), and optionally
+when an invoice is paid, a transaction confirms or fails, a batch payment is
+executed or a scheduled payment is created. In **Safety → Alerts** you paste
+your bot token (from @BotFather) and chat ID (from @userinfobot), choose what
+to be told about (balance alerts by default), send a test message, and save.
+The bot token is stored in your local `sara.db`.
 
 ## Roadmap
 

@@ -170,7 +170,7 @@ class BalanceMonitor(Base):
 class AlertDestination(Base):
     __tablename__ = "alert_destinations"
     id         = Column(Integer, primary_key=True, index=True)
-    kind       = Column(String, nullable=False)  # telegram | email | webhook
+    kind       = Column(String, nullable=False)  # telegram (email/webhook rows from older versions are ignored)
     target     = Column(Text, nullable=False)
     secret     = Column(Text, nullable=True)
     enabled    = Column(Boolean, nullable=False, default=True)

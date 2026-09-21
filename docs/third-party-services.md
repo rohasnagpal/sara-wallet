@@ -72,5 +72,4 @@ full legal disclaimer.
 
 | Service | Used for | API key? |
 |---|---|---|
-| Telegram Bot API | Delivering configured alerts | Only if you choose Telegram as an alert destination |
-| Your own webhook / email provider | Delivering configured alerts | Configured per-destination, not a Sara-wide setting |
+| Telegram Bot API | Delivering alerts | Only if you set up an alert destination; you create your own bot with @BotFather |

@@ -166,7 +166,7 @@ def check_expiring_names(db: Session, *, now: datetime | None = None) -> int:
     """Publishes a 'sara_name.expiring_soon' domain event for each locally-
     tracked, still-owned name expiring within EXPIRY_REMINDER_WINDOW_DAYS.
     Reuses the existing alert pipeline (app.services.alerts already
-    delivers to Telegram/email/webhook) rather than a new notification
+    delivers to Telegram) rather than a new notification
     channel — never auto-renews, per Stage 7.3 ("without auto-renewing
     unless the user has separately created and approved a recurring
     payment policy"). The event_key is keyed to (node, expiry) so it fires

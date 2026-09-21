@@ -70,7 +70,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 - 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
 - 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses. → [docs/token-creator.md](docs/token-creator.md)
 - 🪪 **Sara Names** — human-readable names for your wallet addresses, with signed multi-network records. → [docs/sara-names.md](docs/sara-names.md)
-- 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram/email/webhook alerts. → [docs/business-payments.md](docs/business-payments.md)
+- 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram alerts. → [docs/business-payments.md](docs/business-payments.md)
 
 ### Supported Chains & Stablecoins
 

@@ -1,12 +1,7 @@
 from datetime import datetime
-import hashlib
-import hmac
 import ipaddress
 import json
-import smtplib
 import socket
-import ssl
-from email.message import EmailMessage
 from urllib.parse import urlparse
 
 import requests
@@ -25,38 +20,74 @@ def validate_webhook_url(url: str) -> None:
             raise ValueError("Webhook URL must resolve to a public address")
 
 
+class AlertError(Exception):
+    """A delivery problem, worded for the user. Never contains the bot token."""
+
+
+def telegram_error_text(status: int | None, description: str | None) -> str:
+    d = (description or "").lower()
+    if status == 401 or "unauthorized" in d:
+        return "Telegram rejected the bot token. Check that it was copied in full."
+    if "chat not found" in d:
+        return ("Telegram couldn't find that chat ID. Check the number, and open your bot in Telegram "
+                "and press Start first.")
+    if status == 403 or "blocked" in d or "forbidden" in d:
+        return "Your bot isn't allowed to message that chat. Open the bot in Telegram and press Start."
+    if status == 400 and description:
+        return f"Telegram refused the message: {description}"
+    return f"Telegram couldn't deliver the message (error {status})."
+
+
+def send_telegram(bot_token: str, chat_id: str, text: str) -> None:
+    """Sends one message. The Telegram URL contains the bot token, so raw
+    request errors (whose text includes the URL) are never propagated."""
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={"chat_id": chat_id, "text": text}, timeout=15,
+        )
+    except requests.RequestException:
+        raise AlertError("Couldn't reach Telegram. Check your internet connection and try again.") from None
+    if not response.ok:
+        try:
+            description = response.json().get("description")
+        except ValueError:
+            description = None
+        raise AlertError(telegram_error_text(response.status_code, description))
+
+
+def _pretty(event_type: str) -> str:
+    return event_type.replace("_", " ").replace(".", ": ").capitalize()
+
+
+def format_message(event_type: str, payload: dict) -> str:
+    """A readable message instead of raw JSON."""
+    if event_type == "balance.threshold_reached":
+        try:
+            decimals = int(payload.get("decimals", 6))
+            balance = int(payload["balance_raw"]) / 10 ** decimals
+            limit = int(payload["threshold_raw"]) / 10 ** decimals
+            return (f"⚠️ Balance alert\n{payload.get('wallet', 'A wallet')} on {str(payload.get('network', '')).capitalize()}: "
+                    f"{balance:g} {payload.get('token', '')} is now {payload.get('condition', '')} your limit of {limit:g}.")
+        except (KeyError, TypeError, ValueError):
+            pass
+    if event_type == "payment_request.paid":
+        return (f"✅ Invoice paid\n{payload.get('reference', '')}: {payload.get('amount', '')} {payload.get('token', '')} "
+                f"on {str(payload.get('network', '')).capitalize()}")
+    lines = [f"Sara: {_pretty(event_type)}"]
+    for key, value in list(payload.items())[:6]:
+        if isinstance(value, (str, int, float)) and len(str(value)) <= 80:
+            lines.append(f"{key.replace('_', ' ')}: {value}")
+    return "\n".join(lines)
+
+
 def _send(destination: AlertDestination, event_type: str, payload: dict) -> None:
     config = json.loads(destination.secret or "{}")
-    message = f"Sara alert: {event_type}\n{json.dumps(payload, sort_keys=True, default=str)}"
     if destination.kind == "telegram":
         token = config.get("bot_token", "")
         if not token:
-            raise ValueError("Telegram bot token is missing")
-        response = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": destination.target, "text": message}, timeout=15,
-        )
-        response.raise_for_status()
-    elif destination.kind == "webhook":
-        validate_webhook_url(destination.target)
-        body = json.dumps({"event": event_type, "data": payload}, sort_keys=True, separators=(",", ":"), default=str)
-        signature = hmac.new(config.get("signing_secret", "").encode(), body.encode(), hashlib.sha256).hexdigest()
-        response = requests.post(
-            destination.target, data=body, timeout=15, allow_redirects=False,
-            headers={"Content-Type": "application/json", "X-Sara-Signature-256": f"sha256={signature}"},
-        )
-        response.raise_for_status()
-    elif destination.kind == "email":
-        msg = EmailMessage()
-        msg["Subject"] = f"Sara alert: {event_type}"
-        msg["From"] = config["from_address"]
-        msg["To"] = destination.target
-        msg.set_content(message)
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(config["smtp_host"], int(config.get("smtp_port", 465)), timeout=15, context=context) as smtp:
-            if config.get("username"):
-                smtp.login(config["username"], config.get("password", ""))
-            smtp.send_message(msg)
+            raise AlertError("The Telegram bot token is missing.")
+        send_telegram(token, destination.target, format_message(event_type, payload))
     else:
         raise ValueError("Unsupported alert destination")
 

@@ -82,7 +82,7 @@ requirement for any proxy), **names do not carry over automatically**:
 Stage 7) returns a `sara_names` section: counts by local status
 (`pending`/`committed`/`registered`/`renewed`/`transferred_away`) and
 indexer cursor lag (`current_block - last_block`). No wallet secrets or
-personal data are in this payload. Alert/webhook backlog is the existing
+personal data are in this payload. Alert backlog is the existing
 top-level `events` breakdown (Sara Names reminders flow through the same
 `DomainEvent` outbox as everything else — no separate queue to monitor).
 
