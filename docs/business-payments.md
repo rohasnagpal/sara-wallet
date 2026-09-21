@@ -69,7 +69,7 @@ duplicate.
 
 > Spending-policy enforcement covers batch payments (manual batches,
 > airdrops, schedules, payroll), chat sends, chat swaps and bridges,
-> deployed-token transfers, contract calls and x402 payments. Chat sends,
+> deployed-token transfers and x402 payments. Chat sends,
 > swaps and bridges are checked twice: when the action is previewed (so a
 > blocked action never asks for CONFIRM) and again right before signing. A
 > swap or bridge counts the token you spend against your caps. Not yet

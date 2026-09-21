@@ -10,7 +10,6 @@ from app.core.config import settings
 from app.db.models import Base, BalanceMonitor, RiskScreening, Transaction, Wallet
 from app.routers import intelligence, risk, treasury
 from app.services import stablecoin_routing, token_factory
-from app.tools.contracts import interaction as contracts_interaction
 from app.tools.risk import screening as risk_screening
 
 NET = "polygon"
@@ -302,34 +301,6 @@ class RiskScreeningTests(Stage5TestCase):
             risk_screening.screen_address(self.db, "0x" + "aa" * 20, NET)
             risk_screening.screen_address(self.db, "0x" + "aa" * 20, NET)
         mocked.assert_called_once()  # second call served from cache
-
-
-class ContractInteractionTests(unittest.TestCase):
-    def test_read_method_not_on_allowlist_is_refused(self):
-        with self.assertRaises(contracts_interaction.ContractAssistantError):
-            contracts_interaction.read_contract("0x" + "11" * 20, NET, "selfdestruct", [])
-
-    def test_proxy_contract_is_refused(self):
-        with self.assertRaises(contracts_interaction.ContractAssistantError):
-            contracts_interaction._refuse_if_proxy({"address": "0x" + "11" * 20, "is_proxy": True})
-        contracts_interaction._refuse_if_proxy({"address": "0x" + "11" * 20, "is_proxy": False})  # does not raise
-
-    def test_unverified_contract_is_refused(self):
-        with patch("os.getenv", return_value="fake-key"), \
-             patch("requests.get") as mocked_get:
-            mocked_get.return_value.json.return_value = {"result": [{"ABI": "Contract source code not verified"}]}
-            mocked_get.return_value.raise_for_status = lambda: None
-            with self.assertRaises(contracts_interaction.ContractAssistantError):
-                contracts_interaction.fetch_verified_contract("0x" + "11" * 20, NET)
-
-    def test_unlimited_approval_is_refused(self):
-        fake_contract_info = {"address": "0x" + "11" * 20, "is_proxy": False, "abi": [], "contract_name": "X"}
-        with patch.object(contracts_interaction, "fetch_verified_contract", return_value=fake_contract_info):
-            with self.assertRaises(contracts_interaction.ContractAssistantError):
-                contracts_interaction.prepare_call(
-                    "0x" + "11" * 20, NET, "0x" + "22" * 20, "approve",
-                    ["0x" + "33" * 20, 2 ** 256 - 1], 0,
-                )
 
 
 if __name__ == "__main__":

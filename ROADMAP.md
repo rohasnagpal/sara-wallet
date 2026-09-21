@@ -25,8 +25,8 @@ Actively being worked on, or explicitly blocking the next release.
   network coverage and policy-gating scenarios beyond the demo is next.
   ([#3](https://github.com/rohasnagpal/sara-wallet/issues/3))
 - **Finish spending-policy coverage** — policies now govern batches,
-  payroll, schedules, chat sends, swaps, bridges, token transfers,
-  contract calls and x402. Still uncovered: Sara Names registration and
+  payroll, schedules, chat sends, swaps, bridges, token transfers
+  and x402. Still uncovered: Sara Names registration and
   renewal fees. ([#4](https://github.com/rohasnagpal/sara-wallet/issues/4))
 
 ## Next

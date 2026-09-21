@@ -34,7 +34,7 @@ Sara runs locally on your laptop. The frontend is a single HTML app; the backend
 - **Wallet and payments** — natural-language sends, crypto invoicing with wallet-scannable QR codes and reconciliation, receipts, swaps and bridges
 - **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use
 - **Business and accounting** — batch payments, crypto payroll, FIFO cost basis, spending policies, CSV/XLSX exports
-- **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate contract calls
+- **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses
 - **Sara Names** — human-readable names for wallet addresses, with signed multi-network records
 
 Sara also includes a credential-free **BlockchainProof** evidence vault: hash a file locally, review and authorize an exact 1 USDC Polygon checkout from your own wallet, and verify the file later — no BlockchainProof API key or shared billing account required. See the `BLOCKCHAINPROOF_*` values in `.env` when pointing Sara at a compatible self-hosted service.
@@ -68,7 +68,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
 - 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
-- 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate and verify contract calls. → [docs/token-creator.md](docs/token-creator.md)
+- 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses. → [docs/token-creator.md](docs/token-creator.md)
 - 🪪 **Sara Names** — human-readable names for your wallet addresses, with signed multi-network records. → [docs/sara-names.md](docs/sara-names.md)
 - 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram/email/webhook alerts. → [docs/business-payments.md](docs/business-payments.md)
 
@@ -202,7 +202,7 @@ SARA_NAME_SERVICE_URL=
 
 At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a feature list and current configuration status, including configured keys, Sara Names availability and the selected AI model.
 
-For invoicing, business payments, and token/contract tools usage, see [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md) and [docs/token-creator.md](docs/token-creator.md).
+For invoicing, business payments, and token tools usage, see [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md) and [docs/token-creator.md](docs/token-creator.md).
 
 ---
 
@@ -245,7 +245,7 @@ See [`LICENSE`](LICENSE) for the full text, and [`DISCLAIMER.md`](DISCLAIMER.md)
 - [docs/security-model.md](docs/security-model.md) — trust questions, threat model, full security philosophy
 - [docs/x402.md](docs/x402.md) — agentic pay-per-call payments
 - [docs/business-payments.md](docs/business-payments.md) — batches, payroll, accounting, intelligence, alerts
-- [docs/token-creator.md](docs/token-creator.md) — ERC-20 creation, allowances, contract tools
+- [docs/token-creator.md](docs/token-creator.md) — ERC-20 creation, allowances, address screening
 - [docs/sara-names.md](docs/sara-names.md) — human-readable wallet names
 - [docs/invoicing.md](docs/invoicing.md) — invoices, QR payments, receipts
 - [docs/third-party-services.md](docs/third-party-services.md) — every external service Sara connects to, which need API keys, and Sara's no-markup policy

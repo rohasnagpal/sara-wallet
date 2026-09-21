@@ -39,11 +39,11 @@ full legal disclaimer.
 | [Alchemy](https://alchemy.com) | ERC-20 balance discovery, automatic payment reconciliation | Optional — without `ALCHEMY_API_KEY`, reconciliation falls back to manual "mark as paid" |
 | CoinTelegraph + CoinDesk RSS, [Alternative.me](https://alternative.me) Fear & Greed Index | News headlines and market sentiment | No — free, keyless sources |
 
-## Contracts & block explorers
+## Block explorers
 
 | Service | Used for | API key? |
 |---|---|---|
-| Etherscan, Arbiscan, Basescan, Optimistic Etherscan, Polygonscan | Fetching a verified ABI for the verified-contract-interaction feature | **Required for that feature** — one `POLYGONSCAN_API_KEY` works across all five, since Etherscan's unified API now covers their whole family (the setting name is legacy, not a sign it's Polygon-only) |
+| Etherscan, Arbiscan, Basescan, Optimistic Etherscan, Polygonscan | Optionally submitting the source of a token you deploy for public verification | Optional: without a `POLYGONSCAN_API_KEY` Sara simply skips it (the setting name is legacy, not a sign it's Polygon-only) |
 | Same five explorers, link only | "View on explorer" links in the transaction ledger | No — just a URL, no API call |
 
 ## Blockchain RPCs

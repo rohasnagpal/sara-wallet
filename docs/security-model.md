@@ -99,8 +99,6 @@ it falls back to a normal passphrase-confirmed send. See
   creation, before they can be signed
 - Risk screening can be configured to fail closed, and provider evidence is
   stored as bounded identifiers rather than allegation text
-- Verified contract writes are allowlisted, confirmation-bound,
-  re-simulated before signing and reject proxies and unlimited approvals
 - Sara Names records use EIP-712 signatures, content hashes,
   sequence/epoch replay protection and live on-chain ownership checks
 - Token symbols only ever resolve to a hardcoded, developer-verified

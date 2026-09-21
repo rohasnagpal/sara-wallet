@@ -1431,7 +1431,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
         </div><!-- /accountingView -->
 
-        <!-- ── Tools View (token creator / treasury / intelligence / risk / contracts) ── -->
+        <!-- ── Tools View (token creator / treasury / intelligence / risk / names / x402) ── -->
         <div id="toolsView" style="display:none">
           <div class="card" style="margin-bottom:10px">
             <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -1439,7 +1439,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <button class="col2-nav-btn" id="toolsTabTreasury" onclick="showToolsTab('treasury')">Treasury</button>
               <button class="col2-nav-btn" id="toolsTabIntel" onclick="showToolsTab('intel')">Intelligence</button>
               <button class="col2-nav-btn" id="toolsTabRisk" onclick="showToolsTab('risk')">Risk</button>
-              <button class="col2-nav-btn" id="toolsTabContracts" onclick="showToolsTab('contracts')">Contracts</button>
               <button class="col2-nav-btn" id="toolsTabNames" onclick="showToolsTab('names')">Names</button>
               <button class="col2-nav-btn" id="toolsTabX402" onclick="showToolsTab('x402')">x402</button>
             </div>
@@ -1557,47 +1556,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="screenAddress()">Screen</button>
               </div>
               <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-          </div>
-
-          <div id="toolsContractsPane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Read a verified contract</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only verified, non-proxy contracts and allowlisted methods (name, symbol, decimals, totalSupply, balanceOf, owner, allowance, cap, paused).</div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="ciAddress">Contract address</label><input class="settings-input" id="ciAddress" placeholder="Contract address (0x…)"></div>
-                <div class="field"><label class="field-label" for="ciNetwork">Network</label><select class="settings-input" id="ciNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="ciMethod">Method</label><input class="settings-input" id="ciMethod" placeholder="e.g. balanceOf"></div>
-              </div>
-              <div class="field" style="margin-top:7px"><label class="field-label" for="ciArgs">Args (comma-separated, optional)</label><input class="settings-input" id="ciArgs" placeholder="Args, comma-separated (optional)"></div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="readContract()">Read</button>
-              <div id="ciReadResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:13px;font-weight:600">Prepare and execute a reviewed call</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Only approve, transfer and transferFrom. Sara rebuilds and re-simulates the exact reviewed call before signing.</div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="ciWriteWallet">Wallet</label><select class="settings-input" id="ciWriteWallet"></select></div>
-                <div class="field"><label class="field-label" for="ciWriteAddress">Contract address</label><input class="settings-input" id="ciWriteAddress" placeholder="Contract address"></div>
-                <div class="field"><label class="field-label" for="ciWriteNetwork">Network</label><select class="settings-input" id="ciWriteNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="ciWriteMethod">Method</label><select class="settings-input" id="ciWriteMethod"><option value="transfer">transfer</option><option value="approve">approve</option><option value="transferFrom">transferFrom</option></select></div>
-                <div class="field"><label class="field-label" for="ciWriteArgs">Args (comma-separated)</label><input class="settings-input" id="ciWriteArgs" placeholder="Args, comma-separated"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="prepareContractCall()">Prepare and simulate</button>
-              <button class="settings-save-btn" style="margin-top:8px" id="ciExecuteBtn" onclick="executeContractCall()" disabled>Execute reviewed call</button>
-              <div id="ciWriteResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-            <div class="card">
-              <div style="font-size:13px;font-weight:600">Simulate a call</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Dry-runs any contract call without sending it - see the result before it costs gas.</div>
-              <div class="field-grid" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="ciSimNetwork">Network</label><select class="settings-input" id="ciSimNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="ciSimFrom">From address</label><input class="settings-input" id="ciSimFrom" placeholder="From address"></div>
-                <div class="field"><label class="field-label" for="ciSimTo">To address</label><input class="settings-input" id="ciSimTo" placeholder="To address"></div>
-              </div>
-              <div class="field" style="margin-top:7px"><label class="field-label" for="ciSimData">Calldata</label><input class="settings-input" id="ciSimData" value="0x" placeholder="Calldata (0x…)"></div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="simulateCall()">Simulate</button>
-              <div id="ciSimResult" style="font-size:11px;margin-top:8px"></div>
             </div>
           </div>
 
@@ -3969,20 +3927,20 @@ async function downloadAccountingExport(format) {
 }
 
 // ══════════════════════════════════════
-// TOOLS: token creator / treasury / intelligence / risk / contracts
+// TOOLS: token creator / treasury / intelligence / risk / names / x402
 // ══════════════════════════════════════
 let _toolsTab = 'tokens';
 
 async function loadToolsView() {
   syncRouteTokens();
-  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet', 'x402Wallet']);
+  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'x402Wallet']);
   return showToolsTab(_toolsTab);
 }
 
 function showToolsTab(tab) {
   _toolsTab = tab;
-  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', contracts: 'toolsContractsPane', names: 'toolsNamesPane', x402: 'toolsX402Pane'};
-  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', contracts: 'toolsTabContracts', names: 'toolsTabNames', x402: 'toolsTabX402'};
+  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', names: 'toolsNamesPane', x402: 'toolsX402Pane'};
+  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', names: 'toolsTabNames', x402: 'toolsTabX402'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(tabs).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
@@ -4339,66 +4297,6 @@ async function screenAddress() {
     ${source}
     ${data.mandatory ? '<div style="color:var(--text-muted);margin-top:4px">Screening is required: a flagged address, or a check that can\'t be completed, blocks batch sends.</div>' : ''}
   `;
-}
-
-// ---- Contract interaction assistant ----
-function _parseArgs(raw) {
-  return raw.trim() ? raw.split(',').map(a => a.trim()) : [];
-}
-
-async function readContract() {
-  const body = {
-    address: document.getElementById('ciAddress').value.trim(), network: document.getElementById('ciNetwork').value,
-    method: document.getElementById('ciMethod').value.trim(), args: _parseArgs(document.getElementById('ciArgs').value),
-  };
-  const r = await fetch('/api/contracts/read', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('ciReadResult').textContent = r.ok ? `${data.contract_name}.${data.method}(${data.args.join(', ')}) = ${data.result}` : (_apiErrorText(data, 'Read failed.'));
-}
-
-async function simulateCall() {
-  const body = {
-    network: document.getElementById('ciSimNetwork').value, from_address: document.getElementById('ciSimFrom').value.trim(),
-    to_address: document.getElementById('ciSimTo').value.trim(), data: document.getElementById('ciSimData').value.trim() || '0x',
-  };
-  const r = await fetch('/api/contracts/simulate', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('ciSimResult').innerHTML = r.ok
-    ? (data.summary.map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'No asset changes detected.')
-    : (_apiErrorText(data, 'Simulation failed.'));
-}
-
-let _preparedContractCall = null;
-
-async function prepareContractCall() {
-  const walletId = Number(document.getElementById('ciWriteWallet').value);
-  const wallet = (_portfolioWallets || []).find(w => Number(w.id) === walletId);
-  const body = {
-    address: document.getElementById('ciWriteAddress').value.trim(),
-    network: document.getElementById('ciWriteNetwork').value,
-    from_address: wallet?.address || '', method: document.getElementById('ciWriteMethod').value,
-    args: _parseArgs(document.getElementById('ciWriteArgs').value), value_wei: 0,
-  };
-  const box = document.getElementById('ciWriteResult');
-  const r = await fetch('/api/contracts/prepare', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = _apiErrorText(data, 'Preparation failed.'); return; }
-  const sim = await fetch('/api/contracts/simulate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({network:body.network, from_address:body.from_address, to_address:data.address, data:data.data, value_wei:0})});
-  const simData = await sim.json().catch(() => ({}));
-  if (!sim.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; box.textContent = _apiErrorText(simData, 'Simulation failed.'); return; }
-  _preparedContractCall = {...body, wallet_id:walletId, confirmation_token:data.confirmation_token};
-  document.getElementById('ciExecuteBtn').disabled = false;
-  box.innerHTML = (simData.summary || []).map(s => `<div>${_escapeHtml(s)}</div>`).join('') || 'Simulation found no asset changes. Review carefully.';
-}
-
-async function executeContractCall() {
-  if (!_preparedContractCall) return;
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const body = {..._preparedContractCall, passphrase}; delete body.from_address;
-  const r = await fetch('/api/contracts/execute', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('ciWriteResult').textContent = r.ok ? `Broadcast ${data.tx_hash}` : (_apiErrorText(data, 'Execution failed.'));
-  if (r.ok) { _preparedContractCall = null; document.getElementById('ciExecuteBtn').disabled = true; }
 }
 
 // ---- Sara Names ----

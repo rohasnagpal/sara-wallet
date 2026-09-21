@@ -1,14 +1,12 @@
-# ERC-20 Token Creator, Safety & Contract Tools
+# ERC-20 Token Creator & Safety Tools
 
 Sara's ERC-20 token creator lets you deploy your own token in a couple of
 clicks, from templates that have actually been reviewed and tested rather
 than hand-written per token.
 
 The **Tools** view provides pinned and tested ERC-20 templates, treasury
-and wallet intelligence, stablecoin routing, allowance management, address
-screening and verified-contract calls. Contract writes are restricted to
-allowlisted methods, reject unverified/proxy contracts and unlimited
-approvals, and are rebuilt and simulated immediately before signing.
+and wallet intelligence, stablecoin routing, allowance management and
+address screening.
 
 1. **Fixed-supply or capped mintable/burnable ERC-20 creation** — deploy
    your own token, e.g. "Rohas Coin (RHS)", from two pinned templates: a
@@ -21,12 +19,7 @@ approvals, and are rebuilt and simulated immediately before signing.
 4. **Allowance inspection and revocation** — see every contract you've
    approved to spend your tokens and revoke any that shouldn't still have
    access.
-5. **Transaction simulation** — dry-run a contract call and see the result
-   before it costs any gas.
-6. **Verified-contract interaction** — read from or write to any verified,
-   non-proxy contract using allowlisted methods, re-simulated right before
-   signing.
-7. **Address risk screening** — checks whether a destination address is on
+5. **Address risk screening** — checks whether a destination address is on
    a sanctions list before you send it funds. Out of the box it queries the
    free, public Chainalysis sanctions oracle, an on-chain contract, so it
    needs no account or API key. It covers **sanctions only**, not scams,
