@@ -3185,8 +3185,10 @@ async function createInvoice() {
 // native confirm() popup — an invoice can be a real business record a
 // customer already has the link to, so deleting it needs a deliberate
 // second click, not a silent one-click delete.
-function confirmDeleteInvoice(btn, id) {
-  if (btn.dataset.confirming) { deleteInvoice(id); return; }
+// First click arms the button ("Confirm delete?", red, reverts after 3s);
+// a second click within that time runs onConfirm.
+function _armConfirm(btn, onConfirm) {
+  if (btn.dataset.confirming) { clearTimeout(btn._revert); onConfirm(); return; }
   btn.dataset.confirming = '1';
   const prevText = btn.textContent;
   btn.textContent = 'Confirm delete?';
@@ -3199,6 +3201,9 @@ function confirmDeleteInvoice(btn, id) {
     btn.style.borderColor = '';
   }, 3000);
 }
+
+function confirmDeleteInvoice(btn, id) { _armConfirm(btn, () => deleteInvoice(id)); }
+function confirmDeletePolicy(btn, id) { _armConfirm(btn, () => deleteSpendingPolicy(id)); }
 
 async function markInvoicePaid(id) {
   await fetch('/api/payments/requests/' + id, {
@@ -3736,15 +3741,21 @@ async function loadSpendingPolicies() {
     // policies saved without a token only have the raw base-unit value.
     const unit = p.token ? ' ' + p.token : ' base units';
     const max = p.max_amount || p.max_amount_raw, cap = p.period_limit || p.period_limit_raw;
-    const rules = [
-      max ? 'max ' + max + unit + ' per payment' : '',
-      p.period && cap ? 'max ' + cap + unit + ' in total per ' + (_POLICY_PERIOD_TEXT[p.period] || p.period) : '',
-    ].filter(Boolean).map(x => _escapeHtml(x));
-    return `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.name)}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(p.network ? _chainLabel(p.network) : 'any network')} · ${_escapeHtml(p.token || 'any token')}${rules.length ? ' · ' + rules.join(' · ') : ''}</div>
-      <button class="dir-del" onclick="deleteSpendingPolicy(${p.id})">Delete</button>
+    const rows2 = [
+      ['Network', p.network ? _chainLabel(p.network) : 'Any network'],
+      ['Token', p.token || 'Any token'],
+      max ? ['Per payment', 'Up to ' + max + unit] : null,
+      p.period && cap ? ['Total cap', 'Up to ' + cap + unit + ' per ' + (_POLICY_PERIOD_TEXT[p.period] || p.period)] : null,
+    ].filter(Boolean);
+    return `<div class="tx-card tx-neutral">
+      <div class="tx-card-top">
+        <div class="tx-card-title"><span class="tx-title-text">${_escapeHtml(p.name)}</span></div>
+        <span class="tx-card-status ${p.active ? 'confirmed' : 'cancelled'}">${p.active ? 'active' : 'inactive'}</span>
+      </div>
+      <dl class="tx-card-details">${rows2.map(([k, v]) => `<dt>${_escapeHtml(k)}</dt><dd>${_escapeHtml(v)}</dd>`).join('')}</dl>
+      <div class="tx-card-actions">
+        <button class="mini-btn" onclick="confirmDeletePolicy(this, ${Number(p.id)})" title="Delete this policy">Delete</button>
+      </div>
     </div>`;
   }).join('') : '<div style="color:var(--text-muted)">No spending policies yet - nothing is restricted.</div>';
 }
