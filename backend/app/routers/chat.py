@@ -1,4 +1,5 @@
 import json, re, time
+from decimal import Decimal
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -1182,48 +1183,99 @@ def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict
     if denial:
         return None, f"🚫 Blocked by your spending policy: {denial}. Nothing was prepared or sent."
 
-    quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, w.address)
-    if not (quote and quote.get("transactionRequest")):
-        err = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
-        return None, f"Could not get a bridge quote: {err}"
+    # LI.FI returns one route per request, and its cheapest and fastest are
+    # often different bridges (a slow standard bridge vs. a near-instant one
+    # that costs a couple of cents more). Ask for both and let the user pick
+    # when they differ.
+    quotes: list[tuple[str, dict]] = []
+    seen: set[tuple] = set()
+    last_error = None
+    for order in ("CHEAPEST", "FASTEST"):
+        quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, w.address, order=order)
+        if not (quote and quote.get("transactionRequest")):
+            last_error = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
+            continue
+        estimate = quote["estimate"]
+        key = (quote.get("tool"), estimate["toAmount"], estimate.get("executionDuration"))
+        if key in seen:
+            continue  # cheapest and fastest are the same route
+        seen.add(key)
+        quotes.append((order, quote))
+    if not quotes:
+        return None, f"Could not get a bridge quote: {last_error or 'no route found'}"
 
-    estimate = quote["estimate"]
-    dst_amount = int(estimate["toAmount"]) / (10 ** dst_dec)
-    duration_min = estimate.get("executionDuration", 0) / 60
-    tool_name = quote.get("toolDetails", {}).get("name", quote.get("tool", "a bridge"))
     from app.chains.evm import _NATIVE_TOKEN
     expected_src_token = None if src_addr.lower() == lifi._NATIVE.lower() else src_addr
     max_fee = lifi.max_total_network_fee_wei(expected_src_token) / 10 ** 18
     fee_unit = _NATIVE_TOKEN.get(from_network, "ETH")
 
-    pending = {
-        "type": "bridge",
-        **bridge_args,
-        "src_addr": src_addr,
-        "dst_addr": dst_addr,
-        "src_dec": src_dec,
-        "dst_dec": dst_dec,
-        "amount_wei": amount_wei,
-        "approval_address": estimate.get("approvalAddress"),
-        "tx_request": quote["transactionRequest"],
-        "dst_amount_wei": int(estimate["toAmount"]),
-        "wallet_id": w.id,
-        "wallet_chain": w.chain,
-        "wallet_encrypted_key": w.encrypted_key,
-    }
-    text = (
-        f"{correction_note}"
-        f"Bridge **{amount} {src_sym} ({from_network.capitalize()}) → "
-        f"~{dst_amount:.4f} {dst_sym} ({to_network.capitalize()})**\n"
-        f"Via: **{tool_name}**  ·  Wallet: **{w.name}**\n"
-        f"Est. time: **~{duration_min:.0f} min**  ·  Slippage: 0.5%\n"
-        f"Maximum total source-chain network fees: **{max_fee:.6f} {fee_unit}**"
-        f"{' (up to two approval transactions plus the bridge)' if expected_src_token else ''}\n\n"
-        f"⚠ Cross-chain transfers take longer than same-chain swaps and route through a third-party "
-        f"bridge — funds arrive on {to_network.capitalize()} once the bridge finishes, not instantly.\n\n"
-        f"Type **CONFIRM** to execute or **CANCEL** to abort."
-    )
-    return pending, text
+    def _duration(seconds) -> str:
+        return "under a minute" if (seconds or 0) < 60 else f"~{round(seconds / 60)} min"
+
+    def _option(order: str, quote: dict) -> tuple[dict, str]:
+        estimate = quote["estimate"]
+        dst_amount = int(estimate["toAmount"]) / (10 ** dst_dec)
+        tool_name = re.sub(r"V\d+$", "", quote.get("toolDetails", {}).get("name", quote.get("tool", "a bridge")))
+        pending = {
+            "type": "bridge",
+            **bridge_args,
+            "src_addr": src_addr,
+            "dst_addr": dst_addr,
+            "src_dec": src_dec,
+            "dst_dec": dst_dec,
+            "amount_wei": amount_wei,
+            "approval_address": estimate.get("approvalAddress"),
+            "tx_request": quote["transactionRequest"],
+            "dst_amount_wei": int(estimate["toAmount"]),
+            # Remembered so the re-quote right before signing asks for this
+            # same bridge, not whatever LI.FI would pick by default.
+            "route_tool": quote.get("tool"),
+            "route_order": order,
+            "route_name": tool_name,
+            "wallet_id": w.id,
+            "wallet_chain": w.chain,
+            "wallet_encrypted_key": w.encrypted_key,
+        }
+        text = (
+            f"{correction_note}"
+            f"Bridge **{amount} {src_sym} ({from_network.capitalize()}) → "
+            f"~{dst_amount:.4f} {dst_sym} ({to_network.capitalize()})**\n"
+            f"Via: **{tool_name}**  ·  Wallet: **{w.name}**\n"
+            f"Est. time: **{_duration(estimate.get('executionDuration'))}** (bridge estimate; actual time may vary)  ·  Slippage: 0.5%\n"
+            f"Maximum total source-chain network fees: **{max_fee:.6f} {fee_unit}**"
+            f"{' (up to two approval transactions plus the bridge)' if expected_src_token else ''}\n\n"
+            f"⚠ Cross-chain transfers route through a third-party "
+            f"bridge — funds arrive on {to_network.capitalize()} once the bridge finishes.\n\n"
+            f"Type **CONFIRM** to execute or **CANCEL** to abort."
+        )
+        return pending, text
+
+    built = [_option(order, quote) for order, quote in quotes]
+    if len(built) == 1:
+        return built[0]
+
+    # Several distinct routes: show them side by side and let the user choose.
+    amounts = [p["dst_amount_wei"] for p, _ in built]
+    durations = [quote["estimate"].get("executionDuration") or 0 for _, quote in quotes]
+    most_idx = amounts.index(max(amounts))
+    fastest_idx = durations.index(min(durations)) if len(set(durations)) > 1 else None
+    lines = [f"{correction_note}Bridge **{amount} {src_sym} ({from_network.capitalize()}) → {dst_sym} ({to_network.capitalize()})**. "
+             f"There's more than one route, so choose:\n"]
+    options = []
+    for i, ((pending, text), (_, quote)) in enumerate(zip(built, quotes)):
+        estimate = quote["estimate"]
+        tags = [t for t, hit in (("most you receive", i == most_idx), ("fastest", i == fastest_idx)) if hit]
+        costs = sum(Decimal(c["amountUSD"]) for c in (estimate.get("feeCosts", []) + estimate.get("gasCosts", [])) if c.get("amountUSD"))
+        lines.append(
+            f"**{i + 1}. {pending['route_name']}**{' — ' + ', '.join(tags) if tags else ''}\n"
+            f"   You receive ~{pending['dst_amount_wei'] / (10 ** dst_dec):.4f} {dst_sym}  ·  "
+            f"est. time {_duration(estimate.get('executionDuration'))}"
+            f"{f'  ·  fees + gas ~${costs:.2f}' if costs else ''}\n"
+        )
+        options.append({"pending": pending, "text": text, "most": i == most_idx, "fastest": i == fastest_idx})
+    lines.append(f"Wallet: **{w.name}**  ·  Time is a bridge estimate; actual time may vary.\n\n"
+                 f"Reply **1** or **2** to choose a route, or **CANCEL** to abort.")
+    return {"type": "choose_bridge_route", "options": options}, "\n".join(lines)
 
 
 @router.post("/chat", dependencies=[Depends(require_session)])
@@ -1280,6 +1332,27 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     _pending[req.session_id] = new_pending
                 return _stream_text(text, db, req.session_id)
             return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
+        if pending.get("type") == "choose_bridge_route":
+            up = msg.strip().upper()
+            if up.startswith("CANCEL"):
+                del _pending[req.session_id]
+                return _stream_text("Bridge cancelled.", db, req.session_id)
+            options = pending["options"]
+            chosen = None
+            m = re.fullmatch(r"(?:OPTION\s*|ROUTE\s*|#)?(\d+)", up)
+            if m and 1 <= int(m.group(1)) <= len(options):
+                chosen = options[int(m.group(1)) - 1]
+            elif "FASTEST" in up or up == "FAST":
+                chosen = next((o for o in options if o["fastest"]), None)
+            elif any(w in up for w in ("CHEAPEST", "CHEAP", "MOST")):
+                chosen = next((o for o in options if o["most"]), None)
+            if chosen is None:
+                return _stream_text(
+                    f"Reply with a number from 1 to {len(options)} to choose a route, or type CANCEL.",
+                    db, req.session_id)
+            del _pending[req.session_id]
+            _pending[req.session_id] = chosen["pending"]
+            return _stream_text(chosen["text"], db, req.session_id)
         if pending.get("type") == "choose_bridge_wallet":
             if msg.upper().startswith("CANCEL"):
                 del _pending[req.session_id]
@@ -1967,7 +2040,11 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
             # output check tied to quote freshness, and the human-in-the-loop
             # gap between seeing the preview and typing CONFIRM is easily long
             # enough for that to expire and revert on-chain.
-            quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, wallet_addr)
+            quote = lifi.get_quote(
+                from_network, to_network, src_addr, dst_addr, amount_wei, wallet_addr,
+                order=pending.get("route_order"),
+                bridges=[pending["route_tool"]] if pending.get("route_tool") else None,
+            )
             if not (quote and quote.get("transactionRequest")):
                 err = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
                 raise Exception(f"could not refresh quote before executing — {err}")
@@ -2030,6 +2107,7 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
             text = (
                 f"✅ Bridging **{pending['amount']} {from_tok} ({from_network.capitalize()}) → "
                 f"~{dst_amount_human:.4f} {to_tok} ({to_network.capitalize()})** — submitted!\n"
+                f"{('Via: **' + pending['route_name'] + '**' + chr(10)) if pending.get('route_name') else ''}"
                 f"Tx hash: `{tx_hash}`\n\n"
                 f"Cross-chain transfers take a few minutes to arrive — check the destination wallet's "
                 f"balance shortly. If it doesn't show up, ask me to check the bridge status with this tx hash."

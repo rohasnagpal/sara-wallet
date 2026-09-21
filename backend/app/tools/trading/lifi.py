@@ -97,7 +97,8 @@ _ERC20_ABI = [
 
 
 def get_quote(from_network: str, to_network: str, from_token: str, to_token: str,
-              amount_wei: int, from_address: str, slippage: float = 0.005, order: str | None = None) -> dict | None:
+              amount_wei: int, from_address: str, slippage: float = 0.005, order: str | None = None,
+              bridges: list[str] | None = None) -> dict | None:
     from app.core.assets import network_enabled
     if not network_enabled(from_network) or not network_enabled(to_network):
         return None
@@ -114,7 +115,11 @@ def get_quote(from_network: str, to_network: str, from_token: str, to_token: str
         "slippage": slippage,
     }
     if order:
-        params["order"] = order  # RECOMMENDED (default) | CHEAPEST | FASTEST; only used to compare routes
+        params["order"] = order  # RECOMMENDED (default) | CHEAPEST | FASTEST
+    if bridges:
+        # Pin the quote to the bridge(s) the user chose, so a re-quote right
+        # before signing can't quietly swap in a different one.
+        params["allowBridges"] = ",".join(bridges)
     try:
         r = requests.get(f"{_BASE}/quote", params=params, timeout=15)
         return r.json() if r.ok else None
