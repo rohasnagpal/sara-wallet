@@ -369,10 +369,11 @@ body {
   display: flex; flex-wrap: wrap; gap: 7px; padding: 0 2px 14px;
 }
 #col2Nav.col2-panel-nav {
-  /* As many equal columns as fit the panel; the rest wrap. (A fixed 5-column
-     grid can't shrink below its labels, so it spilled past the panel.) */
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  /* Four equal columns. The labels are short enough (9 letters at most) to
+     fit at 4 across down to a ~365px panel; narrower than that, 3 across. */
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+@media (max-width: 380px) { #col2Nav.col2-panel-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 #col2Nav .col2-nav-btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .col2-nav-btn {
   flex: 1 1 auto; padding: 7px 6px; border-radius: 9px;
@@ -651,7 +652,6 @@ select.settings-input { text-overflow: ellipsis; }
   .topbar { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
   .topbar-right { flex-wrap: wrap; gap: 6px; }
   .theme-label { display: none; }
-  #col2Nav.col2-panel-nav { display: flex; flex-wrap: wrap; }
 }
 
 .profile-pill {
@@ -1158,11 +1158,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <!-- Col2 panel nav (hidden on asset view) -->
         <div class="col2-panel-nav" id="col2Nav">
-          <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounting</button>
+          <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounts</button>
+          <button class="col2-nav-btn" id="col2BtnAlerts" onclick="showCol2('alerts')">Alerts</button>
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
           <button class="col2-nav-btn" id="col2BtnBatches" onclick="showCol2('batches')">Batches</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
-          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Intelligence</button>
+          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Insights</button>
           <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')" disabled title="Temporarily unavailable">Names</button>
@@ -1173,7 +1174,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
-          <button class="col2-nav-btn" id="col2BtnTok" onclick="showTool('tokens')">Token Creator</button>
+          <button class="col2-nav-btn" id="col2BtnTok" onclick="showTool('tokens')">Tokens</button>
           <button class="col2-nav-btn" id="col2BtnTreasury" onclick="showTool('treasury')">Treasury</button>
           <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
         </div>
@@ -1665,19 +1666,13 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
             <div id="allowanceList" style="font-size:11px;margin-top:9px"></div>
           </div>
+        </div>
+
+        <!-- ── Alerts View ── -->
+        <div id="alertsView" style="display:none">
           <div class="card" style="margin-bottom:10px">
-            <div style="font-size:13px;font-weight:600">Balance monitoring</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Get alerted when a wallet's balance crosses a threshold you set, via the destinations below.</div>
-            <div class="field-row" style="margin-top:8px">
-              <div class="field"><label class="field-label" for="monitorCondition">Condition</label><select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select></div>
-              <div class="field"><label class="field-label" for="monitorThreshold">Threshold (whole USDC, e.g. 5.00)</label><input class="settings-input" id="monitorThreshold" placeholder="e.g. 5.00"></div>
-              <button class="settings-save-btn" onclick="createBalanceMonitor()">Add monitor</button>
-            </div>
-            <div id="monitorList" style="font-size:11px;margin-top:9px"></div>
-          </div>
-          <div class="card">
-            <div style="font-size:15px;font-weight:600">Alerts</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Get a Telegram message when something needs your attention, for example when a balance drops below a limit you set in Balance monitoring above. Sara has to be running to send alerts.</div>
+            <div style="font-size:15px;font-weight:600">Telegram alerts</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Get a Telegram message when something needs your attention, for example when a balance drops below a limit you set in Balance monitoring below. Sara has to be running to send alerts.</div>
             <div style="font-size:11px;font-weight:600;margin-bottom:4px">How to set it up</div>
             <ol class="howto-steps">
               <li>In Telegram, message <strong>@BotFather</strong> and send <strong>/newbot</strong>. Follow the prompts and it gives you a <strong>bot token</strong>, a long code like 123456789:ABC-DEF…</li>
@@ -1697,7 +1692,20 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div id="alertAddStatus" style="font-size:11px;margin-top:8px"></div>
             <div id="alertList" style="font-size:11px;margin-top:10px"></div>
           </div>
-        </div>
+          <div class="card">
+            <div style="font-size:15px;font-weight:600">Balance monitoring</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Get a Telegram message when a wallet's USDC balance goes below or above a limit you choose. Sara checks every 15 seconds and tells you once when the limit is crossed.</div>
+            <div id="monitorNeedsTelegram" style="display:none;font-size:11px;color:#b26a00;margin-bottom:8px">No Telegram chat is set up yet, so nobody would be told. Set one up above first.</div>
+            <div class="field-stack">
+              <div class="field"><label class="field-label" for="monitorWallet">Wallet</label><select class="settings-input" id="monitorWallet"></select></div>
+              <div class="field"><label class="field-label" for="monitorNetwork">Network</label><select class="settings-input" id="monitorNetwork"><option value="polygon">Polygon PoS</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">OP Mainnet</option></select></div>
+              <div class="field"><label class="field-label" for="monitorCondition">Tell me when the balance is</label><select class="settings-input" id="monitorCondition"><option value="below">Below</option><option value="above">Above</option></select></div>
+              <div class="field"><label class="field-label" for="monitorThreshold">Limit (USDC)</label><input class="settings-input" id="monitorThreshold" inputmode="decimal" placeholder="e.g. 5.00"></div>
+            </div>
+            <button class="settings-save-btn" style="margin-top:10px" onclick="createBalanceMonitor()">Add monitor</button>
+            <div id="monitorList" style="font-size:11px;margin-top:10px"></div>
+          </div>
+        </div><!-- /alertsView -->
 
         <!-- ── Proofs View ── -->
         <div id="proofsView" style="display:none">
@@ -3057,13 +3065,14 @@ async function showCol2(mode) {
   document.getElementById('accountingView').style.display = mode === 'accounting' ? '' : 'none';
   document.getElementById('toolsView').style.display      = mode === 'tools'      ? '' : 'none';
   document.getElementById('safetyView').style.display     = mode === 'safety'     ? '' : 'none';
+  document.getElementById('alertsView').style.display     = mode === 'alerts'     ? '' : 'none';
   document.getElementById('proofsView').style.display     = mode === 'proofs'     ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'   ? '' : 'none';
   document.getElementById('directoryView').style.display  = mode === 'directory'  ? '' : 'none';
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
-   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
+   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnAlerts','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
@@ -3075,6 +3084,7 @@ async function showCol2(mode) {
   if (mode === 'policies')   document.getElementById('col2BtnPolicies')?.classList.add('active');
   if (mode === 'accounting') document.getElementById('col2BtnAccounting')?.classList.add('active');
   if (mode === 'safety')     document.getElementById('col2BtnSafety')?.classList.add('active');
+  if (mode === 'alerts')     document.getElementById('col2BtnAlerts')?.classList.add('active');
   if (mode === 'proofs')     document.getElementById('col2BtnProofs')?.classList.add('active');
   if (mode === 'directory')  document.getElementById('col2BtnDir')?.classList.add('active');
   if (mode === 'settings')   document.getElementById('col2BtnSettings')?.classList.add('active');
@@ -3096,6 +3106,7 @@ async function showCol2(mode) {
   if (mode === 'policies') await loadSpendingPolicies();
   if (mode === 'tools') await loadToolsView();
   if (mode === 'safety') await loadSafety();
+  if (mode === 'alerts') await loadAlertsView();
   if (mode === 'proofs') await loadProofsView();
   if (mode === 'settings') await _loadSettingsView();
   if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
@@ -4605,6 +4616,11 @@ async function loadSafety() {
   const select = document.getElementById('safetyWallet');
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   select.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
+}
+
+async function loadAlertsView() {
+  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
+  document.getElementById('monitorWallet').innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
   await loadAlertOptions();
   await Promise.all([loadBalanceMonitors(), loadAlertDestinations()]);
 }
@@ -4648,7 +4664,9 @@ async function revokeAllowance(spender) {
 }
 
 async function createBalanceMonitor() {
-  const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', condition:document.getElementById('monitorCondition').value, threshold:document.getElementById('monitorThreshold').value};
+  const walletId = Number(document.getElementById('monitorWallet').value);
+  if (!walletId) { alert('Add a wallet first.'); return; }
+  const body = {wallet_id:walletId, network:document.getElementById('monitorNetwork').value, token:'USDC', condition:document.getElementById('monitorCondition').value, threshold:document.getElementById('monitorThreshold').value};
   const r = await fetch('/api/safety/monitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if (!r.ok) alert(_apiErrorText((await r.json().catch(()=>({}))), 'Could not create monitor')); else await loadBalanceMonitors();
 }
@@ -4718,6 +4736,8 @@ function _alertCovers(eventTypes) {
 
 async function loadAlertDestinations() {
   const rows = await fetch('/api/safety/alerts').then(r => r.json()).catch(() => []);
+  const note = document.getElementById('monitorNeedsTelegram');
+  if (note) note.style.display = rows.some(d => d.kind === 'telegram') ? 'none' : '';
   document.getElementById('alertList').innerHTML = rows.length ? rows.map(d => {
     const telegram = d.kind === 'telegram';
     return _listCard({
