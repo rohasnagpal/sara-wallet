@@ -1161,7 +1161,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
           <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounting</button>
-          <button class="col2-nav-btn" id="col2BtnTools" onclick="showCol2('tools')">Tokens</button>
+          <button class="col2-nav-btn" id="col2BtnTok" onclick="showTool('tokens')">Token Creator</button>
+          <button class="col2-nav-btn" id="col2BtnTreasury" onclick="showTool('treasury')">Treasury</button>
+          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Intelligence</button>
+          <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
+          <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')">Names</button>
+          <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')">Proofs</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
@@ -1433,17 +1438,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <!-- ── Tools View (token creator / treasury / intelligence / risk / names / x402) ── -->
         <div id="toolsView" style="display:none">
-          <div class="card" style="margin-bottom:10px">
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="col2-nav-btn active" id="toolsTabTokens" onclick="showToolsTab('tokens')">Token Creator</button>
-              <button class="col2-nav-btn" id="toolsTabTreasury" onclick="showToolsTab('treasury')">Treasury</button>
-              <button class="col2-nav-btn" id="toolsTabIntel" onclick="showToolsTab('intel')">Intelligence</button>
-              <button class="col2-nav-btn" id="toolsTabRisk" onclick="showToolsTab('risk')">Risk</button>
-              <button class="col2-nav-btn" id="toolsTabNames" onclick="showToolsTab('names')">Names</button>
-              <button class="col2-nav-btn" id="toolsTabX402" onclick="showToolsTab('x402')">x402</button>
-            </div>
-          </div>
-
           <div id="toolsTokensPane">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Create an ERC-20 token</div>
@@ -3063,7 +3057,7 @@ async function showCol2(mode) {
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
-   'col2BtnPolicies','col2BtnAccounting','col2BtnTools','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
+   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
@@ -3074,7 +3068,6 @@ async function showCol2(mode) {
   if (mode === 'payroll')    document.getElementById('col2BtnPayroll')?.classList.add('active');
   if (mode === 'policies')   document.getElementById('col2BtnPolicies')?.classList.add('active');
   if (mode === 'accounting') document.getElementById('col2BtnAccounting')?.classList.add('active');
-  if (mode === 'tools')      document.getElementById('col2BtnTools')?.classList.add('active');
   if (mode === 'safety')     document.getElementById('col2BtnSafety')?.classList.add('active');
   if (mode === 'proofs')     document.getElementById('col2BtnProofs')?.classList.add('active');
   if (mode === 'directory')  document.getElementById('col2BtnDir')?.classList.add('active');
@@ -3937,12 +3930,20 @@ async function loadToolsView() {
   return showToolsTab(_toolsTab);
 }
 
+// The Tools pages (Token Creator, Treasury, ...) each have their own button
+// in the top nav; they share one view container whose visible pane is chosen here.
+const _TOOL_NAV = {tokens: 'col2BtnTok', treasury: 'col2BtnTreasury', intel: 'col2BtnIntel', risk: 'col2BtnRisk', names: 'col2BtnNames', x402: 'col2BtnX402'};
+
+function showTool(tab) {
+  _toolsTab = tab;
+  return showCol2('tools');
+}
+
 function showToolsTab(tab) {
   _toolsTab = tab;
   const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', names: 'toolsNamesPane', x402: 'toolsX402Pane'};
-  const tabs = {tokens: 'toolsTabTokens', treasury: 'toolsTabTreasury', intel: 'toolsTabIntel', risk: 'toolsTabRisk', names: 'toolsTabNames', x402: 'toolsTabX402'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
-  Object.entries(tabs).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab));
+  Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
   if (tab === 'treasury') loadTreasuryOverview();
   if (tab === 'x402') loadX402Payments();
