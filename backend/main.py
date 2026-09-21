@@ -35,6 +35,9 @@ def _resource_path(name: str) -> str:
     if name == "images":
         return os.path.join(sys._MEIPASS, "images") if frozen \
             else os.path.join(os.path.dirname(__file__), "images")
+    if name == "fonts":
+        return os.path.join(sys._MEIPASS, "fonts") if frozen \
+            else os.path.join(os.path.dirname(__file__), "fonts")
     raise ValueError(f"Unknown bundled resource: {name!r}")
 
 def _load_db_config():
@@ -163,8 +166,8 @@ async def extend_unlock_session(request, call_next):
 _CSP = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline'; "
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-    "font-src https://fonts.gstatic.com; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self'; "
     "img-src 'self' data:; "
     "connect-src 'self'; "
     "media-src 'self'; "
@@ -212,6 +215,12 @@ app.add_middleware(
 _images_dir = _resource_path("images")
 if os.path.isdir(_images_dir):
     app.mount("/images", StaticFiles(directory=_images_dir), name="images")
+
+# Serve the UI fonts from here rather than Google Fonts, so opening Sara
+# makes no request to a third party (see docs/privacy.md).
+_fonts_dir = _resource_path("fonts")
+if os.path.isdir(_fonts_dir):
+    app.mount("/fonts", StaticFiles(directory=_fonts_dir), name="fonts")
 
 app.include_router(chat.router, prefix="/api")
 app.include_router(wallets.router, prefix="/api")

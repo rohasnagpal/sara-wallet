@@ -15,6 +15,7 @@ datas = [
     ("index.html", "."),
     (".env", "."),
     ("backend/images", "images"),
+    ("backend/fonts", "fonts"),
     ("backend/app/tools/names/registry_abi.json", "app/tools/names"),
     ("backend/app/tools/tokens/templates", "app/tools/tokens/templates"),
 ]
