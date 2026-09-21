@@ -2073,10 +2073,33 @@ function _withAuthHeaders(init) {
   return { ...init, headers };
 }
 const _origFetch = (input, init) => _rawFetch(input, _withAuthHeaders(init));
+// The session token changes every time the backend restarts, so a tab that
+// was open across a restart gets 401 on everything - and the lists quietly
+// show "nothing here". Say so plainly instead.
+function _showStaleSessionBanner() {
+  if (document.getElementById('staleSessionBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'staleSessionBanner';
+  bar.setAttribute('role', 'alert');
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:10px 16px;background:#b26a00;color:#fff;font-size:12.5px;font-weight:600;text-align:center';
+  bar.innerHTML = '<span>Sara was restarted, so this page is out of date and some lists will look empty.</span>';
+  const btn = document.createElement('button');
+  btn.textContent = 'Reload page';
+  btn.style.cssText = 'background:#fff;color:#7a4a00;border:none;border-radius:999px;padding:5px 14px;font-weight:700;cursor:pointer';
+  btn.onclick = () => location.reload();
+  bar.appendChild(btn);
+  document.body.appendChild(bar);
+}
+
 window.fetch = async (...args) => {
   const res = await _origFetch(...args);
   if (res.status === 423 && !String(args[0]).includes('/api/lock/')) {
     showLockOverlay('unlock', 'Session expired. Enter your passphrase to continue.');
+  }
+  if (res.status === 401) {
+    res.clone().json().then(d => {
+      if (d && typeof d.detail === 'string' && d.detail.startsWith('Missing or invalid session token')) _showStaleSessionBanner();
+    }).catch(() => {});
   }
   return res;
 };
