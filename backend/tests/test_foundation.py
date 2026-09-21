@@ -45,7 +45,39 @@ class MigrationTests(unittest.TestCase):
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
+                "009_drop_dual_control",
             ])
+
+    def test_policy_created_on_a_database_from_the_dual_control_era(self):
+        """spending_policies.require_dual_control was NOT NULL with no default;
+        after the maker/checker removal every policy insert on such a database
+        failed. The migration drops it and keeps existing policies."""
+        from app.db.models import SpendingPolicy
+        with tempfile.NamedTemporaryFile(suffix=".db") as db_file:
+            engine = create_engine(f"sqlite:///{db_file.name}")
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "CREATE TABLE spending_policies (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL, "
+                    "wallet_id INTEGER, network VARCHAR, token VARCHAR, counterparty_id INTEGER, "
+                    "destination_address VARCHAR, max_amount_raw VARCHAR, period VARCHAR, "
+                    "period_limit_raw VARCHAR, window_start VARCHAR, window_end VARCHAR, "
+                    "timezone VARCHAR NOT NULL, require_dual_control BOOLEAN NOT NULL, "
+                    "active BOOLEAN NOT NULL, created_at DATETIME)"
+                ))
+                conn.execute(text(
+                    "INSERT INTO spending_policies (name, timezone, require_dual_control, active) "
+                    "VALUES ('old cap', 'UTC', 0, 1)"
+                ))
+            Base.metadata.create_all(engine)
+            run_migrations(engine)
+
+            self.assertNotIn("require_dual_control", {c["name"] for c in inspect(engine).get_columns("spending_policies")})
+            session = sessionmaker(bind=engine)()
+            session.add(SpendingPolicy(name="new cap", timezone="UTC", max_amount_raw="100000000",
+                                       period="day", period_limit_raw="1000000", active=True))
+            session.commit()
+            self.assertEqual(sorted(p.name for p in session.query(SpendingPolicy)), ["new cap", "old cap"])
+            session.close()
 
 
 class AuditAndEventTests(unittest.TestCase):

@@ -124,6 +124,26 @@ def _migration_008_unify_directory_and_counterparties(engine: Engine) -> None:
     })
 
 
+def _drop_column(engine: Engine, table: str, name: str) -> None:
+    if not _column(engine, table, name):
+        return
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE {table} DROP COLUMN {name}"))
+    except Exception:
+        # DROP COLUMN needs SQLite 3.35+ (bundled with every supported Python).
+        # Don't stop startup over a cleanup; the column just stays.
+        log.warning("Could not drop %s.%s; leaving it in place", table, name, exc_info=True)
+
+
+def _migration_009_drop_dual_control(engine: Engine) -> None:
+    """Maker/checker approval was removed but databases created while it
+    existed still carry spending_policies.require_dual_control as NOT NULL
+    with no default. The model no longer writes it, so every new policy insert
+    failed with an IntegrityError."""
+    _drop_column(engine, "spending_policies", "require_dual_control")
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -133,6 +153,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("006_payment_safety", _migration_006_payment_safety),
     ("007_batch_item_tags_and_notes", _migration_007_batch_item_tags_and_notes),
     ("008_unify_directory_and_counterparties", _migration_008_unify_directory_and_counterparties),
+    ("009_drop_dual_control", _migration_009_drop_dual_control),
 )
 
 
