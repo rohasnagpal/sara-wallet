@@ -1898,7 +1898,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-suggestions" id="chatSuggestions">
           <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
-          <div class="chat-chip" onclick="showSampleMessage('send 10 USDC to 0x...')">Send</div>
+          <div class="chat-chip" onclick="showSampleMessage('send 10 USDC to something.sara', 'Use a name from your Directory (they end in .sara), or paste an 0x address.')">Send</div>
           <div class="chat-chip" onclick="showSampleMessage('bridge 1 USDC from polygon to arbitrum')">Bridge</div>
           <div class="chat-chip" onclick="showSampleMessage('swap 1 POL for USDC')">Swap</div>
           <div class="chat-chip" onclick="sendMessage('My wallets')">Wallets</div>
@@ -2512,9 +2512,9 @@ function sendChip(el) { sendMessage(el.textContent); }
 
 // For chips that are just a category label (Bridge, Swap) rather than a
 // complete command - show an example instead of sending the label itself.
-function showSampleMessage(example) {
+function showSampleMessage(example, hint) {
   const safe = example.replace(/"/g, '&quot;');
-  addMsg(`Try something like:<br><code class="chat-addr" data-msg="${safe}" onclick="_fillSampleInput(this)" title="Click to use this">${example}<span class="copy-icon"> ✎</span></code>`, 'bot');
+  addMsg(`Try something like:<br><code class="chat-addr" data-msg="${safe}" onclick="_fillSampleInput(this)" title="Click to use this">${example}<span class="copy-icon"> ✎</span></code>${hint ? `<br><span style="font-size:10.5px;color:var(--text-muted)">${hint}</span>` : ''}`, 'bot');
 }
 
 function _fillSampleInput(el) {

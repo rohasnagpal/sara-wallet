@@ -698,7 +698,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "**Sara specializes in USDC payments** — sending, requesting, and moving USDC across chains "
             "as easily as sending a text. Type in plain English here in chat, or use the tabs across the top for the full tools. Here's everything Sara can do:\n\n"
             "**Payments in chat** *(Sara's core)*\n"
-            "• Send crypto — \"send 100 USDC to zara\" — review the preview, then type CONFIRM\n"
+            "• Send crypto — \"send 100 USDC to zara.sara\" (a Directory name) or to an address — review the preview, then type CONFIRM\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
             "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n"
             "\n"
