@@ -90,7 +90,19 @@ def compare_routes(*, from_network: str, to_network: str, from_token: str, to_to
     resolved_from = lifi_tool.resolve_token(from_token, from_network)
     resolved_to = lifi_tool.resolve_token(to_token, to_network)
     if not resolved_from or not resolved_to:
-        return {"routes": [], "warnings": [f"{from_token} or {to_token} could not be resolved on the requested network(s)"]}
+        from app.core.assets import NETWORKS
+
+        def _unsupported(token: str, network: str) -> str:
+            label = NETWORKS.get(network, {}).get("label", network.capitalize())
+            supported = ", ".join(lifi_tool.trusted_symbols(network)) or "no tokens (network disabled)"
+            return f"{token.upper()} isn't available on {label}. Sara supports {supported} there."
+
+        problems = []
+        if not resolved_from:
+            problems.append(_unsupported(from_token, from_network))
+        if not resolved_to:
+            problems.append(_unsupported(to_token, to_network))
+        return {"routes": [], "warnings": problems}
     from_addr, from_dec = resolved_from
     to_addr, to_dec = resolved_to
     try:

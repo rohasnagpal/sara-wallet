@@ -158,6 +158,18 @@ class StablecoinRoutingTests(unittest.TestCase):
             treasury.treasury_routes("polygon", "arbitrum", "USDC", "USDC", "100")
         self.assertEqual(compare.call_args.kwargs["from_address"], treasury._QUOTE_ONLY_ADDRESS)
 
+    def test_unsupported_token_says_what_is_supported(self):
+        with patch("app.tools.trading.lifi.resolve_token", side_effect=lambda sym, net: None if sym == "ETH" else ("0xusdc", 6)):
+            result = stablecoin_routing.compare_routes(
+                from_network="polygon", to_network="polygon", from_token="USDC", to_token="ETH",
+                amount="100", from_address="0x" + "11" * 20,
+            )
+        self.assertEqual(result["routes"], [])
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertIn("ETH isn't available on Polygon PoS", result["warnings"][0])
+        self.assertIn("POL", result["warnings"][0])
+        self.assertIn("USDC", result["warnings"][0])
+
     def test_unresolvable_token_returns_empty_with_warning(self):
         with patch("app.tools.trading.lifi.resolve_token", return_value=None):
             result = stablecoin_routing.compare_routes(

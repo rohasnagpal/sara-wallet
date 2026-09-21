@@ -1523,10 +1523,10 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div style="font-size:15px;font-weight:600">Compare stablecoin routes</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Shows the ways to move a stablecoin from one network to another (or swap it on one network), with what you would receive after fees and gas, so you can pick the cheapest. Nothing is sent from here. These are only quotes.</div>
               <div class="field-grid" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="routeFromNetwork">From network</label><select class="settings-input" id="routeFromNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="routeToNetwork">To network</label><select class="settings-input" id="routeToNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="routeFromToken">From token</label><input class="settings-input" id="routeFromToken" value="USDC" maxlength="20"></div>
-                <div class="field"><label class="field-label" for="routeToToken">To token</label><input class="settings-input" id="routeToToken" value="USDC" maxlength="20"></div>
+                <div class="field"><label class="field-label" for="routeFromNetwork">From network</label><select class="settings-input" id="routeFromNetwork" onchange="syncRouteTokens()"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="routeToNetwork">To network</label><select class="settings-input" id="routeToNetwork" onchange="syncRouteTokens()"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
+                <div class="field"><label class="field-label" for="routeFromToken">From token</label><select class="settings-input" id="routeFromToken"><option value="USDC">USDC</option></select></div>
+                <div class="field"><label class="field-label" for="routeToToken">To token</label><select class="settings-input" id="routeToToken"><option value="USDC">USDC</option></select></div>
                 <div class="field"><label class="field-label" for="routeAmount">Amount</label><input class="settings-input" id="routeAmount" placeholder="Amount"></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
@@ -3985,6 +3985,7 @@ async function downloadAccountingExport(format) {
 let _toolsTab = 'tokens';
 
 async function loadToolsView() {
+  syncRouteTokens();
   _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet', 'x402Wallet']);
   return showToolsTab(_toolsTab);
 }
@@ -4248,6 +4249,21 @@ async function loadTreasuryOverview() {
   `;
 }
 
+// Sara supports each network's own gas token plus USDC (POL on Polygon, ETH
+// on the rest), so offer exactly those instead of a free-text box that
+// accepts things like ETH on Polygon and then finds no route.
+const _ROUTE_NATIVE = {polygon: 'POL', ethereum: 'ETH', arbitrum: 'ETH', base: 'ETH', optimism: 'ETH'};
+function syncRouteTokens() {
+  [['routeFromNetwork', 'routeFromToken'], ['routeToNetwork', 'routeToToken']].forEach(([netId, tokId]) => {
+    const network = document.getElementById(netId).value;
+    const sel = document.getElementById(tokId);
+    const tokens = ['USDC', _ROUTE_NATIVE[network] || 'ETH'];
+    const keep = tokens.includes(sel.value) ? sel.value : 'USDC';
+    sel.innerHTML = tokens.map(t => `<option value="${t}">${t}</option>`).join('');
+    sel.value = keep;
+  });
+}
+
 async function compareRoutes() {
   const params = new URLSearchParams({
     from_network: document.getElementById('routeFromNetwork').value, to_network: document.getElementById('routeToNetwork').value,
@@ -4280,7 +4296,7 @@ async function compareRoutes() {
           : (fastest && rt.estimated_seconds === fastest ? 'Fastest' : ''),
         cls: 'confirmed',
       },
-      headline: `You receive ${rt.delivered_amount} ${data.to_token}`,
+      headline: `You receive ${_fmtBal(Number(rt.delivered_amount))} ${data.to_token}`,
       details: [
         ['Fee', cost(rt.fee_usd)],
         ['Gas', cost(rt.gas_cost_usd)],
@@ -4292,8 +4308,8 @@ async function compareRoutes() {
   box.innerHTML = routes.length
     ? summary + cards + '<div style="color:var(--text-muted);font-size:10.5px;margin-top:2px">Prices change quickly. These quotes are only good for a moment, so get a fresh one right before you send.</div>' +
       (routes.some(r => r.kind === 'cross_chain_bridge') ? '<div style="color:var(--text-muted);font-size:10.5px;margin-top:4px">Bridge estimate; actual time may vary.</div>' : '')
-    : '<div style="color:var(--text-muted)">No route was found for this combination.</div>';
-  if (data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
+    : `<div style="color:var(--text-muted)">${data.warnings && data.warnings.length ? data.warnings.map(w => _escapeHtml(w)).join('<br>') : 'No route was found for this combination.'}</div>`;
+  if (routes.length && data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
 }
 
 // ---- Wallet intelligence ----
