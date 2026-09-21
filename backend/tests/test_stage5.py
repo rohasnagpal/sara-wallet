@@ -152,6 +152,12 @@ class StablecoinRoutingTests(unittest.TestCase):
         result = self._compare_bridge({"CHEAPEST": cheap, "FASTEST": cheap})
         self.assertEqual(len(result["routes"]), 1)
 
+    def test_routes_endpoint_needs_no_wallet_and_does_not_share_one(self):
+        from app.routers import treasury
+        with patch("app.services.stablecoin_routing.compare_routes", return_value={"routes": []}) as compare:
+            treasury.treasury_routes("polygon", "arbitrum", "USDC", "USDC", "100")
+        self.assertEqual(compare.call_args.kwargs["from_address"], treasury._QUOTE_ONLY_ADDRESS)
+
     def test_unresolvable_token_returns_empty_with_warning(self):
         with patch("app.tools.trading.lifi.resolve_token", return_value=None):
             result = stablecoin_routing.compare_routes(

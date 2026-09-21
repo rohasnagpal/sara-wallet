@@ -72,9 +72,16 @@ def treasury_overview(db: Session = Depends(get_db)):
     }
 
 
+# LI.FI's quote API insists on an address but returns the same quote for any
+# of them, and this endpoint only compares prices - nothing is signed or
+# sent - so there's no reason to tell a third party which wallet you own.
+_QUOTE_ONLY_ADDRESS = "0x000000000000000000000000000000000000dEaD"
+
+
 @router.get("/routes")
 def treasury_routes(
-    from_network: str, to_network: str, from_token: str, to_token: str, amount: str, from_address: str,
+    from_network: str, to_network: str, from_token: str, to_token: str, amount: str,
+    from_address: str = _QUOTE_ONLY_ADDRESS,
 ):
     try:
         return stablecoin_routing.compare_routes(

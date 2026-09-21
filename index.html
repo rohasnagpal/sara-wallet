@@ -1528,7 +1528,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <div class="field"><label class="field-label" for="routeFromToken">From token</label><input class="settings-input" id="routeFromToken" value="USDC" maxlength="20"></div>
                 <div class="field"><label class="field-label" for="routeToToken">To token</label><input class="settings-input" id="routeToToken" value="USDC" maxlength="20"></div>
                 <div class="field"><label class="field-label" for="routeAmount">Amount</label><input class="settings-input" id="routeAmount" placeholder="Amount"></div>
-                <div class="field"><label class="field-label" for="routeWallet">Wallet</label><select class="settings-input" id="routeWallet"></select></div>
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
               <div id="routeResult" style="font-size:11px;margin-top:8px"></div>
@@ -3986,7 +3985,7 @@ async function downloadAccountingExport(format) {
 let _toolsTab = 'tokens';
 
 async function loadToolsView() {
-  _fillWalletSelects(['tokWallet', 'routeWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet', 'x402Wallet']);
+  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'ciWriteWallet', 'x402Wallet']);
   return showToolsTab(_toolsTab);
 }
 
@@ -4255,9 +4254,6 @@ async function compareRoutes() {
     from_token: document.getElementById('routeFromToken').value.trim().toUpperCase(), to_token: document.getElementById('routeToToken').value.trim().toUpperCase(),
     amount: document.getElementById('routeAmount').value.trim(),
   });
-  const walletId = document.getElementById('routeWallet').value;
-  const wallet = (_portfolioWallets || []).find(w => String(w.id) === String(walletId));
-  if (wallet) params.set('from_address', wallet.address);
   const r = await fetch('/api/treasury/routes?' + params);
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('routeResult');
