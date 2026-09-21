@@ -3187,11 +3187,11 @@ async function createInvoice() {
 // second click, not a silent one-click delete.
 // First click arms the button ("Confirm delete?", red, reverts after 3s);
 // a second click within that time runs onConfirm.
-function _armConfirm(btn, onConfirm) {
+function _armConfirm(btn, onConfirm, label = 'Confirm delete?') {
   if (btn.dataset.confirming) { clearTimeout(btn._revert); onConfirm(); return; }
   btn.dataset.confirming = '1';
   const prevText = btn.textContent;
-  btn.textContent = 'Confirm delete?';
+  btn.textContent = label;
   btn.style.color = 'var(--red)';
   btn.style.borderColor = 'var(--red)';
   btn._revert = setTimeout(() => {
@@ -3204,6 +3204,32 @@ function _armConfirm(btn, onConfirm) {
 
 function confirmDeleteInvoice(btn, id) { _armConfirm(btn, () => deleteInvoice(id)); }
 function confirmDeletePolicy(btn, id) { _armConfirm(btn, () => deleteSpendingPolicy(id)); }
+
+// Status word -> the pill colours the invoice/policy cards already use.
+function _pillClass(status) {
+  return ({draft: 'pending', awaiting_approval: 'pending', approved: 'pending', executing: 'submitted',
+           completed: 'confirmed', active: 'confirmed', failed: 'failed'})[status] || 'cancelled';
+}
+
+// One card in the shared list style. details = [[label, value], ...];
+// actions = pre-built, already-escaped button HTML.
+function _listCard({title, titleAttr = '', status, details, actions = ''}) {
+  return `<div class="tx-card tx-neutral">
+    <div class="tx-card-top">
+      <div class="tx-card-title"><span class="tx-title-text" title="${_escapeHtml(titleAttr || title)}">${_escapeHtml(title)}</span></div>
+      <span class="tx-card-status ${_pillClass(status)}">${_escapeHtml(String(status).replace(/_/g, ' '))}</span>
+    </div>
+    <dl class="tx-card-details">${details.filter(Boolean).map(([k, v]) => `<dt>${_escapeHtml(k)}</dt><dd>${_escapeHtml(v)}</dd>`).join('')}</dl>
+    ${actions ? `<div class="tx-card-actions">${actions}</div>` : ''}
+  </div>`;
+}
+
+const _FREQ_TEXT = {MONTHLY: 'Monthly', WEEKLY: 'Weekly', DAILY: 'Daily'};
+function _freqText(rrule) {
+  const m = /FREQ=([A-Z]+)/.exec(rrule || '');
+  return (m && _FREQ_TEXT[m[1]]) || rrule || '-';
+}
+const _fmtDate = d => d ? new Date(d).toLocaleDateString(undefined, {dateStyle: 'medium'}) : '-';
 
 async function markInvoicePaid(id) {
   await fetch('/api/payments/requests/' + id, {
@@ -3448,21 +3474,33 @@ async function _fillPayrollDirectorySelect() {
 async function loadBatches() {
   const data = await fetch('/api/payment-batches?kind=payment,airdrop').then(r => r.json()).catch(() => ({batches: []}));
   const rows = data.batches || [];
-  document.getElementById('batchList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id})" role="button" tabindex="0" aria-label="Open batch #${b.id}">
-      <div style="display:flex;justify-content:space-between"><strong>#${b.id} ${_escapeHtml(b.kind)}</strong><span>${_escapeHtml(b.status)}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}${b.payroll_period ? ' · ' + _escapeHtml(b.payroll_period) : ''}</div>
-    </div>`).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
+  document.getElementById('batchList').innerHTML = rows.length ? rows.map(b => _listCard({
+    title: `Batch #${b.id} · ${b.kind}`, status: b.status,
+    details: [
+      ['Recipients', String(b.item_count)],
+      ['Total', `${b.total_amount} ${b.token}`],
+      ['Network', _chainLabel(b.network)],
+      ['Created', _fmtDate(b.created_at)],
+      b.memo ? ['Memo', b.memo] : null,
+    ],
+    actions: `<button class="mini-btn" onclick="openBatch(${b.id})">${b.status === 'draft' ? 'Review & send' : 'View'}</button>` +
+      (['draft', 'cancelled'].includes(b.status) ? `<button class="mini-btn" onclick="confirmDeleteBatch(this, ${b.id}, 'batchDetailCard')" title="Delete this batch">Delete</button>` : ''),
+  })).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
 }
 
 async function loadScheduleBatches() {
   const data = await fetch('/api/payment-batches?kind=recurring').then(r => r.json()).catch(() => ({batches: []}));
   const rows = data.batches || [];
-  document.getElementById('schedBatchList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id}, 'schedBatchCard')" role="button" tabindex="0" aria-label="Open generated payment #${b.id}">
-      <div style="display:flex;justify-content:space-between"><strong>#${b.id} · ${b.created_at ? new Date(b.created_at).toLocaleDateString() : ''}</strong><span>${_escapeHtml(b.status)}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}</div>
-    </div>`).join('') : '<div style="color:var(--text-muted)">Nothing generated yet.</div>';
+  document.getElementById('schedBatchList').innerHTML = rows.length ? rows.map(b => _listCard({
+    title: `Payment #${b.id}`, status: b.status,
+    details: [
+      ['Recipients', String(b.item_count)],
+      ['Total', `${b.total_amount} ${b.token}`],
+      ['Network', _chainLabel(b.network)],
+      ['Generated', _fmtDate(b.created_at)],
+    ],
+    actions: `<button class="mini-btn" onclick="openBatch(${b.id}, 'schedBatchCard')">${b.status === 'draft' ? 'Review & send' : 'View'}</button>`,
+  })).join('') : '<div style="color:var(--text-muted)">Nothing generated yet.</div>';
 }
 
 // Every list that can show a batch, refreshed together after any action so
@@ -3533,7 +3571,7 @@ async function openBatch(id, cardId = 'batchDetailCard') {
   card.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div><strong>${b.status === 'draft' ? 'Review & send' : 'Batch'} #${b.id}</strong> · ${_escapeHtml(b.kind)} · ${_escapeHtml(b.status)}</div>
-      <button class="dir-del" onclick="closeBatch('${cardId}')">Close</button>
+      <button class="mini-btn" onclick="closeBatch('${cardId}')">Close</button>
     </div>
     <div style="color:var(--text-muted);font-size:10.5px;margin:4px 0 10px">wallet #${_escapeHtml(b.wallet_id)} · ${_escapeHtml(b.network)} · ${_escapeHtml(b.token)} · ${_escapeHtml(b.item_count)} recipient(s) · total ${_escapeHtml(b.total_amount)}${b.memo ? ' · ' + _escapeHtml(b.memo) : ''}</div>
     <div>${shown.length ? shown.map(i => `
@@ -3542,12 +3580,12 @@ async function openBatch(id, cardId = 'batchDetailCard') {
         <div style="color:var(--text-muted)">${_escapeHtml(i.amount)} ${_escapeHtml(b.token)}${i.reference ? ' · ' + _escapeHtml(i.reference) : ''}${i.note ? ' · ' + _escapeHtml(i.note) : ''}${(i.tags || []).length ? ' · ' + i.tags.map(t => _escapeHtml(t)).join(', ') : ''}</div>
         ${i.failure_reason ? `<div style="color:var(--red)">${_escapeHtml(i.failure_reason)}</div>` : ''}
         ${i.tx_hash ? `<div style="color:var(--text-muted)">tx ${_escapeHtml(i.tx_hash)}</div>` : ''}
-        ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${b.id}, ${i.id}, '${cardId}')">Remove</button>` : ''}
+        ${b.status === 'draft' ? `<div class="tx-card-actions"><button class="mini-btn" onclick="deleteBatchItem(${b.id}, ${i.id}, '${cardId}')">Remove</button></div>` : ''}
       </div>`).join('') + (items.length > shown.length ? `<div style="color:var(--text-muted);font-size:11px;padding:6px 0">…and ${items.length - shown.length} more</div>` : '') : '<div style="color:var(--text-muted)">No items.</div>'}</div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
       ${sendable ? `<button class="settings-save-btn" onclick="sendBatch(${b.id}, '${cardId}')">Send ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</button>` : ''}
-      ${deletable ? `<button class="dir-del" onclick="deleteBatch(${b.id}, '${cardId}')">Delete batch</button>` : ''}
-      ${sendable && !deletable ? `<button class="dir-del" onclick="cancelBatch(${b.id}, '${cardId}')">Cancel batch</button>` : ''}
+      ${deletable ? `<button class="mini-btn" onclick="confirmDeleteBatch(this, ${b.id}, '${cardId}')">Delete batch</button>` : ''}
+      ${sendable && !deletable ? `<button class="mini-btn" onclick="confirmCancelBatch(this, ${b.id}, '${cardId}')">Cancel batch</button>` : ''}
     </div>
   `;
 }
@@ -3580,14 +3618,15 @@ async function sendBatch(id, cardId) {
   await openBatch(id, cardId); await _refreshBatchLists();
 }
 
+function confirmCancelBatch(btn, id, cardId) { _armConfirm(btn, () => cancelBatch(id, cardId), 'Confirm cancel?'); }
+function confirmDeleteBatch(btn, id, cardId) { _armConfirm(btn, () => deleteBatch(id, cardId)); }
+
 async function cancelBatch(id, cardId) {
-  if (!confirm('Cancel this batch?')) return;
   await fetch(`/api/payment-batches/${id}/cancel`, {method: 'POST'});
   await openBatch(id, cardId); await _refreshBatchLists();
 }
 
 async function deleteBatch(id, cardId) {
-  if (!confirm('Delete this batch? Nothing has been sent, and this cannot be undone.')) return;
   const r = await fetch(`/api/payment-batches/${id}`, {method: 'DELETE'});
   if (!r.ok) { alert(_apiErrorText(await r.json().catch(() => ({})), 'Could not delete the batch.')); return; }
   closeBatch(cardId); await _refreshBatchLists();
@@ -3597,12 +3636,16 @@ async function deleteBatch(id, cardId) {
 async function loadSchedules() {
   const data = await fetch('/api/schedules?kind=recurring_payment').then(r => r.json()).catch(() => ({schedules: []}));
   const rows = data.schedules || [];
-  document.getElementById('schedList').innerHTML = rows.length ? rows.map(s => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(s.recipient_address || ('counterparty #' + s.counterparty_id))}</strong><span>${s.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(s.token)} on ${_escapeHtml(s.network)} · ${_escapeHtml(s.rrule)} · next ${s.next_run_at ? new Date(s.next_run_at).toLocaleString() : '-'}</div>
-      ${s.active ? `<button class="dir-del" onclick="deactivateSchedule(${s.id})">Deactivate</button>` : ''}
-    </div>`).join('') : '<div style="color:var(--text-muted)">No recurring payments yet.</div>';
+  document.getElementById('schedList').innerHTML = rows.length ? rows.map(x => _listCard({
+    title: x.recipient_address ? _truncMid(x.recipient_address, 8, 6) : ('Counterparty #' + x.counterparty_id),
+    titleAttr: x.recipient_address || '', status: x.active ? 'active' : 'inactive',
+    details: [
+      ['Pays', `${x.token} on ${_chainLabel(x.network)}`],
+      ['Repeats', _freqText(x.rrule)],
+      x.active ? ['Next payment', x.next_run_at ? new Date(x.next_run_at).toLocaleString() : '-'] : null,
+    ],
+    actions: x.active ? `<button class="mini-btn" onclick="confirmDeactivateSchedule(this, ${x.id})" title="Stop this recurring payment">Deactivate</button>` : '',
+  })).join('') : '<div style="color:var(--text-muted)">No recurring payments yet.</div>';
 }
 
 async function createSchedule() {
@@ -3623,6 +3666,8 @@ async function createSchedule() {
   if (r.ok) await loadSchedules();
 }
 
+function confirmDeactivateSchedule(btn, id) { _armConfirm(btn, () => deactivateSchedule(id), 'Confirm deactivate?'); }
+
 async function deactivateSchedule(id) {
   await fetch('/api/schedules/' + id, {method: 'DELETE'});
   await loadSchedules();
@@ -3632,12 +3677,15 @@ async function deactivateSchedule(id) {
 async function loadPayrollPeople() {
   const data = await fetch('/api/payroll/people').then(r => r.json()).catch(() => ({people: []}));
   const rows = data.people || [];
-  document.getElementById('prollPeopleList').innerHTML = rows.length ? rows.map(p => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.display_name || ('#' + p.counterparty_id))}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(p.type || '')} · ${p.fiat_amount ? _escapeHtml(p.fiat_amount) + ' ' + _escapeHtml(p.fiat_currency || '') : (p.amount_raw ? p.amount_raw + ' base units' : '')} ${_escapeHtml(p.token || '')} on ${_escapeHtml(p.network || '')}</div>
-      ${p.active ? `<button class="dir-del" onclick="deactivatePayrollPerson(${p.id})">Remove</button>` : ''}
-    </div>`).join('') : '<div style="color:var(--text-muted)">No payroll people yet.</div>';
+  document.getElementById('prollPeopleList').innerHTML = rows.length ? rows.map(p => _listCard({
+    title: p.display_name || ('Person #' + p.counterparty_id), status: p.active ? 'active' : 'inactive',
+    details: [
+      p.type ? ['Type', p.type] : null,
+      ['Pay', (p.fiat_amount ? `${p.fiat_amount} ${p.fiat_currency || ''}`.trim() : (p.amount_raw ? p.amount_raw + ' base units' : '-')) + (p.token ? ' in ' + p.token : '')],
+      ['Network', _chainLabel(p.network)],
+    ],
+    actions: p.active ? `<button class="mini-btn" onclick="confirmRemovePayrollPerson(this, ${p.id})" title="Remove from payroll">Remove</button>` : '',
+  })).join('') : '<div style="color:var(--text-muted)">No payroll people yet.</div>';
 }
 
 async function addPayrollPerson() {
@@ -3657,6 +3705,8 @@ async function addPayrollPerson() {
   if (r.ok) await loadPayrollPeople();
 }
 
+function confirmRemovePayrollPerson(btn, id) { _armConfirm(btn, () => deactivatePayrollPerson(id), 'Confirm remove?'); }
+
 async function deactivatePayrollPerson(id) {
   await fetch('/api/payroll/people/' + id, {method: 'DELETE'});
   await loadPayrollPeople();
@@ -3665,11 +3715,15 @@ async function deactivatePayrollPerson(id) {
 async function loadPayrollRuns() {
   const data = await fetch('/api/payroll/runs').then(r => r.json()).catch(() => ({runs: []}));
   const rows = data.runs || [];
-  document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="openBatch(${b.id}, 'prollBatchCard')" role="button" tabindex="0" aria-label="Open payroll run ${_escapeHtml(b.payroll_period || ('#' + b.id))}">
-      <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(b.payroll_period || ('#' + b.id))}</strong><span>${_escapeHtml(b.status)}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} people · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</div>
-    </div>`).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';
+  document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => _listCard({
+    title: b.payroll_period ? `Payroll ${b.payroll_period}` : `Payroll run #${b.id}`, status: b.status,
+    details: [
+      ['People', String(b.item_count)],
+      ['Total', `${b.total_amount} ${b.token}`],
+      ['Network', _chainLabel(b.network)],
+    ],
+    actions: `<button class="mini-btn" onclick="openBatch(${b.id}, 'prollBatchCard')">${b.status === 'draft' ? 'Review & send' : 'View'}</button>`,
+  })).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';
 }
 
 async function createPayrollRun() {
