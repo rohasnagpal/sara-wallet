@@ -1657,11 +1657,11 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <div id="safetyView" style="display:none">
           <div class="card" style="margin-bottom:10px">
             <div style="font-size:15px;font-weight:600">Wallet safety</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Lists other contracts you've approved to spend your tokens, so you can revoke any that shouldn't still have access.</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">When you swap or bridge USDC, Sara first gives its swap or bridge partner permission to spend that exact amount. The swap normally uses that permission up straight away. This checks whether any of Sara's own permissions are still open on a wallet, for example after a swap that failed, so you can cancel them. It doesn't cover approvals you gave in other apps or websites.</div>
             <div class="field-row" style="margin-top:10px">
               <div class="field"><label class="field-label" for="safetyWallet">Wallet</label><select class="settings-input" id="safetyWallet"></select></div>
-              <div class="field"><label class="field-label" for="safetyNetwork">Network</label><select class="settings-input" id="safetyNetwork"><option>polygon</option><option>ethereum</option><option>arbitrum</option><option>base</option><option>optimism</option></select></div>
-              <button class="settings-save-btn" onclick="loadAllowances()">Check allowances</button>
+              <div class="field"><label class="field-label" for="safetyNetwork">Network</label><select class="settings-input" id="safetyNetwork"><option value="polygon">Polygon PoS</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">OP Mainnet</option></select></div>
+              <button class="settings-save-btn" onclick="loadAllowances()">Check approvals</button>
             </div>
             <div id="allowanceList" style="font-size:11px;margin-top:9px"></div>
           </div>
@@ -4610,12 +4610,33 @@ async function loadSafety() {
 async function loadAllowances() {
   const wid = document.getElementById('safetyWallet').value;
   const net = document.getElementById('safetyNetwork').value;
+  const walletSel = document.getElementById('safetyWallet');
+  const walletName = walletSel.options[walletSel.selectedIndex]?.text || 'this wallet';
+  const netLabel = _chainLabel(net);
   const box = document.getElementById('allowanceList');
+  if (!wid) { box.textContent = 'Add a wallet first.'; return; }
+  box.textContent = 'Checking…';
   try {
-    const data = await fetch(`/api/safety/allowances/${wid}?network=${encodeURIComponent(net)}`).then(r => r.json());
-    box.innerHTML = data.allowances?.length ? data.allowances.map(a => `<div>${_escapeHtml(a.spender_label)} · ${_escapeHtml(a.allowance)} USDC <button class="dir-del" onclick="revokeAllowance('${_escapeHtml(a.spender)}')">Revoke</button></div>`).join('') : 'No active Sara-supported allowances.';
-  } catch(e) { box.textContent = 'Could not check allowances.'; }
+    const r = await fetch(`/api/safety/allowances/${encodeURIComponent(wid)}?network=${encodeURIComponent(net)}`);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not check approvals.'); return; }
+    box.innerHTML = data.allowances?.length
+      ? `<div style="margin-bottom:6px">${_escapeHtml(_plural(data.allowances.length, 'open approval'))} on ${_escapeHtml(walletName)} (${_escapeHtml(netLabel)}). Revoke any you don't need.</div>` +
+        data.allowances.map(a => _listCard({
+          title: a.spender_label, titleAttr: a.spender, accent: 'tx-out',
+          pill: {text: 'Open', cls: 'pending'},
+          details: [
+            ['Can spend', `${_fmtBal(Number(a.allowance))} USDC`],
+            ['Contract', _truncMid(a.spender, 8, 6)],
+          ],
+          actions: `<button class="mini-btn" onclick="confirmRevokeAllowance(this, '${_escapeHtml(a.spender)}')" title="Cancel this permission (needs your passphrase and a small network fee)">Revoke</button>`,
+        })).join('')
+      : `<div style="color:var(--green);font-weight:600">✓ No open approvals.</div>
+         <div style="color:var(--text-muted);margin-top:2px">Sara's swap and bridge partners can't spend any USDC from ${_escapeHtml(walletName)} on ${_escapeHtml(netLabel)}. That's the normal, safe result.</div>`;
+  } catch (e) { box.textContent = 'Could not check approvals. Try again in a moment.'; }
 }
+
+function confirmRevokeAllowance(btn, spender) { _armConfirm(btn, () => revokeAllowance(spender), 'Confirm revoke?'); }
 
 async function revokeAllowance(spender) {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
