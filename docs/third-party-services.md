@@ -5,6 +5,10 @@ This page lists every one of them, grounded directly in the code (not
 inferred) — what each is used for, whether it needs an API key, and what
 happens if you don't configure one.
 
+**Privacy**: what each of these services can see is summarised in
+[privacy.md](privacy.md). Opening the Sara page itself contacts none of them
+(fonts and all other assets are served locally).
+
 **Fees**: Sara Wallet's own software takes no cut, markup, commission, or
 spread on any swap, bridge, send, or x402 payment routed through these
 services — confirmed by reading the integration code itself (no
@@ -36,7 +40,7 @@ full legal disclaimer.
 | Service | Used for | API key? |
 |---|---|---|
 | [CoinGecko](https://coingecko.com) | Token prices | Optional — works keyless on the public tier; `COINGECKO_API_KEY` only raises the rate limit |
-| [Alchemy](https://alchemy.com) | ERC-20 balance discovery, automatic payment reconciliation | Optional — without `ALCHEMY_API_KEY`, reconciliation falls back to manual "mark as paid" |
+| [Alchemy](https://alchemy.com) | ERC-20 balance discovery, automatic payment reconciliation, and verifying every swap and bridge (simulating the exact transaction) before signing | Needed to swap or bridge: without `ALCHEMY_API_KEY` Sara refuses to sign them. Optional otherwise — without it, reconciliation falls back to manual "mark as paid" |
 | CoinTelegraph + CoinDesk RSS, [Alternative.me](https://alternative.me) Fear & Greed Index | News headlines and market sentiment | No — free, keyless sources |
 
 ## Block explorers
@@ -59,7 +63,7 @@ full legal disclaimer.
 | Service | Used for | API key? |
 |---|---|---|
 | x402 facilitator (`x402.org`, or whichever you configure) | Verifying/settling x402 pay-per-call payments | No |
-| BlockchainProof | Credential-free file-evidence checkout (see [security-model.md](security-model.md)) | No — no API key or shared billing account by design |
+| BlockchainProof | Credential-free file-evidence checkout: only the file's SHA-256 fingerprint is sent (see [privacy.md](privacy.md)) | No — no API key or shared billing account by design |
 
 ## Address risk screening
 

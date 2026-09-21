@@ -43,24 +43,28 @@ Ollama model, in which case that runs locally too):
 
 ### What leaves my machine?
 
-Only what's strictly necessary for the feature you're using, and never key
-material:
+Only what a feature needs, and never key material. The full, honest
+breakdown of who can see what is in [privacy.md](privacy.md). In short:
 
 - **Your chat messages and tool results** go to whichever AI provider you
   configure (OpenRouter, OpenAI, Anthropic, Groq, xAI, Gemini, Cloudflare,
   or a local Ollama model you run yourself, in which case nothing leaves
-  your machine for inference). This can include things like the amount
-  you're sending or a resolved recipient name, because the model needs
-  that to hold a conversation about it — it never includes your private
-  key or seed phrase.
+  your machine for inference). This can include amounts, recipient names or
+  addresses and balances, because the model needs them to hold a
+  conversation about them. It never includes your private key, seed phrase
+  or passphrase.
 - **Signed transactions** are broadcast to the public blockchain network
   you're using, same as any other wallet.
-- **Optional third-party lookups**, only if you configure the corresponding
-  API key: market data (CoinGecko), balance/reconciliation data (Alchemy),
-  contract metadata (Polygonscan), address risk screening, and Sara Names
-  resolution.
-- Nothing else. No telemetry, no analytics, no cloud sync, no external key
-  custody.
+- **Public blockchain nodes** see the addresses Sara looks up (balances,
+  allowances, address screening) and your IP address. You can point Sara at
+  your own node.
+- **Swap and bridge services** (LI.FI, ParaSwap) see your wallet address, and
+  Alchemy sees the transaction you are about to sign, because Sara verifies
+  every swap and bridge before signing and refuses without an Alchemy key.
+- **Optional services** you configure, such as CoinGecko prices or Telegram
+  alerts, receive only what their feature needs.
+- No telemetry, no analytics, no cloud sync, no account, no external key
+  custody, and the app page itself loads nothing from third parties.
 
 See [third-party-services.md](third-party-services.md) for the complete,
 code-verified list of every external service Sara connects to, and
@@ -92,18 +96,18 @@ it falls back to a normal passphrase-confirmed send. See
 - Batch and token amounts are signed from exact integer base units; crash
   recovery reuses persisted signed transaction bytes instead of creating a
   second payment
-- Spending limits are enforced immediately before chat, token, batch and
-  supported contract sends; time windows use the policy's configured IANA
+- Spending limits are enforced at preview and again immediately before chat,
+  token, batch and x402 sends; time windows use the policy's configured IANA
   timezone
-- Payment batches require an explicit approval step, separate from
-  creation, before they can be signed
+- Payment batches are validated and shown to you in full before anything is
+  signed, and sending one asks for your passphrase
 - Risk screening can be configured to fail closed, and provider evidence is
   stored as bounded identifiers rather than allegation text
 - Sara Names records use EIP-712 signatures, content hashes,
   sequence/epoch replay protection and live on-chain ownership checks
 - Token symbols only ever resolve to a hardcoded, developer-verified
   contract address list — never an arbitrary on-chain lookup
-- No telemetry, no cloud sync, no external key custody
+- No telemetry, no cloud sync, no external key custody (see [privacy.md](privacy.md))
 - Open source — read every line, audit everything
 - You own your wallet code
 
