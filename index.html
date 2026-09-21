@@ -1550,7 +1550,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <div id="toolsRiskPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Screen an address</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Checks an address against sanctions and risk lists before you send it funds.</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Checks whether an address is on a public sanctions list before you send it funds. It is free and needs no account. It checks sanctions only, so it can't tell you whether an address is linked to scams, hacks or mixers.</div>
               <div class="field-row" style="margin-top:8px">
                 <div class="field"><label class="field-label" for="riskAddress">Address</label><input class="settings-input" id="riskAddress" placeholder="Address (0x…)"></div>
                 <div class="field"><label class="field-label" for="riskNetwork">Network</label><select class="settings-input" id="riskNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
@@ -4336,10 +4336,19 @@ async function screenAddress() {
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('riskResult');
   if (!r.ok) { box.textContent = _apiErrorText(data, 'Screening failed.'); return; }
+  const builtIn = data.provider === 'Chainalysis sanctions oracle';
+  const headline = data.result === 'clear'
+    ? '<div style="color:var(--green);font-weight:600">✓ Not on the sanctions list.</div>'
+    : data.result === 'flagged'
+      ? '<div style="color:var(--red);font-weight:600">⚠ This address is on a sanctions list. Do not send funds to it.</div>'
+      : `<div style="font-weight:600">Couldn't check right now.</div><div style="color:var(--text-muted)">${_escapeHtml(data.reason || 'Try again in a moment.')}</div>`;
+  const source = data.result === 'unavailable' ? '' : `<div style="color:var(--text-muted);margin-top:4px">${builtIn
+    ? "Checked with the free Chainalysis sanctions oracle. This only covers sanctions. It doesn't cover scams, hacks or mixers, so it isn't a full safety check."
+    : 'Checked by ' + _escapeHtml(data.provider) + '.'}</div>`;
   box.innerHTML = `
-    <div>Result: <strong>${_escapeHtml(data.result)}</strong> (${_escapeHtml(data.provider)})</div>
-    ${data.reason ? `<div style="color:var(--text-muted)">${_escapeHtml(data.reason)}</div>` : ''}
-    ${data.mandatory ? '<div style="color:var(--text-muted)">Mandatory screening is enabled - a flagged/unavailable result blocks batch sends.</div>' : ''}
+    ${headline}
+    ${source}
+    ${data.mandatory ? '<div style="color:var(--text-muted);margin-top:4px">Screening is required: a flagged address, or a check that can\'t be completed, blocks batch sends.</div>' : ''}
   `;
 }
 

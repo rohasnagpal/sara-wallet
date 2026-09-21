@@ -29,7 +29,10 @@ class ScreenBody(BaseModel):
 
 @router.post("/screen")
 def screen(body: ScreenBody, db: Session = Depends(get_db)):
-    result = screening.screen_address(db, body.address, body.network)
+    from web3 import Web3
+    if not Web3.is_address(body.address.strip()):
+        raise HTTPException(400, "That doesn't look like a valid address. It should start with 0x and be 42 characters long.")
+    result = screening.screen_address(db, body.address.strip(), body.network)
     return {
         "address": result.address, "network": result.network, "provider": result.provider,
         "result": result.result, "evidence": result.evidence, "reason": result.reason,

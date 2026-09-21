@@ -26,12 +26,16 @@ approvals, and are rebuilt and simulated immediately before signing.
 6. **Verified-contract interaction** — read from or write to any verified,
    non-proxy contract using allowlisted methods, re-simulated right before
    signing.
-7. **Address risk screening** — checks a destination address against
-   sanctions/risk lists before you send it funds. Provider-neutral and
-   reports `unavailable` unless a provider, HTTPS API URL and API key are
-   configured (`RISK_SCREENING_PROVIDER`, `RISK_SCREENING_API_URL`,
-   `RISK_SCREENING_API_KEY`). Setting `RISK_SCREENING_MANDATORY=true` makes
-   sends fail closed when screening is flagged or unavailable.
+7. **Address risk screening** — checks whether a destination address is on
+   a sanctions list before you send it funds. Out of the box it queries the
+   free, public Chainalysis sanctions oracle, an on-chain contract, so it
+   needs no account or API key. It covers **sanctions only**, not scams,
+   hacks or mixers. For broader coverage, configure a provider-neutral
+   adapter (`RISK_SCREENING_PROVIDER`, `RISK_SCREENING_API_URL`,
+   `RISK_SCREENING_API_KEY`), which then takes priority. If the check can't
+   be completed the result is `unavailable`, never a made-up "clear".
+   Setting `RISK_SCREENING_MANDATORY=true` makes sends fail closed when an
+   address is flagged or the check is unavailable.
 
 ## ERC-20 templates
 

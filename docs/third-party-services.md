@@ -65,7 +65,8 @@ full legal disclaimer.
 
 | Service | Used for | API key? |
 |---|---|---|
-| Provider-neutral — none configured by default | Screening destination addresses against sanctions/risk lists | Reports `unavailable` until you configure `RISK_SCREENING_PROVIDER`/`_API_KEY`/`_API_URL` |
+| Chainalysis sanctions oracle (public on-chain contract, read through the same public RPC nodes Sara uses for balances) | Checking whether a destination address is on a sanctions list (sanctions only). The address you screen is visible to the RPC node that answers | No |
+| Optional provider-neutral adapter | Broader risk screening (scams, hacks, mixers) | Yes, and takes priority when you set `RISK_SCREENING_PROVIDER`/`_API_KEY`/`_API_URL` |
 
 ## Alerts
 

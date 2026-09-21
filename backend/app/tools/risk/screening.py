@@ -1,14 +1,19 @@
-"""Provider-neutral address risk screening adapter (CLAUDE_STAGES_3_TO_7.md
-Stage 5.6).
+"""Address risk screening.
 
-No sanctions/scam-list provider ships configured by default — Sara never
-bundles a specific vendor's API key. Until RISK_SCREENING_PROVIDER and
-RISK_SCREENING_API_KEY are both set, every screen() call returns
-"unavailable" with an honest reason, never a fabricated "clear" result.
-Whether "unavailable" blocks a send is controlled by
-RISK_SCREENING_MANDATORY — fail-closed only once an operator has actually
-opted into requiring screening; the default is to record the attempt and
-let the caller proceed with a visible warning.
+Out of the box Sara checks the free, public Chainalysis sanctions oracle: an
+on-chain contract, deployed on several networks, whose `isSanctioned(address)`
+answers whether an address is on a sanctions list. It needs no account or API
+key, and because a sanctioned address is sanctioned everywhere, another
+network's copy of the oracle answers for a network that has none (Base).
+This is a *sanctions* check only, not a scam/hack/mixer risk score.
+
+An operator who wants broader coverage can configure a provider-neutral
+JSON adapter instead (RISK_SCREENING_PROVIDER, RISK_SCREENING_API_URL,
+RISK_SCREENING_API_KEY), which takes priority. When neither can be reached
+the result is "unavailable" with an honest reason, never a fabricated
+"clear". Whether "unavailable" blocks a send is controlled by
+RISK_SCREENING_MANDATORY; the default is to record the attempt and let the
+caller proceed with a visible warning.
 """
 from __future__ import annotations
 
@@ -37,6 +42,33 @@ class ScreeningResult:
 
 def _provider_configured() -> bool:
     return bool(settings.RISK_SCREENING_PROVIDER and settings.RISK_SCREENING_API_KEY)
+
+
+BUILTIN_PROVIDER = "Chainalysis sanctions oracle"
+_SANCTIONS_ORACLE = "0x40C57923924B5c5c5455c48D93317139ADDaC8fb"
+_SANCTIONS_ORACLE_ABI = [{
+    "inputs": [{"internalType": "address", "name": "addr", "type": "address"}], "name": "isSanctioned",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function",
+}]
+# The same list is published on each chain; ask the requested network first,
+# then fall back to others that do have the contract.
+_ORACLE_FALLBACK_NETWORKS = ("ethereum", "polygon")
+
+
+def _check_sanctions_oracle(address: str, network: str) -> str:
+    """"flagged" or "clear". Raises ConnectionError if no network could answer."""
+    from web3 import Web3
+    from app.chains.evm import get_web3
+
+    checksum = Web3.to_checksum_address(address)
+    for net in dict.fromkeys([network, *_ORACLE_FALLBACK_NETWORKS]):
+        try:
+            oracle = get_web3(net).eth.contract(
+                address=Web3.to_checksum_address(_SANCTIONS_ORACLE), abi=_SANCTIONS_ORACLE_ABI)
+            return "flagged" if oracle.functions.isSanctioned(checksum).call() else "clear"
+        except Exception:
+            continue  # no contract on this network, or it couldn't be reached
+    raise ConnectionError("couldn't reach a network to check the sanctions list - try again in a moment")
 
 
 def _call_provider(address: str, network: str) -> tuple[str, list[dict]]:
@@ -91,11 +123,19 @@ def screen_address(db: Session, address: str, network: str, *, use_cache: bool =
 
     now = datetime.utcnow()
     if not _provider_configured():
-        outcome = ScreeningResult(
-            address=address, network=network, provider="unconfigured", result="unavailable",
-            reason="no risk-screening provider is configured (provider, API URL and API key are required)",
-            checked_at=now,
-        )
+        provider = BUILTIN_PROVIDER
+        try:
+            result = _check_sanctions_oracle(address, network)
+            outcome = ScreeningResult(
+                address=address, network=network, provider=provider, result=result,
+                evidence=[{"id": "listed as sanctioned"}] if result == "flagged" else [],
+                checked_at=now, expires_at=now + timedelta(hours=settings.RISK_SCREENING_TTL_HOURS),
+            )
+        except Exception as exc:
+            outcome = ScreeningResult(
+                address=address, network=network, provider=provider, result="unavailable",
+                reason=str(exc), checked_at=now,
+            )
     else:
         try:
             result, evidence = _call_provider(address, network)
