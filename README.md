@@ -2,7 +2,7 @@
 
 # Sara AI Wallet
 
-**An open-source, local-first AI wallet for stablecoin payments.** Send USDC in plain English: `send 50 USDC to Maria`.
+**An open-source, local-first AI wallet for stablecoin payments.** Send USDC in plain English: `send 50 USDC to something.sara`.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-e63946?style=flat-square)](ROADMAP.md)
