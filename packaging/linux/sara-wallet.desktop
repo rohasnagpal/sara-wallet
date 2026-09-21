@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Sara AI Wallet
-Comment=Open-source, local-first AI wallet for stablecoin payments
-Exec=__SARA_WALLET_EXEC__
-Terminal=true
-Categories=Finance;Network;
-StartupNotify=true

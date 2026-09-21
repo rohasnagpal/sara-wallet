@@ -127,31 +127,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="sara-wallet",
 )
-
-# macOS only — PyInstaller's own docs: "Windows and GNU/Linux ignore this
-# class", so it's safe to always include. Wraps dist/sara-wallet/ into a
-# real dist/Sara.app: without this, macOS Finder can't double-click-launch
-# a bare onedir executable at all (verified — a raw executable doesn't
-# behave like a double-clickable app; a .app bundle does, opening in
-# Terminal.app since console=True above keeps errors visible, which matters
-# more than a fully windowed launch while Sara's still alpha).
-app = BUNDLE(
-    coll,
-    name="Sara.app",
-    icon=None,  # default generic icon for now — swap in an .icns later
-    bundle_identifier="com.sarawallet.app",
-    info_plist={
-        "CFBundleName": "Sara",
-        "CFBundleDisplayName": "Sara AI Wallet",
-        "CFBundleShortVersionString": "0.1.0",
-        "NSHighResolutionCapable": True,
-        "NSHumanReadableCopyright": "Apache License 2.0",
-        # Explicit, not PyInstaller's implicit default for a console app:
-        # false so double-clicking shows a Dock icon / Terminal window
-        # while starting, rather than silently doing nothing visible for
-        # the ~10-30s cold start until the browser pops open — worth the
-        # less-polished look while Sara's still alpha and errors need to
-        # stay visible somewhere.
-        "LSBackgroundOnly": False,
-    },
-)
