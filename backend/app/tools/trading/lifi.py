@@ -97,7 +97,7 @@ _ERC20_ABI = [
 
 
 def get_quote(from_network: str, to_network: str, from_token: str, to_token: str,
-              amount_wei: int, from_address: str, slippage: float = 0.005) -> dict | None:
+              amount_wei: int, from_address: str, slippage: float = 0.005, order: str | None = None) -> dict | None:
     from app.core.assets import network_enabled
     if not network_enabled(from_network) or not network_enabled(to_network):
         return None
@@ -105,15 +105,18 @@ def get_quote(from_network: str, to_network: str, from_token: str, to_token: str
     to_chain = CHAIN_IDS.get(to_network.lower())
     if not from_chain or not to_chain:
         return None
+    params = {
+        "fromChain": from_chain, "toChain": to_chain,
+        "fromToken": from_token, "toToken": to_token,
+        "fromAmount": str(amount_wei),
+        "fromAddress": from_address,
+        "toAddress": from_address,  # self-bridge only, never a different recipient
+        "slippage": slippage,
+    }
+    if order:
+        params["order"] = order  # RECOMMENDED (default) | CHEAPEST | FASTEST; only used to compare routes
     try:
-        r = requests.get(f"{_BASE}/quote", params={
-            "fromChain": from_chain, "toChain": to_chain,
-            "fromToken": from_token, "toToken": to_token,
-            "fromAmount": str(amount_wei),
-            "fromAddress": from_address,
-            "toAddress": from_address,  # self-bridge only, never a different recipient
-            "slippage": slippage,
-        }, timeout=15)
+        r = requests.get(f"{_BASE}/quote", params=params, timeout=15)
         return r.json() if r.ok else None
     except Exception:
         return None

@@ -123,6 +123,35 @@ class StablecoinRoutingTests(unittest.TestCase):
         self.assertEqual(result["routes"][0]["provider"], "paraswap")  # higher net after fees and gas
         self.assertTrue(result["recommendation_reasons"])
 
+    def _lifi_quotes(self):
+        cheap = {"tool": "polymerStandard", "toolDetails": {"name": "Polymer (Standard)"}, "estimate": {
+            "toAmount": "99750000", "executionDuration": 1080,
+            "feeCosts": [{"amountUSD": "0.2499"}], "gasCosts": [{"amountUSD": "0.0212"}]}}
+        fast = {"tool": "across", "toolDetails": {"name": "Across"}, "estimate": {
+            "toAmount": "99731500", "executionDuration": 1,
+            "feeCosts": [{"amountUSD": "0.2684"}], "gasCosts": [{"amountUSD": "0.0167"}]}}
+        return cheap, fast
+
+    def _compare_bridge(self, quote_for_order):
+        with patch("app.tools.trading.lifi.resolve_token", return_value=("0xusdc", 6)), \
+             patch("app.tools.trading.lifi.get_quote", side_effect=lambda *a, order=None, **k: quote_for_order[order]):
+            return stablecoin_routing.compare_routes(
+                from_network="polygon", to_network="arbitrum", from_token="USDC", to_token="USDC",
+                amount="100", from_address="0x" + "11" * 20,
+            )
+
+    def test_bridge_shows_both_the_cheapest_and_the_fastest_route_when_they_differ(self):
+        cheap, fast = self._lifi_quotes()
+        result = self._compare_bridge({"CHEAPEST": cheap, "FASTEST": fast})
+        self.assertEqual([r["tool"] for r in result["routes"]], ["Polymer (Standard)", "Across"])
+        self.assertTrue(result["routes"][0]["recommended"])           # more USDC in hand
+        self.assertEqual(result["routes"][1]["estimated_seconds"], 1)  # but the other arrives in seconds
+
+    def test_identical_cheapest_and_fastest_routes_are_shown_once(self):
+        cheap, _ = self._lifi_quotes()
+        result = self._compare_bridge({"CHEAPEST": cheap, "FASTEST": cheap})
+        self.assertEqual(len(result["routes"]), 1)
+
     def test_unresolvable_token_returns_empty_with_warning(self):
         with patch("app.tools.trading.lifi.resolve_token", return_value=None):
             result = stablecoin_routing.compare_routes(

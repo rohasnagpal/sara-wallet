@@ -4265,29 +4265,37 @@ async function compareRoutes() {
   const routes = data.routes || [];
   const from = _chainLabel(data.from_network), to = _chainLabel(data.to_network);
   const PROVIDER = {lifi: 'LI.FI', paraswap: 'Paraswap'};
-  const secs = n => n ? (n < 90 ? `about ${Math.round(n)} seconds` : `about ${Math.round(n / 60)} minutes`) : 'not quoted';
+  const secs = n => !n ? 'not quoted' : n < 60 ? 'under a minute' : n < 90 ? 'about 1 minute' : `about ${Math.round(n / 60)} minutes`;
+  const quotedTimes = routes.map(r => r.estimated_seconds).filter(Boolean);
+  const fastest = quotedTimes.length ? Math.min(...quotedTimes) : null;
+  const prettyTool = t => String(t || '').replace(/V\d+$/, '');
   const cost = v => (v && Number(v) > 0) ? _usd(v) : 'None quoted';
   const summary = routes.length
     ? `<div style="font-size:11.5px;margin-bottom:8px">Moving <strong>${_escapeHtml(data.amount)} ${_escapeHtml(data.from_token)}</strong> ${data.from_network === data.to_network ? 'on ' + _escapeHtml(from) : 'from ' + _escapeHtml(from) + ' to ' + _escapeHtml(to)}.` +
-      (routes.length > 1 && routes[0].recommended ? ` <strong>${_escapeHtml(PROVIDER[routes[0].provider] || routes[0].provider)}</strong> leaves you with the most after fees and gas.` : '') + '</div>'
+      (routes.length > 1 && routes[0].recommended ? ` <strong>${_escapeHtml((PROVIDER[routes[0].provider] || routes[0].provider) + (routes[0].tool ? ' via ' + prettyTool(routes[0].tool) : ''))}</strong> leaves you with the most after fees and gas.` : '') + '</div>'
     : '';
   const cards = routes.map(rt => {
     const bridge = rt.kind === 'cross_chain_bridge';
     return _listCard({
-      title: `${PROVIDER[rt.provider] || rt.provider} · ${bridge ? 'Bridge to ' + to : 'Swap on ' + from}`,
+      title: `${PROVIDER[rt.provider] || rt.provider}${rt.tool ? ' via ' + prettyTool(rt.tool) : ''} · ${bridge ? 'Bridge to ' + to : 'Swap on ' + from}`,
       accent: rt.recommended ? 'tx-in' : 'tx-neutral',
-      pill: {text: rt.recommended ? (routes.length > 1 ? 'Best option' : 'Available') : '', cls: 'confirmed'},
+      pill: {
+        text: routes.length === 1 ? 'Available' : rt.recommended ? 'Best option'
+          : (fastest && rt.estimated_seconds === fastest ? 'Fastest' : ''),
+        cls: 'confirmed',
+      },
       headline: `You receive ${rt.delivered_amount} ${data.to_token}`,
       details: [
         ['Fee', cost(rt.fee_usd)],
         ['Gas', cost(rt.gas_cost_usd)],
-        ['Time', secs(rt.estimated_seconds)],
+        ['Estimated time', secs(rt.estimated_seconds)],
         ['Risk', bridge ? 'Uses a bridge between networks, which adds a small extra risk.' : 'A swap on one network. No bridge involved.'],
       ],
     });
   }).join('');
   box.innerHTML = routes.length
-    ? summary + cards + '<div style="color:var(--text-muted);font-size:10.5px;margin-top:2px">Prices change quickly. These quotes are only good for a moment, so get a fresh one right before you send.</div>'
+    ? summary + cards + '<div style="color:var(--text-muted);font-size:10.5px;margin-top:2px">Prices change quickly. These quotes are only good for a moment, so get a fresh one right before you send.</div>' +
+      (routes.some(r => r.kind === 'cross_chain_bridge') ? '<div style="color:var(--text-muted);font-size:10.5px;margin-top:4px">Bridge estimate; actual time may vary.</div>' : '')
     : '<div style="color:var(--text-muted)">No route was found for this combination.</div>';
   if (data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
 }

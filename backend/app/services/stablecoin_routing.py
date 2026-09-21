@@ -41,23 +41,39 @@ def _paraswap_route(from_network: str, from_addr: str, from_dec: int, to_addr: s
     }
 
 
-def _lifi_route(from_network: str, to_network: str, from_addr: str, to_addr: str, to_dec: int,
-                 amount_raw: int, from_address: str) -> dict | None:
+# LI.FI picks one route per request. Its cheapest and fastest are often
+# different bridges (e.g. a slow standard bridge vs. a near-instant one that
+# costs a couple of cents more), so ask for both and show both when they differ.
+_LIFI_ORDERS = ("CHEAPEST", "FASTEST")
+
+
+def _lifi_routes(from_network: str, to_network: str, from_addr: str, to_addr: str, to_dec: int,
+                 amount_raw: int, from_address: str) -> list[dict]:
     from app.tools.trading import lifi
 
-    quote = lifi.get_quote(from_network, to_network, from_addr, to_addr, amount_raw, from_address)
-    estimate = (quote or {}).get("estimate")
-    if not estimate or not estimate.get("toAmount"):
-        return None
-    fee_usd = sum((Decimal(f["amountUSD"]) for f in estimate.get("feeCosts", []) if f.get("amountUSD")), Decimal(0))
-    gas_usd = sum((Decimal(g["amountUSD"]) for g in estimate.get("gasCosts", []) if g.get("amountUSD")), Decimal(0))
-    return {
-        "provider": "lifi", "kind": "same_chain_swap" if from_network.lower() == to_network.lower() else "cross_chain_bridge",
-        "delivered_amount_raw": estimate["toAmount"], "delivered_amount_min_raw": estimate.get("toAmountMin"),
-        "delivered_decimals": to_dec,
-        "gas_cost_usd": str(gas_usd) if gas_usd else None, "fee_usd": str(fee_usd) if fee_usd else None,
-        "estimated_seconds": estimate.get("executionDuration"), "expiry": _NO_EXPIRY_NOTE,
-    }
+    routes: list[dict] = []
+    seen: set[tuple] = set()
+    for order in _LIFI_ORDERS:
+        quote = lifi.get_quote(from_network, to_network, from_addr, to_addr, amount_raw, from_address, order=order)
+        estimate = (quote or {}).get("estimate")
+        if not estimate or not estimate.get("toAmount"):
+            continue
+        fee_usd = sum((Decimal(f["amountUSD"]) for f in estimate.get("feeCosts", []) if f.get("amountUSD")), Decimal(0))
+        gas_usd = sum((Decimal(g["amountUSD"]) for g in estimate.get("gasCosts", []) if g.get("amountUSD")), Decimal(0))
+        tool = ((quote.get("toolDetails") or {}).get("name") or quote.get("tool"))
+        key = (tool, estimate["toAmount"], estimate.get("executionDuration"))
+        if key in seen:
+            continue  # cheapest and fastest are the same route
+        seen.add(key)
+        routes.append({
+            "provider": "lifi", "tool": tool,
+            "kind": "same_chain_swap" if from_network.lower() == to_network.lower() else "cross_chain_bridge",
+            "delivered_amount_raw": estimate["toAmount"], "delivered_amount_min_raw": estimate.get("toAmountMin"),
+            "delivered_decimals": to_dec,
+            "gas_cost_usd": str(gas_usd) if gas_usd else None, "fee_usd": str(fee_usd) if fee_usd else None,
+            "estimated_seconds": estimate.get("executionDuration"), "expiry": _NO_EXPIRY_NOTE,
+        })
+    return routes
 
 
 def compare_routes(*, from_network: str, to_network: str, from_token: str, to_token: str,
@@ -95,9 +111,7 @@ def compare_routes(*, from_network: str, to_network: str, from_token: str, to_to
             warnings.append(f"Paraswap quote failed: {exc}")
 
     try:
-        route = _lifi_route(from_network, to_network, from_addr, to_addr, to_dec, amount_raw, from_address)
-        if route:
-            routes.append(route)
+        routes.extend(_lifi_routes(from_network, to_network, from_addr, to_addr, to_dec, amount_raw, from_address))
     except Exception as exc:
         warnings.append(f"LI.FI quote failed: {exc}")
 
@@ -124,7 +138,7 @@ def compare_routes(*, from_network: str, to_network: str, from_token: str, to_to
         route["recommended"] = i == 0
         if i == 0 and len(routes) > 1:
             reasons.append(
-                f"{route['provider']} has the highest estimated net value after quoted fees and gas "
+                f"{route['provider']}{' via ' + route['tool'] if route.get('tool') else ''} has the highest estimated net value after quoted fees and gas "
                 f"({route['estimated_net_value_usd'] or route['delivered_amount']})"
             )
     if not routes:
