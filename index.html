@@ -1520,8 +1520,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div id="treasuryOverview" style="font-size:11px;margin-top:8px">Loading…</div>
             </div>
             <div class="card">
-              <div style="font-size:13px;font-weight:600">Compare stablecoin routes</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Estimates cost and time to move funds between two networks - for deciding how to rebalance.</div>
+              <div style="font-size:15px;font-weight:600">Compare stablecoin routes</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Shows the ways to move a stablecoin from one network to another (or swap it on one network), with what you would receive after fees and gas, so you can pick the cheapest. Nothing is sent from here. These are only quotes.</div>
               <div class="field-grid" style="margin-top:8px">
                 <div class="field"><label class="field-label" for="routeFromNetwork">From network</label><select class="settings-input" id="routeFromNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
                 <div class="field"><label class="field-label" for="routeToNetwork">To network</label><select class="settings-input" id="routeToNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
@@ -3236,12 +3236,16 @@ function _pillClass(status) {
 
 // One card in the shared list style. details = [[label, value], ...];
 // actions = pre-built, already-escaped button HTML.
-function _listCard({title, titleAttr = '', status, details, actions = ''}) {
-  return `<div class="tx-card tx-neutral">
+function _listCard({title, titleAttr = '', status, details, actions = '', accent = 'tx-neutral', pill = null, headline = ''}) {
+  const pillHtml = pill
+    ? (pill.text ? `<span class="tx-card-status ${pill.cls}">${_escapeHtml(pill.text)}</span>` : '')
+    : `<span class="tx-card-status ${_pillClass(status)}">${_escapeHtml(String(status).replace(/_/g, ' '))}</span>`;
+  return `<div class="tx-card ${accent}">
     <div class="tx-card-top">
       <div class="tx-card-title"><span class="tx-title-text" title="${_escapeHtml(titleAttr || title)}">${_escapeHtml(title)}</span></div>
-      <span class="tx-card-status ${_pillClass(status)}">${_escapeHtml(String(status).replace(/_/g, ' '))}</span>
+      ${pillHtml}
     </div>
+    ${headline ? `<div style="font-size:15px;font-weight:700;color:var(--text-primary)">${_escapeHtml(headline)}</div>` : ''}
     <dl class="tx-card-details">${details.filter(Boolean).map(([k, v]) => `<dt>${_escapeHtml(k)}</dt><dd>${_escapeHtml(v)}</dd>`).join('')}</dl>
     ${actions ? `<div class="tx-card-actions">${actions}</div>` : ''}
   </div>`;
@@ -4258,12 +4262,33 @@ async function compareRoutes() {
   const data = await r.json().catch(() => ({}));
   const box = document.getElementById('routeResult');
   if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not compare routes.'); return; }
-  box.innerHTML = (data.routes || []).map(rt => `
-    <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-      <strong>${_escapeHtml(rt.provider)}</strong>${rt.recommended ? ' ⭐' : ''} - delivers ${_escapeHtml(rt.delivered_amount)} ${_escapeHtml(data.to_token)}
-      ${rt.fee_usd ? ` · fee $${_escapeHtml(rt.fee_usd)}` : ''}${rt.gas_cost_usd ? ` · gas $${_escapeHtml(rt.gas_cost_usd)}` : ''}
-      <div style="color:var(--text-muted);font-size:10px">${_escapeHtml(rt.expiry)}</div>
-    </div>`).join('') || '<div style="color:var(--text-muted)">No routes found.</div>';
+  const routes = data.routes || [];
+  const from = _chainLabel(data.from_network), to = _chainLabel(data.to_network);
+  const PROVIDER = {lifi: 'LI.FI', paraswap: 'Paraswap'};
+  const secs = n => n ? (n < 90 ? `about ${Math.round(n)} seconds` : `about ${Math.round(n / 60)} minutes`) : 'not quoted';
+  const cost = v => (v && Number(v) > 0) ? _usd(v) : 'None quoted';
+  const summary = routes.length
+    ? `<div style="font-size:11.5px;margin-bottom:8px">Moving <strong>${_escapeHtml(data.amount)} ${_escapeHtml(data.from_token)}</strong> ${data.from_network === data.to_network ? 'on ' + _escapeHtml(from) : 'from ' + _escapeHtml(from) + ' to ' + _escapeHtml(to)}.` +
+      (routes.length > 1 && routes[0].recommended ? ` <strong>${_escapeHtml(PROVIDER[routes[0].provider] || routes[0].provider)}</strong> leaves you with the most after fees and gas.` : '') + '</div>'
+    : '';
+  const cards = routes.map(rt => {
+    const bridge = rt.kind === 'cross_chain_bridge';
+    return _listCard({
+      title: `${PROVIDER[rt.provider] || rt.provider} · ${bridge ? 'Bridge to ' + to : 'Swap on ' + from}`,
+      accent: rt.recommended ? 'tx-in' : 'tx-neutral',
+      pill: {text: rt.recommended ? (routes.length > 1 ? 'Best option' : 'Available') : '', cls: 'confirmed'},
+      headline: `You receive ${rt.delivered_amount} ${data.to_token}`,
+      details: [
+        ['Fee', cost(rt.fee_usd)],
+        ['Gas', cost(rt.gas_cost_usd)],
+        ['Time', secs(rt.estimated_seconds)],
+        ['Risk', bridge ? 'Uses a bridge between networks, which adds a small extra risk.' : 'A swap on one network. No bridge involved.'],
+      ],
+    });
+  }).join('');
+  box.innerHTML = routes.length
+    ? summary + cards + '<div style="color:var(--text-muted);font-size:10.5px;margin-top:2px">Prices change quickly. These quotes are only good for a moment, so get a fresh one right before you send.</div>'
+    : '<div style="color:var(--text-muted)">No route was found for this combination.</div>';
   if (data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
 }
 
