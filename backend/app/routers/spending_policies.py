@@ -1,6 +1,8 @@
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -26,7 +28,7 @@ class PolicyBody(BaseModel):
     counterparty_id: int | None = None
     destination_address: str | None = None
     max_amount: str | None = None       # user-facing decimal amount
-    decimals: int = 6                   # precision max_amount/period_limit are expressed at
+    decimals: int | None = None         # normally derived from the token (USDC 6, ETH/POL 18)
     period: str | None = None
     period_limit: str | None = None
     window_start: str | None = None
@@ -35,8 +37,39 @@ class PolicyBody(BaseModel):
     active: bool = True
 
 
+def _token_decimals(token: str | None) -> int | None:
+    """Amount precision for the tokens a policy can put a limit on, or None."""
+    from app.core.assets import NETWORKS
+    symbol = (token or "").upper()
+    if symbol == "USDC":
+        return 6
+    if symbol in {n["native"] for n in NETWORKS.values()}:
+        return 18
+    return None
+
+
+def _decimals(body: PolicyBody) -> int:
+    if body.decimals is not None:
+        return body.decimals
+    decimals = _token_decimals(body.token)
+    if decimals is None:
+        raise HTTPException(400, "Amount limits need a token: choose USDC, ETH or POL")
+    return decimals
+
+
+def _display(raw: str | None, token: str | None) -> str | None:
+    """Human-readable amount ("1000") for a stored base-unit limit, when the
+    token (and so the precision) is known."""
+    decimals = _token_decimals(token)
+    if raw is None or decimals is None:
+        return None
+    return format((Decimal(raw) / (Decimal(10) ** decimals)).normalize(), "f")
+
+
 def _row(row: SpendingPolicy) -> dict:
     return {
+        "max_amount": _display(row.max_amount_raw, row.token),
+        "period_limit": _display(row.period_limit_raw, row.token),
         "id": row.id, "name": row.name, "wallet_id": row.wallet_id, "principal_id": row.principal_id,
         "network": row.network,
         "token": row.token, "counterparty_id": row.counterparty_id, "destination_address": row.destination_address,
@@ -55,8 +88,12 @@ def _validate(body: PolicyBody) -> None:
     for value in (body.window_start, body.window_end):
         if value is not None and not _TIME_RE.match(value):
             raise HTTPException(400, "window_start/window_end must be HH:MM")
-    if body.period and body.period_limit is None:
-        raise HTTPException(400, "period_limit is required when period is set")
+    if body.period and not body.period_limit:
+        raise HTTPException(400, "Enter a cumulative cap for the period you chose")
+    if body.period_limit and not body.period:
+        raise HTTPException(400, "Choose a cap period (day, week or month) for the cumulative cap")
+    if body.max_amount or body.period_limit:
+        _decimals(body)
     try:
         ZoneInfo(body.timezone)
     except (ZoneInfoNotFoundError, ValueError):
@@ -78,9 +115,9 @@ def create_policy(body: PolicyBody, db: Session = Depends(get_db)):
         name=body.name.strip(), wallet_id=body.wallet_id, principal_id=body.principal_id, network=body.network,
         token=(body.token.upper() if body.token else None), counterparty_id=body.counterparty_id,
         destination_address=body.destination_address,
-        max_amount_raw=str(to_base_units(body.max_amount, body.decimals, "policy")) if body.max_amount else None,
+        max_amount_raw=str(to_base_units(body.max_amount, _decimals(body), "policy")) if body.max_amount else None,
         period=body.period,
-        period_limit_raw=str(to_base_units(body.period_limit, body.decimals, "policy")) if body.period_limit else None,
+        period_limit_raw=str(to_base_units(body.period_limit, _decimals(body), "policy")) if body.period_limit else None,
         window_start=body.window_start, window_end=body.window_end, timezone=body.timezone,
         active=body.active,
     )
@@ -104,9 +141,9 @@ def update_policy(policy_id: int, body: PolicyBody, db: Session = Depends(get_db
     row.token = body.token.upper() if body.token else None
     row.counterparty_id = body.counterparty_id
     row.destination_address = body.destination_address
-    row.max_amount_raw = str(to_base_units(body.max_amount, body.decimals, "policy")) if body.max_amount else None
+    row.max_amount_raw = str(to_base_units(body.max_amount, _decimals(body), "policy")) if body.max_amount else None
     row.period = body.period
-    row.period_limit_raw = str(to_base_units(body.period_limit, body.decimals, "policy")) if body.period_limit else None
+    row.period_limit_raw = str(to_base_units(body.period_limit, _decimals(body), "policy")) if body.period_limit else None
     row.window_start = body.window_start
     row.window_end = body.window_end
     row.timezone = body.timezone

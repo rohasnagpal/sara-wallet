@@ -51,8 +51,14 @@ duplicate.
    first. This is a check against mistakes, not a maker/checker control —
    Sara is a single-user, local wallet, so there's no independent second
    party to approve on your behalf.
-2. **Scoped spending controls** — cap how much a wallet can send per
-   transaction or per day/week/month, enforced right before signing.
+2. **Scoped spending controls** — limit what Sara will send, enforced at
+   preview and again right before signing. A policy can set a **maximum per
+   payment** and a **cumulative cap** over a **cap period**. The cumulative
+   cap adds up everything already sent in a rolling window (per day = the
+   last 24 hours, per week = 7 days, per month = 30 days, not calendar
+   periods) and blocks a payment that would push the total over the cap.
+   Amount limits are set in a specific token (USDC, ETH or POL), so each
+   amount is read in that token's own units.
 
 > Spending-policy enforcement covers batch payments (manual batches,
 > airdrops, schedules, payroll), chat sends, chat swaps and bridges,

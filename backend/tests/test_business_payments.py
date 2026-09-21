@@ -12,7 +12,7 @@ from app.db.models import (
     AddressBook, Base, PaymentBatch, PaymentBatchItem, PayrollProfile,
     Schedule, ScheduleRun, SpendingPolicy, Transaction, Wallet,
 )
-from app.routers import address_book, payment_batches, payroll, schedules
+from app.routers import address_book, payment_batches, payroll, schedules, spending_policies
 from app.services import batch_engine
 from app.services import schedules as schedules_service
 
@@ -194,6 +194,36 @@ class SpendingPolicyTests(BusinessPaymentsTestCase):
         result = spending_policy.evaluate(self.db, wallet_id=self.wallet.id, network="polygon", token="USDC",
                                            counterparty_id=None, destination_address=ADDR_A, amount_raw=5_000_000)
         self.assertTrue(result.allowed)
+
+
+class PolicyFormTests(BusinessPaymentsTestCase):
+    def _create(self, **fields):
+        body = spending_policies.PolicyBody(**{"name": "p", **fields})
+        return spending_policies.create_policy(body, self.db)
+
+    def test_amounts_use_the_tokens_own_precision(self):
+        usdc = self._create(token="USDC", max_amount="100", period="day", period_limit="1000")
+        self.assertEqual((usdc["max_amount_raw"], usdc["period_limit_raw"]), ("100000000", "1000000000"))
+        self.assertEqual((usdc["max_amount"], usdc["period_limit"]), ("100", "1000"))
+        eth = self._create(name="e", token="ETH", max_amount="0.5")
+        self.assertEqual((eth["max_amount_raw"], eth["max_amount"]), ("500000000000000000", "0.5"))
+
+    def test_amount_limits_require_a_token(self):
+        from fastapi import HTTPException
+        for fields in ({"max_amount": "100"}, {"period": "day", "period_limit": "5"}, {"max_amount": "1", "token": "DOGE"}):
+            with self.subTest(fields=fields), self.assertRaises(HTTPException) as ctx:
+                self._create(**fields)
+            self.assertEqual(ctx.exception.status_code, 400)
+
+    def test_period_and_cumulative_cap_must_be_set_together(self):
+        from fastapi import HTTPException
+        for fields in ({"token": "USDC", "period": "day"}, {"token": "USDC", "period_limit": "5"}):
+            with self.subTest(fields=fields), self.assertRaises(HTTPException) as ctx:
+                self._create(**fields)
+            self.assertEqual(ctx.exception.status_code, 400)
+
+    def test_policy_without_amounts_needs_no_token(self):
+        self.assertEqual(self._create(network="polygon")["max_amount"], None)
 
 
 class ExecutionTests(BusinessPaymentsTestCase):

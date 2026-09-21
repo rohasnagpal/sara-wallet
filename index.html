@@ -1345,15 +1345,22 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <div id="policiesView" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">New spending policy</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Evaluated when a batch is approved and again immediately before each item is signed.</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">A spending policy sets limits on what Sara will send. It is checked when you preview a send, swap or bridge, and again right before each payment is signed. Anything over a limit is blocked.</div>
               <div class="field-grid">
-                <div class="field"><label class="field-label" for="polName">Policy name</label><input class="settings-input" id="polName" maxlength="160" placeholder="Policy name"></div>
-                <div class="field"><label class="field-label" for="polNetwork">Network</label><select class="settings-input" id="polNetwork"><option value="">Any network</option><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="polToken">Token</label><input class="settings-input" id="polToken" maxlength="20" placeholder="Token (blank = any)"></div>
-                <div class="field"><label class="field-label" for="polMaxAmount">Max per payment</label><input class="settings-input" id="polMaxAmount" placeholder="Blank = no cap"></div>
-                <div class="field"><label class="field-label" for="polPeriod">Cap period</label><select class="settings-input" id="polPeriod"><option value="">No cumulative cap</option><option value="day">Per day</option><option value="week">Per week</option><option value="month">Per month</option></select></div>
-                <div class="field"><label class="field-label" for="polPeriodLimit">Cumulative cap</label><input class="settings-input" id="polPeriodLimit" placeholder="Cap for period"></div>
+                <div class="field"><label class="field-label" for="polName">Policy name</label><input class="settings-input" id="polName" maxlength="160" placeholder="e.g. Daily USDC limit" oninput="syncPolicyForm()">
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">Just a label so you can recognise it later.</div></div>
+                <div class="field"><label class="field-label" for="polNetwork">Network</label><select class="settings-input" id="polNetwork" onchange="syncPolicyForm()"><option value="">Any network</option><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">Which network the limits apply to. "Any network" covers them all.</div></div>
+                <div class="field"><label class="field-label" for="polToken">Token</label><select class="settings-input" id="polToken" onchange="syncPolicyForm()"><option value="">Any token</option><option value="USDC">USDC</option><option value="ETH">ETH</option><option value="POL">POL</option></select>
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">The asset the limits are counted in. Choose a token to set amount limits; "Any token" can't have amounts because USDC and ETH aren't comparable.</div></div>
+                <div class="field"><label class="field-label" for="polMaxAmount">Max per payment</label><input class="settings-input" id="polMaxAmount" inputmode="decimal" placeholder="e.g. 100" oninput="syncPolicyForm()">
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">The largest single payment allowed. Leave blank for no per-payment limit.</div></div>
+                <div class="field"><label class="field-label" for="polPeriod">Cap period</label><select class="settings-input" id="polPeriod" onchange="syncPolicyForm()"><option value="">No cumulative cap</option><option value="day">Per day (last 24 hours)</option><option value="week">Per week (last 7 days)</option><option value="month">Per month (last 30 days)</option></select>
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">How far back Sara looks when adding up what you've already sent. It's a rolling window ending now, not a calendar day, so "per day" means the last 24 hours.</div></div>
+                <div class="field"><label class="field-label" for="polPeriodLimit">Cumulative cap</label><input class="settings-input" id="polPeriodLimit" inputmode="decimal" placeholder="e.g. 1000" oninput="syncPolicyForm()">
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.45">The most you can send in total during that period, adding up every payment. A payment that would push the total over this is blocked. Needed if you chose a period.</div></div>
               </div>
+              <div id="polPreview" style="font-size:11px;margin-top:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-dark);color:var(--text-secondary)">Fill in the form to see a plain-English summary.</div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createSpendingPolicy()">Add policy</button>
               <div class="settings-status" id="polCreateStatus"></div>
             </div>
@@ -3672,29 +3679,88 @@ async function createPayrollRun() {
 }
 
 // ---- Spending policies ----
+const _POLICY_PERIOD_TEXT = {day: 'rolling 24 hours', week: 'rolling 7 days', month: 'rolling 30 days'};
+
+// Keeps the token choices valid for the chosen network, only enables the
+// amount fields once a token is picked (the amounts are in that token), and
+// writes the policy out as a sentence so the numbers can be sanity-checked.
+function syncPolicyForm() {
+  const network = document.getElementById('polNetwork').value;
+  const tokenSel = document.getElementById('polToken');
+  const allowed = network === 'polygon' ? ['USDC', 'POL'] : network ? ['USDC', 'ETH'] : ['USDC', 'ETH', 'POL'];
+  [...tokenSel.options].forEach(o => { o.hidden = !!o.value && !allowed.includes(o.value); o.disabled = o.hidden; });
+  if (tokenSel.value && !allowed.includes(tokenSel.value)) tokenSel.value = '';
+  const token = tokenSel.value;
+  const maxEl = document.getElementById('polMaxAmount');
+  const periodEl = document.getElementById('polPeriod');
+  const limitEl = document.getElementById('polPeriodLimit');
+  maxEl.disabled = periodEl.disabled = !token;
+  limitEl.disabled = !token || !periodEl.value;
+  if (!token) { maxEl.value = ''; periodEl.value = ''; }
+  if (!periodEl.value) limitEl.value = '';
+  maxEl.placeholder = token ? 'e.g. 100' : 'Choose a token first';
+  limitEl.placeholder = !token ? 'Choose a token first' : periodEl.value ? 'e.g. 1000' : 'Choose a period first';
+
+  const max = maxEl.value.trim(), limit = limitEl.value.trim(), period = periodEl.value;
+  const box = document.getElementById('polPreview');
+  const where = network ? _chainLabel(network) : 'any network';
+  const parts = [];
+  if (max) parts.push(`no single payment above ${max} ${token}`);
+  if (period && limit) parts.push(`no more than ${limit} ${token} in total over any ${_POLICY_PERIOD_TEXT[period]}`);
+  let text, warn = false;
+  if (!parts.length) {
+    text = !token ? 'Fill in the form to see a plain-English summary. Pick a token to set amount limits.'
+      : period ? 'Enter a cumulative cap for the period you chose.' : 'Add a per-payment limit, a cumulative cap, or both.';
+    warn = !!(token && period);
+  } else {
+    text = `On ${where}, for ${token}: ${parts.join(', and ')}.`;
+    if (max && limit && Number(limit) < Number(max)) {
+      text += ` Note: the cumulative cap (${limit}) is smaller than the per-payment limit (${max}), so the per-payment limit will never come into play.`;
+      warn = true;
+    }
+    if (period && !limit) { text += ' Enter a cumulative cap for the period you chose.'; warn = true; }
+  }
+  box.textContent = text;
+  box.style.color = warn ? '#b26a00' : 'var(--text-secondary)';
+  box.style.borderColor = warn ? '#b26a00' : 'var(--border-dark)';
+}
+
 async function loadSpendingPolicies() {
+  syncPolicyForm();
   const data = await fetch('/api/spending-policies').then(r => r.json()).catch(() => ({policies: []}));
   const rows = data.policies || [];
-  document.getElementById('polList').innerHTML = rows.length ? rows.map(p => `
+  document.getElementById('polList').innerHTML = rows.length ? rows.map(p => {
+    // Amounts are shown in normal units when the token is known; older
+    // policies saved without a token only have the raw base-unit value.
+    const unit = p.token ? ' ' + p.token : ' base units';
+    const max = p.max_amount || p.max_amount_raw, cap = p.period_limit || p.period_limit_raw;
+    const rules = [
+      max ? 'max ' + max + unit + ' per payment' : '',
+      p.period && cap ? 'max ' + cap + unit + ' in total per ' + (_POLICY_PERIOD_TEXT[p.period] || p.period) : '',
+    ].filter(Boolean).map(x => _escapeHtml(x));
+    return `
     <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(p.name)}</strong><span>${p.active ? 'active' : 'inactive'}</span></div>
-      <div style="color:var(--text-muted)">${_escapeHtml(p.network || 'any network')} · ${_escapeHtml(p.token || 'any token')}${p.max_amount_raw ? ' · max ' + _escapeHtml(p.max_amount_raw) + ' base units' : ''}${p.period ? ' · ' + _escapeHtml(p.period_limit_raw) + ' base units/' + _escapeHtml(p.period) : ''}</div>
+      <div style="color:var(--text-muted)">${_escapeHtml(p.network ? _chainLabel(p.network) : 'any network')} · ${_escapeHtml(p.token || 'any token')}${rules.length ? ' · ' + rules.join(' · ') : ''}</div>
       <button class="dir-del" onclick="deleteSpendingPolicy(${p.id})">Delete</button>
-    </div>`).join('') : '<div style="color:var(--text-muted)">No spending policies yet - nothing is restricted.</div>';
+    </div>`;
+  }).join('') : '<div style="color:var(--text-muted)">No spending policies yet - nothing is restricted.</div>';
 }
 
 async function createSpendingPolicy() {
   const body = {
     name: document.getElementById('polName').value.trim(),
     network: document.getElementById('polNetwork').value || null,
-    token: document.getElementById('polToken').value.trim() || null,
+    token: document.getElementById('polToken').value || null,
     max_amount: document.getElementById('polMaxAmount').value.trim() || null,
     period: document.getElementById('polPeriod').value || null,
     period_limit: document.getElementById('polPeriodLimit').value.trim() || null,
   };
+  const status = document.getElementById('polCreateStatus');
+  if (!body.name) { status.textContent = 'Give the policy a name.'; return; }
   const r = await fetch('/api/spending-policies', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await r.json().catch(() => ({}));
-  document.getElementById('polCreateStatus').textContent = r.ok ? 'Policy added.' : (_apiErrorText(data, 'Could not add policy.'));
+  status.textContent = r.ok ? 'Policy added.' : (_apiErrorText(data, 'Could not add policy.'));
   if (r.ok) await loadSpendingPolicies();
 }
 
