@@ -5,8 +5,9 @@
 Sara's whole local state (`sara.db`, SQLite) is a single file —
 `backend/sara.db` by default (`DATABASE_URL` in `backend/.env.local`). Sara
 Names adds five tables to it: `sara_names`, `sara_name_record_cache`,
-`indexer_cursors`, plus Stage 6/7's `risk_screenings`/`risk_reviews` (used
-by the address-screening feature, not Sara Names itself, but co-located).
+`indexer_cursors`, plus Stage 6/7's `risk_screenings` (used by the address-screening
+feature, not Sara Names itself, but co-located; an unused `risk_reviews` table
+from a removed feature may also be present).
 
 - **Backup**: stop Sara (or accept a brief inconsistency window — SQLite
   handles concurrent readers fine, but for an exact point-in-time copy,

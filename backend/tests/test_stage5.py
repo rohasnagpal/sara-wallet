@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.db.models import Base, BalanceMonitor, RiskReview, RiskScreening, Transaction, Wallet
+from app.db.models import Base, BalanceMonitor, RiskScreening, Transaction, Wallet
 from app.routers import intelligence, risk, treasury
 from app.services import stablecoin_routing, token_factory
 from app.tools.contracts import interaction as contracts_interaction
@@ -302,15 +302,6 @@ class RiskScreeningTests(Stage5TestCase):
             risk_screening.screen_address(self.db, "0x" + "aa" * 20, NET)
             risk_screening.screen_address(self.db, "0x" + "aa" * 20, NET)
         mocked.assert_called_once()  # second call served from cache
-
-    def test_manual_review_is_recorded_and_audited(self):
-        row = risk.create_review(
-            risk.ReviewBody(address="0x" + "aa" * 20, network=NET, decision="approved",
-                             actor="owner", reason="known counterparty, verified off-chain"),
-            self.db,
-        )
-        self.assertIn("id", row)
-        self.assertEqual(self.db.query(RiskReview).count(), 1)
 
 
 class ContractInteractionTests(unittest.TestCase):

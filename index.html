@@ -1558,17 +1558,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               </div>
               <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
             </div>
-            <div class="card">
-              <div style="font-size:13px;font-weight:600">Manual review</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Records an audited override decision - never an invisible bypass.</div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="reviewAddress">Address</label><input class="settings-input" id="reviewAddress" placeholder="Address (0x…)"></div>
-                <div class="field"><label class="field-label" for="reviewDecision">Decision</label><select class="settings-input" id="reviewDecision"><option value="approved">Approve</option><option value="rejected">Reject</option></select></div>
-                <div class="field"><label class="field-label" for="reviewReason">Reason</label><input class="settings-input" id="reviewReason" maxlength="1000" placeholder="Reason"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="submitRiskReview()">Record review</button>
-              <div id="reviewStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-            </div>
           </div>
 
           <div id="toolsContractsPane" style="display:none">
@@ -4350,16 +4339,6 @@ async function screenAddress() {
     ${source}
     ${data.mandatory ? '<div style="color:var(--text-muted);margin-top:4px">Screening is required: a flagged address, or a check that can\'t be completed, blocks batch sends.</div>' : ''}
   `;
-}
-
-async function submitRiskReview() {
-  const body = {
-    address: document.getElementById('reviewAddress').value.trim(), network: document.getElementById('riskNetwork').value,
-    decision: document.getElementById('reviewDecision').value, reason: document.getElementById('reviewReason').value.trim(),
-  };
-  const r = await fetch('/api/risk/reviews', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('reviewStatus').textContent = r.ok ? 'Review recorded.' : (_apiErrorText(data, 'Could not record review.'));
 }
 
 // ---- Contract interaction assistant ----

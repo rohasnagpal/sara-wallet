@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.audit import append_audit
 from app.core.config import settings
 from app.core.session_auth import require_session
-from app.db.models import RiskReview, RiskScreening
+from app.db.models import RiskScreening
 from app.db.session import get_db
 from app.tools.risk import screening
 
@@ -49,39 +48,3 @@ def list_screenings(address: str | None = None, db: Session = Depends(get_db)):
         query = query.filter(RiskScreening.address == address.lower())
     rows = query.order_by(RiskScreening.checked_at.desc()).limit(200).all()
     return {"screenings": [_screening_row(r) for r in rows]}
-
-
-class ReviewBody(BaseModel):
-    address: str
-    network: str = "polygon"
-    decision: str
-    reason: str = Field(..., max_length=1000)
-
-
-@router.post("/reviews")
-def create_review(body: ReviewBody, db: Session = Depends(get_db)):
-    """An audited manual override — recorded, never an invisible bypass."""
-    if body.decision not in ("approved", "rejected"):
-        raise HTTPException(400, "decision must be 'approved' or 'rejected'")
-    row = RiskReview(
-        address=body.address.lower(), network=body.network.lower(), decision=body.decision,
-        actor="local-owner", reason=body.reason,
-    )
-    db.add(row)
-    db.flush()
-    append_audit(db, "risk.manual_review", "risk_review", resource_id=str(row.id),
-                 details={"address": row.address, "network": row.network, "decision": row.decision}, actor_id=row.actor)
-    db.commit()
-    return {"id": row.id}
-
-
-@router.get("/reviews")
-def list_reviews(address: str | None = None, db: Session = Depends(get_db)):
-    query = db.query(RiskReview)
-    if address:
-        query = query.filter(RiskReview.address == address.lower())
-    rows = query.order_by(RiskReview.created_at.desc()).all()
-    return {"reviews": [{
-        "id": r.id, "address": r.address, "network": r.network, "decision": r.decision,
-        "actor": r.actor, "reason": r.reason, "created_at": r.created_at.isoformat(),
-    } for r in rows]}
