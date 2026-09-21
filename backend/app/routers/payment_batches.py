@@ -121,7 +121,9 @@ def list_batches(status: str | None = None, kind: str | None = None, db: Session
     if status is not None:
         query = query.filter(PaymentBatch.status == status)
     if kind is not None:
-        query = query.filter(PaymentBatch.kind == kind)
+        # Comma-separated so a tab can ask for just its own kinds
+        # (Batches: "payment,airdrop"; Schedules: "recurring").
+        query = query.filter(PaymentBatch.kind.in_([k.strip() for k in kind.split(",") if k.strip()]))
     rows = query.order_by(PaymentBatch.id.desc()).all()
     return {"batches": [_batch_row(db, b) for b in rows]}
 
@@ -430,6 +432,32 @@ def send_batch(batch_id: int, body: ExecuteBody, db: Session = Depends(get_db)):
         except batch_engine.BatchValidationError as exc:
             raise HTTPException(400, {"message": str(exc), **exc.result})
     return execute_batch(batch_id, body, db)
+
+
+@router.delete("/{batch_id}")
+def delete_batch(batch_id: int, db: Session = Depends(get_db)):
+    """Removes a batch that was never used: a CSV-upload draft or a cancelled
+    one. Anything approved, executing or (partly) sent is history and stays.
+    Batches made by Schedules and Payroll are cancelled, never deleted — each
+    is tied to a record saying that occurrence was already generated, so
+    deleting one would let it be regenerated."""
+    from app.db.models import BatchApproval
+
+    batch = _batch_or_404(db, batch_id)
+    if batch.kind not in ("payment", "airdrop"):
+        raise HTTPException(409, "Batches from Schedules and Payroll can be cancelled but not deleted")
+    if batch.status not in ("draft", "cancelled"):
+        raise HTTPException(409, f"A batch in status '{batch.status}' can't be deleted")
+    items = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
+    if any(i.status in ("submitted", "confirmed") or i.tx_hash for i in items):
+        raise HTTPException(409, "This batch already broadcast transactions and is kept as a record")
+    db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).delete()
+    db.query(BatchApproval).filter(BatchApproval.batch_id == batch.id).delete()
+    db.delete(batch)
+    append_audit(db, "payment_batch.deleted", "payment_batch", resource_id=str(batch_id),
+                 details={"kind": batch.kind, "status": batch.status, "items": len(items)})
+    db.commit()
+    return {"deleted": batch_id}
 
 
 @router.post("/{batch_id}/cancel")

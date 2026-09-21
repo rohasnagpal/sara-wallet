@@ -14,9 +14,13 @@ duplicate.
    press Send. Each row is sent as its own on-chain transaction. Sara checks
    the whole file first — addresses, duplicates, exact amounts, spending
    policies, and balance and gas for the batch — and if anything fails it
-   creates nothing, so a partial list can never be sent by accident.
+   creates nothing, so a partial list can never be sent by accident. The
+   Batches tab lists only these uploads; a draft or cancelled one that was
+   never sent can be deleted, and anything sent stays as a record.
 2. **Recurring payments** — set a schedule (e.g. "every 1st of the month")
-   that materializes a reviewable payment batch each time it's due.
+   that materializes a reviewable payment batch each time it's due. Those
+   batches appear under **Schedules → Generated payments**, where you Send
+   or Cancel them; payroll runs are reviewed and sent under **Payroll**.
 3. **Crypto payroll** — run payroll for a list of employees/contractors in
    one action, built on top of counterparties and batches.
 

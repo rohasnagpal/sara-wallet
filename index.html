@@ -1300,6 +1300,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="schedCreateStatus"></div>
             </div>
             <div class="card"><div id="schedList" style="font-size:11px">Loading…</div></div>
+            <div class="card" style="margin-top:10px">
+              <div style="font-size:13px;font-weight:600">Generated payments</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Each time a recurring payment is due, a batch appears here for you to review and send. Nothing is signed until you press Send.</div>
+              <div id="schedBatchList" style="font-size:11px">Loading…</div>
+            </div>
+            <div class="card" id="schedBatchCard" style="display:none;margin-top:10px"></div>
         </div><!-- /schedulesView -->
 
         <!-- ── Payroll View ── -->
@@ -1332,6 +1338,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="prollRunStatus"></div>
             </div>
             <div class="card" style="margin-top:10px"><div id="prollRunsList" style="font-size:11px">Loading…</div></div>
+            <div class="card" id="prollBatchCard" style="display:none;margin-top:10px"></div>
         </div><!-- /payrollView -->
 
         <!-- ── Policies View ── -->
@@ -3103,7 +3110,7 @@ async function showCol2(mode) {
   if (mode === 'ledger') await loadLedger();
   if (mode === 'invoices') await loadInvoices();
   if (mode === 'batches') { _fillWalletSelects(['batchWallet']); await loadBatches(); }
-  if (mode === 'schedules') { _fillWalletSelects(['schedWallet']); await loadSchedules(); }
+  if (mode === 'schedules') { _fillWalletSelects(['schedWallet']); await Promise.all([loadSchedules(), loadScheduleBatches()]); }
   if (mode === 'payroll') {
     _fillWalletSelects(['prollWallet', 'prollRunWallet']);
     await Promise.all([_fillPayrollDirectorySelect(), loadPayrollPeople()]);
@@ -3425,13 +3432,29 @@ async function _fillPayrollDirectorySelect() {
 
 // ---- Payment batches ----
 async function loadBatches() {
-  const data = await fetch('/api/payment-batches').then(r => r.json()).catch(() => ({batches: []}));
+  const data = await fetch('/api/payment-batches?kind=payment,airdrop').then(r => r.json()).catch(() => ({batches: []}));
   const rows = data.batches || [];
   document.getElementById('batchList').innerHTML = rows.length ? rows.map(b => `
     <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id})" role="button" tabindex="0" aria-label="Open batch #${b.id}">
       <div style="display:flex;justify-content:space-between"><strong>#${b.id} ${_escapeHtml(b.kind)}</strong><span>${_escapeHtml(b.status)}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}${b.payroll_period ? ' · ' + _escapeHtml(b.payroll_period) : ''}</div>
     </div>`).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
+}
+
+async function loadScheduleBatches() {
+  const data = await fetch('/api/payment-batches?kind=recurring').then(r => r.json()).catch(() => ({batches: []}));
+  const rows = data.batches || [];
+  document.getElementById('schedBatchList').innerHTML = rows.length ? rows.map(b => `
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer" onclick="openBatch(${b.id}, 'schedBatchCard')" role="button" tabindex="0" aria-label="Open generated payment #${b.id}">
+      <div style="display:flex;justify-content:space-between"><strong>#${b.id} · ${b.created_at ? new Date(b.created_at).toLocaleDateString() : ''}</strong><span>${_escapeHtml(b.status)}</span></div>
+      <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} item(s) · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)} on ${_escapeHtml(b.network)}</div>
+    </div>`).join('') : '<div style="color:var(--text-muted)">Nothing generated yet.</div>';
+}
+
+// Every list that can show a batch, refreshed together after any action so
+// the tab you're in (and the others) never show a stale status.
+async function _refreshBatchLists() {
+  await Promise.all([loadBatches(), loadScheduleBatches(), loadPayrollRuns()]);
 }
 
 function downloadBatchTemplate() {
@@ -3475,55 +3498,57 @@ async function validateBatchCsv() {
     status.style.color = 'var(--green)';
     status.textContent = `Valid: ${data.batch.item_count} recipient(s), ${data.batch.total_amount} ${data.batch.token}. Review below, then press Send.`;
     document.getElementById('batchCsvFile').value = '';
-    await loadBatches(); await openBatch(data.batch.id);
+    await _refreshBatchLists(); await openBatch(data.batch.id);
   } finally {
     btn.disabled = false;
   }
 }
 
-let _openBatchId = null;
-
-async function openBatch(id) {
-  _openBatchId = id;
-  const card = document.getElementById('batchDetailCard');
+// One review card is reused by Batches, Schedules and Payroll; cardId picks
+// which tab's card to render into.
+async function openBatch(id, cardId = 'batchDetailCard') {
+  const card = document.getElementById(cardId);
   card.style.display = '';
   const b = await fetch('/api/payment-batches/' + id).then(r => r.json());
   const items = b.items || [];
   const shown = items.slice(0, 200);
   const sendable = b.status === 'draft' || b.status === 'approved';
+  // Only CSV-upload batches can be deleted (draft/cancelled). Schedule and
+  // payroll batches are cancelled instead - see DELETE /payment-batches/{id}.
+  const deletable = ['payment', 'airdrop'].includes(b.kind) && ['draft', 'cancelled'].includes(b.status);
   card.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div><strong>${b.status === 'draft' ? 'Review & send' : 'Batch'} #${b.id}</strong> · ${_escapeHtml(b.kind)} · ${_escapeHtml(b.status)}</div>
-      <button class="dir-del" onclick="closeBatch()">Close</button>
+      <button class="dir-del" onclick="closeBatch('${cardId}')">Close</button>
     </div>
     <div style="color:var(--text-muted);font-size:10.5px;margin:4px 0 10px">wallet #${_escapeHtml(b.wallet_id)} · ${_escapeHtml(b.network)} · ${_escapeHtml(b.token)} · ${_escapeHtml(b.item_count)} recipient(s) · total ${_escapeHtml(b.total_amount)}${b.memo ? ' · ' + _escapeHtml(b.memo) : ''}</div>
-    <div id="batchItemsList">${shown.length ? shown.map(i => `
+    <div>${shown.length ? shown.map(i => `
       <div style="padding:6px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
         <div style="display:flex;justify-content:space-between;gap:8px"><span style="word-break:break-all">${_escapeHtml(i.recipient_address)}</span><span>${_escapeHtml(i.status)}</span></div>
         <div style="color:var(--text-muted)">${_escapeHtml(i.amount)} ${_escapeHtml(b.token)}${i.reference ? ' · ' + _escapeHtml(i.reference) : ''}${i.note ? ' · ' + _escapeHtml(i.note) : ''}${(i.tags || []).length ? ' · ' + i.tags.map(t => _escapeHtml(t)).join(', ') : ''}</div>
         ${i.failure_reason ? `<div style="color:var(--red)">${_escapeHtml(i.failure_reason)}</div>` : ''}
         ${i.tx_hash ? `<div style="color:var(--text-muted)">tx ${_escapeHtml(i.tx_hash)}</div>` : ''}
-        ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${i.id})">Remove</button>` : ''}
+        ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${b.id}, ${i.id}, '${cardId}')">Remove</button>` : ''}
       </div>`).join('') + (items.length > shown.length ? `<div style="color:var(--text-muted);font-size:11px;padding:6px 0">…and ${items.length - shown.length} more</div>` : '') : '<div style="color:var(--text-muted)">No items.</div>'}</div>
-    <div id="batchValidation" style="font-size:10.5px;color:#c0392b;margin-top:8px"></div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-      ${sendable ? `<button class="settings-save-btn" onclick="sendBatch(${b.id})">Send ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</button>` : ''}
-      ${sendable ? `<button class="dir-del" onclick="cancelBatch(${b.id})">Cancel batch</button>` : ''}
+      ${sendable ? `<button class="settings-save-btn" onclick="sendBatch(${b.id}, '${cardId}')">Send ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</button>` : ''}
+      ${deletable ? `<button class="dir-del" onclick="deleteBatch(${b.id}, '${cardId}')">Delete batch</button>` : ''}
+      ${sendable && !deletable ? `<button class="dir-del" onclick="cancelBatch(${b.id}, '${cardId}')">Cancel batch</button>` : ''}
     </div>
   `;
 }
 
-function closeBatch() { _openBatchId = null; document.getElementById('batchDetailCard').style.display = 'none'; }
+function closeBatch(cardId = 'batchDetailCard') { document.getElementById(cardId).style.display = 'none'; }
 
-async function deleteBatchItem(itemId) {
-  await fetch(`/api/payment-batches/${_openBatchId}/items/${itemId}`, {method: 'DELETE'});
-  await openBatch(_openBatchId); await loadBatches();
+async function deleteBatchItem(batchId, itemId, cardId) {
+  await fetch(`/api/payment-batches/${batchId}/items/${itemId}`, {method: 'DELETE'});
+  await openBatch(batchId, cardId); await _refreshBatchLists();
 }
 
 // Approve + execute in one step: the server confirms the passphrase first,
 // re-validates (balance, gas, addresses), then signs each item, re-checking
 // spending policies before every one.
-async function sendBatch(id) {
+async function sendBatch(id, cardId) {
   const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
   const r = await fetch(`/api/payment-batches/${id}/send`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase})});
   const data = await r.json().catch(() => ({}));
@@ -3535,17 +3560,23 @@ async function sendBatch(id) {
     } else {
       alert(_apiErrorText(data, 'Send failed'));
     }
-    await openBatch(id); await loadBatches();
-    return;
+  } else {
+    alert(`Sent: ${data.submitted} submitted, ${data.failed} failed.`);
   }
-  alert(`Sent: ${data.submitted} submitted, ${data.failed} failed.`);
-  await openBatch(id); await loadBatches();
+  await openBatch(id, cardId); await _refreshBatchLists();
 }
 
-async function cancelBatch(id) {
+async function cancelBatch(id, cardId) {
   if (!confirm('Cancel this batch?')) return;
   await fetch(`/api/payment-batches/${id}/cancel`, {method: 'POST'});
-  await openBatch(id); await loadBatches();
+  await openBatch(id, cardId); await _refreshBatchLists();
+}
+
+async function deleteBatch(id, cardId) {
+  if (!confirm('Delete this batch? Nothing has been sent, and this cannot be undone.')) return;
+  const r = await fetch(`/api/payment-batches/${id}`, {method: 'DELETE'});
+  if (!r.ok) { alert(_apiErrorText(await r.json().catch(() => ({})), 'Could not delete the batch.')); return; }
+  closeBatch(cardId); await _refreshBatchLists();
 }
 
 // ---- Schedules ----
@@ -3621,7 +3652,7 @@ async function loadPayrollRuns() {
   const data = await fetch('/api/payroll/runs').then(r => r.json()).catch(() => ({runs: []}));
   const rows = data.runs || [];
   document.getElementById('prollRunsList').innerHTML = rows.length ? rows.map(b => `
-    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="showCol2('batches'); openBatch(${b.id})" role="button" tabindex="0" aria-label="Open payroll run ${_escapeHtml(b.payroll_period || ('#' + b.id))}">
+    <div style="padding:7px 0;border-bottom:1px solid var(--border-dark);cursor:pointer;font-size:11px" onclick="openBatch(${b.id}, 'prollBatchCard')" role="button" tabindex="0" aria-label="Open payroll run ${_escapeHtml(b.payroll_period || ('#' + b.id))}">
       <div style="display:flex;justify-content:space-between"><strong>${_escapeHtml(b.payroll_period || ('#' + b.id))}</strong><span>${_escapeHtml(b.status)}</span></div>
       <div style="color:var(--text-muted)">${_escapeHtml(b.item_count)} people · ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</div>
     </div>`).join('') : '<div style="color:var(--text-muted)">No payroll runs yet.</div>';

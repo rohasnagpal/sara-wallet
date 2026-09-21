@@ -479,6 +479,62 @@ class CsvImportTests(unittest.TestCase):
         self.assertEqual(self._upload(f"recipient_address,amount\n{ADDR_A},1\n".encode(), kind="payroll").status_code, 400)
 
 
+class DeleteBatchTests(BusinessPaymentsTestCase):
+    def _delete(self, batch_id):
+        return payment_batches.delete_batch(batch_id, self.db)
+
+    def _batch(self, status="draft", kind="payment", item_status="draft", tx_hash=None):
+        batch = self.make_batch(kind=kind)
+        batch.status = status
+        item = self.add_item(batch, 0, ADDR_A)
+        item.status = item_status
+        item.tx_hash = tx_hash
+        self.db.commit()
+        return batch
+
+    def test_unused_draft_and_cancelled_batches_can_be_deleted(self):
+        for status in ("draft", "cancelled"):
+            with self.subTest(status=status):
+                batch = self._batch(status)
+                self.assertEqual(self._delete(batch.id), {"deleted": batch.id})
+                self.assertIsNone(self.db.get(PaymentBatch, batch.id))
+                self.assertEqual(self.db.query(PaymentBatchItem).filter_by(batch_id=batch.id).count(), 0)
+
+    def test_approved_executing_and_completed_batches_are_kept(self):
+        from fastapi import HTTPException
+        for status in ("approved", "executing", "completed"):
+            with self.subTest(status=status):
+                batch = self._batch(status)
+                with self.assertRaises(HTTPException) as ctx:
+                    self._delete(batch.id)
+                self.assertEqual(ctx.exception.status_code, 409)
+                self.assertIsNotNone(self.db.get(PaymentBatch, batch.id))
+
+    def test_a_batch_that_already_broadcast_is_kept_even_if_cancelled(self):
+        from fastapi import HTTPException
+        batch = self._batch("cancelled", item_status="submitted", tx_hash="0xabc")
+        with self.assertRaises(HTTPException) as ctx:
+            self._delete(batch.id)
+        self.assertEqual(ctx.exception.status_code, 409)
+
+    def test_schedule_and_payroll_batches_cannot_be_deleted(self):
+        from fastapi import HTTPException
+        for kind in ("recurring", "payroll"):
+            with self.subTest(kind=kind):
+                batch = self._batch("draft", kind=kind)
+                with self.assertRaises(HTTPException) as ctx:
+                    self._delete(batch.id)
+                self.assertEqual(ctx.exception.status_code, 409)
+                self.assertIsNotNone(self.db.get(PaymentBatch, batch.id))
+
+    def test_list_filters_by_several_kinds(self):
+        for kind in ("payment", "airdrop", "recurring", "payroll"):
+            self._batch(kind=kind)
+        kinds = lambda spec: sorted(b["kind"] for b in payment_batches.list_batches(kind=spec, db=self.db)["batches"])
+        self.assertEqual(kinds("payment,airdrop"), ["airdrop", "payment"])
+        self.assertEqual(kinds("recurring"), ["recurring"])
+
+
 class SendBatchTests(BusinessPaymentsTestCase):
     def _send(self, batch_id, passphrase="pw"):
         return payment_batches.send_batch(batch_id, payment_batches.ExecuteBody(passphrase=passphrase), self.db)
