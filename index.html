@@ -369,8 +369,11 @@ body {
   display: flex; flex-wrap: wrap; gap: 7px; padding: 0 2px 14px;
 }
 #col2Nav.col2-panel-nav {
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  /* As many equal columns as fit the panel; the rest wrap. (A fixed 5-column
+     grid can't shrink below its labels, so it spilled past the panel.) */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
 }
+#col2Nav .col2-nav-btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .col2-nav-btn {
   flex: 1 1 auto; padding: 7px 6px; border-radius: 9px;
   border: 1.5px solid var(--border-dark); background: transparent;
@@ -381,6 +384,8 @@ body {
 }
 .col2-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
 .col2-nav-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.col2-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.col2-nav-btn:disabled:hover { border-color: var(--border-dark); color: var(--text-secondary); }
 
 /* Settings inline view */
 .settings-row { margin-bottom: 12px; }
@@ -1153,24 +1158,24 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <!-- Col2 panel nav (hidden on asset view) -->
         <div class="col2-panel-nav" id="col2Nav">
+          <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounting</button>
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
-          <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
-          <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
           <button class="col2-nav-btn" id="col2BtnBatches" onclick="showCol2('batches')">Batches</button>
-          <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
+          <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
+          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Intelligence</button>
+          <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
+          <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
+          <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')" disabled title="Temporarily unavailable">Names</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
-          <button class="col2-nav-btn" id="col2BtnAccounting" onclick="showCol2('accounting')">Accounting</button>
+          <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')" disabled title="Temporarily unavailable">Proofs</button>
+          <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
+          <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
+          <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
+          <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
           <button class="col2-nav-btn" id="col2BtnTok" onclick="showTool('tokens')">Token Creator</button>
           <button class="col2-nav-btn" id="col2BtnTreasury" onclick="showTool('treasury')">Treasury</button>
-          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Intelligence</button>
-          <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
-          <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')">Names</button>
           <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
-          <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
-          <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')">Proofs</button>
-          <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
-          <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
         </div>
 
         <!-- ── Asset View ── -->
