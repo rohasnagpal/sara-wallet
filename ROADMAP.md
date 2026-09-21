@@ -24,10 +24,10 @@ Actively being worked on, or explicitly blocking the next release.
   policy-gated auto-pay and demo seller landed recently; broadening seller/
   network coverage and policy-gating scenarios beyond the demo is next.
   ([#3](https://github.com/rohasnagpal/sara-wallet/issues/3))
-- **Extend spending-policy enforcement to ad-hoc chat/safety sends** —
-  policies currently only govern batch payments (manual batches, airdrops,
-  schedules, payroll); ad-hoc chat sends bypass them today.
-  ([#4](https://github.com/rohasnagpal/sara-wallet/issues/4))
+- **Finish spending-policy coverage** — policies now govern batches,
+  payroll, schedules, chat sends, swaps, bridges, token transfers,
+  contract calls and x402. Still uncovered: Sara Names registration and
+  renewal fees. ([#4](https://github.com/rohasnagpal/sara-wallet/issues/4))
 
 ## Next
 

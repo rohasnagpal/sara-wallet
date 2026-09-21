@@ -1,9 +1,10 @@
 """Spending-policy evaluation for business payment operations.
 
-Scope: governs money movement that goes through the batch engine
-(app.services.batch_engine) — manual batch payments, airdrops, recurring
-schedules and payroll runs. Ad-hoc chat/safety sends are not in scope for
-Stage 3; extending policy enforcement to those flows is future work.
+Scope: governs the batch engine (app.services.batch_engine) — manual batch
+payments, airdrops, recurring schedules and payroll runs — and chat sends,
+swaps and bridges (app.routers.chat._spending_policy_denial), deployed-token
+transfers, contract calls and x402 payments. Sara Names fees are not yet
+covered.
 
 Policies are evaluated twice per item, per CLAUDE_STAGES_3_TO_7.md: once
 during batch preparation (app.services.batch_engine.validate_batch) and

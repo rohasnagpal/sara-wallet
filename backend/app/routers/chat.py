@@ -976,6 +976,23 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
     return "Unknown tool."
 
 
+def _spending_policy_denial(
+    db: Session, *, wallet_id: int, network: str, token: str, destination: str, amount_raw: int,
+) -> Optional[str]:
+    """Denial text if an active spending policy blocks this chat-initiated spend, else None.
+
+    Called twice per action, mirroring the batch engine: at preview (so the user is
+    told before typing CONFIRM + passphrase) and again at execution, because balances
+    and the day/week/month totals can change in between.
+    """
+    from app.core import spending_policy
+    decision = spending_policy.evaluate(
+        db, wallet_id=wallet_id, network=network, token=token, counterparty_id=None,
+        destination_address=destination, amount_raw=amount_raw, principal_id="local-owner",
+    )
+    return None if decision.allowed else "; ".join(decision.denial_reasons)
+
+
 def _preview_pending_send(pending: dict, db: Session, session_id: str):
     w = db.query(Wallet).filter(Wallet.id == pending["wallet_id"]).first()
     if not w:
@@ -985,6 +1002,14 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     token_sym = pending.get("token") or (pending.get("network") or "native").upper()
     net_display = (pending.get("network") or "ethereum").capitalize()
     try:
+        from app.core.amounts import to_base_units
+        send_decimals = pending.get("token_decimals", 18) if pending.get("token_address") else 18
+        denial = _spending_policy_denial(
+            db, wallet_id=w.id, network=pending.get("network") or "ethereum", token=token_sym,
+            destination=pending["to"], amount_raw=to_base_units(pending["amount"], send_decimals, token_sym),
+        )
+        if denial:
+            return _stream_text(f"🚫 Blocked by your spending policy: {denial}. Nothing was prepared or sent.", db, session_id)
         if pending.get("token_address"):
             from app.chains import evm as evm_chain
             preview = evm_chain.get_erc20_transfer_preview(
@@ -1119,6 +1144,11 @@ def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], s
     dst_addr, dst_dec = dst_result
     from app.core.amounts import to_base_units
     amount_wei = to_base_units(amount, src_dec, src_sym)
+    denial = _spending_policy_denial(
+        db, wallet_id=w.id, network=network, token=src_sym, destination=w.address, amount_raw=amount_wei,
+    )
+    if denial:
+        return None, f"🚫 Blocked by your spending policy: {denial}. Nothing was prepared or sent."
     quote = get_quote(src_addr, src_dec, dst_addr, dst_dec, amount_wei, network)
     if not (quote and "priceRoute" in quote):
         err = quote.get("error", "unknown error") if quote else "Paraswap API unavailable"
@@ -1192,6 +1222,11 @@ def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict
     dst_addr, dst_dec = dst_result
     from app.core.amounts import to_base_units
     amount_wei = to_base_units(amount, src_dec, src_sym)
+    denial = _spending_policy_denial(
+        db, wallet_id=w.id, network=from_network, token=src_sym, destination=w.address, amount_raw=amount_wei,
+    )
+    if denial:
+        return None, f"🚫 Blocked by your spending policy: {denial}. Nothing was prepared or sent."
 
     quote = lifi.get_quote(from_network, to_network, src_addr, dst_addr, amount_wei, w.address)
     if not (quote and quote.get("transactionRequest")):
@@ -1809,15 +1844,13 @@ def _stream_send(pending: dict, db: Session, session_id: str):
             decimals = pending.get("token_decimals", 18) if pending.get("token_address") else 18
             token_sym = pending.get("token") or _NETWORK_NATIVE_TOKEN.get(network, "ETH")
             amount_raw = to_base_units(amount, decimals, token_sym)
-            from app.core import spending_policy
             from app.tools.risk.screening import enforce_mandatory_screening
-            decision = spending_policy.evaluate(
+            denial = _spending_policy_denial(
                 db, wallet_id=pending["wallet_id"], network=network, token=token_sym,
-                counterparty_id=None, destination_address=to_addr, amount_raw=amount_raw,
-                principal_id="local-owner",
+                destination=to_addr, amount_raw=amount_raw,
             )
-            if not decision.allowed:
-                raise ValueError("; ".join(decision.denial_reasons))
+            if denial:
+                raise ValueError(denial)
             enforce_mandatory_screening(db, to_addr, network)
 
             if chain == "evm" and pending.get("token_address"):
@@ -1886,6 +1919,15 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
                 from app.chains.evm import get_web3
                 w3 = get_web3(network)
                 wallet_addr = w3.eth.account.from_key(plain_key).address
+
+            # Must run before ensure_allowance below: the approval is a real
+            # on-chain transaction, so a denied swap must never reach it.
+            denial = _spending_policy_denial(
+                db, wallet_id=pending["wallet_id"], network=network, token=from_tok,
+                destination=wallet_addr, amount_raw=int(amount_wei),
+            )
+            if denial:
+                raise ValueError(denial)
 
             # Re-quote right before executing rather than reusing the
             # preview-time quote — same reasoning as the LI.FI bridge flow:
@@ -1974,6 +2016,13 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
             from app.chains.evm import get_web3
             w3 = get_web3(from_network)
             wallet_addr = w3.eth.account.from_key(plain_key).address
+
+            denial = _spending_policy_denial(
+                db, wallet_id=pending["wallet_id"], network=from_network, token=from_tok,
+                destination=wallet_addr, amount_raw=int(amount_wei),
+            )
+            if denial:
+                raise ValueError(denial)
 
             # Re-quote right before executing rather than reusing the
             # preview-time quote: LI.FI's calldata embeds a deadline/minimum-

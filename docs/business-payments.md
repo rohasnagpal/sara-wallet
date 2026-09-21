@@ -45,9 +45,14 @@ duplicate.
 2. **Scoped spending controls** — cap how much a wallet can send per
    transaction or per day/week/month, enforced right before signing.
 
-> Spending-policy enforcement currently covers batch payments (manual
-> batches, airdrops, schedules, payroll). Ad-hoc chat/safety sends are not
-> yet covered — tracked in [../ROADMAP.md](../ROADMAP.md) (Now) as
+> Spending-policy enforcement covers batch payments (manual batches,
+> airdrops, schedules, payroll), chat sends, chat swaps and bridges,
+> deployed-token transfers, contract calls and x402 payments. Chat sends,
+> swaps and bridges are checked twice: when the action is previewed (so a
+> blocked action never asks for CONFIRM) and again right before signing. A
+> swap or bridge counts the token you spend against your caps. Not yet
+> covered: Sara Names registration/renewal fees, tracked in
+> [../ROADMAP.md](../ROADMAP.md) (Now) as
 > [issue #4](https://github.com/rohasnagpal/sara-wallet/issues/4).
 
 ## Portfolio & wallet intelligence
