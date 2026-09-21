@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.models import AccountingClassification, Base, CostLot, Disposal, Transaction, Wallet
-from app.routers import accounting
+from app.routers import accounting, ledger
 from app.services import accounting_matcher, cost_basis
 
 NET = "polygon"
@@ -35,7 +35,10 @@ class AccountingTestCase(unittest.TestCase):
         amount_raw = str(int(Decimal(amount) * (Decimal(10) ** decimals)))
         tx = Transaction(
             wallet_id=wallet.id, chain="evm", network=network, token=token, direction=direction,
-            status=status, tx_hash=tx_hash, from_address=wallet.address, to_address="0x" + "99" * 20,
+            status=status, tx_hash=tx_hash,
+            # incoming money comes from someone else; outgoing goes to someone else
+            from_address=("0x" + "99" * 20) if direction == "incoming" else wallet.address,
+            to_address=wallet.address if direction == "incoming" else "0x" + "99" * 20,
             amount=float(amount), amount_raw=amount_raw, decimals=decimals, category=category,
             fiat_usd_value=fiat_usd_value, fee_raw=fee_raw, fee_token=fee_token,
             timestamp=when or datetime(2026, 1, 1), note=note,
@@ -208,6 +211,65 @@ class ReportTests(AccountingTestCase):
         self.assertEqual(Decimal(report["expense_total_usd"]), Decimal("20.00"))
         self.assertNotIn(transfer_out.id, report["income_transaction_ids"] + report["expense_transaction_ids"])
         self.assertNotIn(transfer_in.id, report["income_transaction_ids"] + report["expense_transaction_ids"])
+
+
+class AutoLabelTests(AccountingTestCase):
+    """The report must work without anyone hand-labelling transactions: the
+    category Sara records at creation decides what clearly counts."""
+
+    def _report(self):
+        return accounting.income_expense_report(None, None, None, None, None, None, None, None, self.db)
+
+    def _ids(self, report):
+        return set(report["income_transaction_ids"]), set(report["expense_transaction_ids"])
+
+    def test_categories_decide_money_in_and_money_out(self):
+        invoice = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="100", fiat_usd_value="100", category="invoice_payment", tx_hash="0x1")
+        airdrop_in = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="5", fiat_usd_value="5", category="airdrop", tx_hash="0x2")
+        batch = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="30", fiat_usd_value="30", category="batch_payment", tx_hash="0x3")
+        send = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="20", fiat_usd_value="20", category="transfer", tx_hash="0x4")
+        report = self._report()
+        income, expense = self._ids(report)
+        self.assertEqual(income, {invoice.id, airdrop_in.id})
+        self.assertEqual(expense, {batch.id, send.id})
+        self.assertEqual(Decimal(report["net_usd"]), Decimal("55"))
+
+    def test_uncertain_rows_are_not_counted(self):
+        plain_receive = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10", category="transfer", tx_hash="0x5")
+        swap = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="10", fiat_usd_value="10", category="swap", tx_hash="0x6")
+        contract = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="1", fiat_usd_value="1", category="contract_interaction", tx_hash="0x7")
+        income, expense = self._ids(self._report())
+        self.assertFalse({plain_receive.id, swap.id, contract.id} & (income | expense))
+
+    def test_sending_to_your_own_wallet_is_never_an_expense(self):
+        tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="50", fiat_usd_value="50", category="transfer", tx_hash="0x8")
+        tx.to_address = self.wallet_b.address
+        self.db.commit()
+        income, expense = self._ids(self._report())  # no Reconcile run
+        self.assertNotIn(tx.id, income | expense)
+
+    def test_a_label_you_set_beats_the_automatic_one(self):
+        receive = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10", category="transfer", tx_hash="0x9")
+        accounting.update_classification(receive.id, accounting.ClassificationUpdate(classification="income"), self.db)
+        self.assertIn(receive.id, self._ids(self._report())[0])
+        # setting it back to "unknown" hands the decision back to the category
+        accounting.update_classification(receive.id, accounting.ClassificationUpdate(classification="unknown"), self.db)
+        self.assertNotIn(receive.id, self._ids(self._report())[0])
+
+    def test_ledger_shows_how_each_row_counts_and_who_decided(self):
+        auto = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="3", fiat_usd_value="3", category="batch_payment", tx_hash="0xc")
+        manual = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="4", fiat_usd_value="4", category="transfer", tx_hash="0xd")
+        accounting.update_classification(manual.id, accounting.ClassificationUpdate(classification="income"), self.db)
+        rows = {r["id"]: r for r in ledger.list_ledger(None, None, None, None, None, 100, self.db)["transactions"]}
+        self.assertEqual((rows[auto.id]["accounting_label"], rows[auto.id]["accounting_label_source"]), ("expense", "auto"))
+        self.assertEqual((rows[manual.id]["accounting_label"], rows[manual.id]["accounting_label_source"]), ("income", "you"))
+
+    def test_data_check_only_flags_what_cannot_be_worked_out(self):
+        known = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="1", fiat_usd_value="1", category="batch_payment", tx_hash="0xa")
+        unknown = self.make_tx(wallet=self.wallet_a, direction="incoming", amount="1", fiat_usd_value="1", category="transfer", tx_hash="0xb")
+        flagged = accounting.data_quality_report(self.db)["uncategorised_transaction_ids"]
+        self.assertNotIn(known.id, flagged)
+        self.assertIn(unknown.id, flagged)
 
 
 class ExportTests(unittest.TestCase):

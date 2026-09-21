@@ -26,21 +26,28 @@ duplicate.
 
 ## Accounting
 
-1. **Exact-base-unit transaction ledger** — every send/receive is recorded
+1. **Automatic money in / money out** — each transaction counts toward the
+   income and expense report based on the category Sara records when it's
+   made: invoice payments, airdrops and payroll received are money in;
+   payments you send, batch payments, x402 payments and name fees are money
+   out. Moves between your own wallets, swaps and anything Sara can't tell
+   apart are left out. You can override any transaction in the Ledger tab
+   (Edit, then "Counts as").
+2. **Exact-base-unit transaction ledger** — every send/receive is recorded
    in the token's exact base units (no floating-point rounding), searchable
    by tag or note.
-2. **Fiat valuation** — each transaction is snapshotted with its USD/INR
+3. **Fiat valuation** — each transaction is snapshotted with its USD/INR
    value at the time it happened, for accurate reporting later.
-3. **Tags and notes** — label transactions, e.g. "rent" or "invoice #42",
+4. **Tags and notes** — label transactions, e.g. "rent" or "invoice #42",
    so you can filter and categorize your ledger.
-4. **Counterparties** — save vendors, employees and contractors separately
+5. **Counterparties** — save vendors, employees and contractors separately
    from your personal address book, for use in batches and payroll.
-5. **Income/expense reporting** — totals every ledger entry by category
+6. **Income/expense reporting** — totals every ledger entry by category
    over a date range — a quick P&L across all tokens and networks.
-6. **FIFO cost basis and P&L** — tracks acquisition cost lots per token and
+7. **FIFO cost basis and P&L** — tracks acquisition cost lots per token and
    computes realized gains/losses (not tax advice) when you dispose of
    them.
-7. **CSV/XLSX exports** — download your full ledger with fiat values, fees
+8. **CSV/XLSX exports** — download your full ledger with fiat values, fees
    and classifications for your accountant or tax software.
 
 ## Controls

@@ -1405,7 +1405,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Money in and money out</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Adds up the money that came in and the money that went out, in US dollars, across all your wallets. "Left over" is money in minus money out. Moving money between your own wallets isn't counted. Leave the dates empty to include everything.</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Adds up the money that came in and the money that went out, in US dollars, across all your wallets. "Left over" is money in minus money out. Sara works out most transactions by itself (for example invoice payments count as money in, and payments you send count as money out), and moving money between your own wallets isn't counted. If something you received isn't counted, open it in the Ledger tab, press Edit, and choose what it counts as. Leave the dates empty to include everything.</div>
               <div class="field-row" style="margin-top:8px">
                 <div class="field"><label class="field-label" for="ieStart">From</label><input class="settings-input" id="ieStart" type="date"></div>
                 <div class="field"><label class="field-label" for="ieEnd">To</label><input class="settings-input" id="ieEnd" type="date"></div>
@@ -1416,7 +1416,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Check your records</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Looks for problems that could make the numbers above wrong, such as transactions with no dollar value or no label, or the same transaction listed twice. Worth a check before you rely on the reports.</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Looks for problems that could make the numbers above wrong, such as transactions with no dollar value, transactions Sara can't tell are money in or out, or the same transaction listed twice. Worth a check before you rely on the reports.</div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="loadDataQuality()">Check my records</button>
               <div id="dqResult" style="font-size:11px;margin-top:8px"></div>
             </div>
@@ -3929,7 +3929,7 @@ async function loadDataQuality() {
   const c = data.counts;
   const problems = [
     c.unpriced ? `${_plural(c.unpriced, 'transaction has', 'transactions have')} no dollar value` : '',
-    c.uncategorised ? `${_plural(c.uncategorised, 'transaction has', 'transactions have')} no label such as income or expense` : '',
+    c.uncategorised ? `${_plural(c.uncategorised, 'transaction isn\'t', 'transactions aren\'t')} counted as money in or out because Sara can't tell which (set it in the Ledger tab: Edit, then Counts as)` : '',
     c.incomplete ? `${_plural(c.incomplete, 'transaction is', 'transactions are')} missing an exact amount` : '',
     c.duplicated_groups ? `${_plural(c.duplicated_groups, 'transaction may be', 'transactions may be')} listed twice` : '',
     c.failed ? `${_plural(c.failed, 'transaction', 'transactions')} failed (these don't move any money)` : '',
@@ -4577,6 +4577,7 @@ function _renderLedgerList(rows, q) {
     const noteLine = (t.note || (t.tags || []).length)
       ? `<div class="tx-card-note">${t.note ? _escapeHtml(t.note) : ''}${t.note && (t.tags || []).length ? ' · ' : ''}${(t.tags || []).map(x => _escapeHtml(x)).join(', ')}</div>`
       : '';
+    const countsAs = t.accounting_label ? `<div class="tx-card-note">Counts as: ${_escapeHtml(_COUNTS_AS[t.accounting_label] || t.accounting_label)}${t.accounting_label_source === 'you' ? ' (set by you)' : ''}</div>` : '';
     return `<div class="tx-card ${info.color}">
       <div class="tx-card-top">
         <div class="tx-card-title"><span class="tx-card-icon">${info.icon}</span><span class="tx-title-text">${info.label}</span></div>
@@ -4584,11 +4585,13 @@ function _renderLedgerList(rows, q) {
       </div>
       ${_ledgerDetails(t)}
       ${noteLine}
+      ${countsAs}
       <div class="tx-card-actions">
-        <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Tag / note</button>
+        <button class="dir-del" onclick="toggleLedgerEdit(${t.id})">Edit</button>
         <button class="dir-del" onclick="openReceipt('/api/ledger/${t.id}/receipt','Transaction Receipt')">Receipt</button>
       </div>
       <div id="ledgerEdit${t.id}" class="field-row" style="display:none;margin-top:7px">
+        ${_countsAsSelect(t)}
         <div class="field"><label class="field-label" for="ledgerNote${t.id}">Note</label><input class="settings-input" id="ledgerNote${t.id}" value="${_escapeHtml(t.note || '')}" placeholder="Note"></div>
         <div class="field"><label class="field-label" for="ledgerTags${t.id}">Tags (comma-separated)</label><input class="settings-input" id="ledgerTags${t.id}" value="${_escapeHtml((t.tags || []).join(', '))}" placeholder="tag1, tag2"></div>
         <button class="settings-save-btn" onclick="saveLedgerEdit(${t.id})">Save</button>
@@ -4596,6 +4599,28 @@ function _renderLedgerList(rows, q) {
       </div>
     </div>`;
   }).join('') : `<div style="font-size:11px;color:var(--text-muted)">${q ? 'No transactions match "' + _escapeHtml(q) + '".' : 'No recorded transactions yet.'}</div>`;
+}
+
+// How a transaction counts in Accounting -> "Money in and money out".
+const _COUNTS_AS = {
+  income: 'Money in (income)', invoice_receipt: 'Money in (invoice payment)', airdrop: 'Money in (airdrop)',
+  payroll: 'Salary', expense: 'Money out (expense)', fee: 'Money out (fee)',
+  transfer: 'Not counted (your own money)', swap: 'Not counted (swap)', unknown: 'Not counted yet (Sara is unsure)',
+};
+
+function _countsAsSelect(t) {
+  const options = t.direction === 'incoming'
+    ? [['income', 'Income'], ['invoice_receipt', 'Invoice payment'], ['airdrop', 'Airdrop'], ['payroll', 'Salary'], ['transfer', 'Not income (my own money)']]
+    : t.direction === 'outgoing'
+      ? [['expense', 'Expense'], ['payroll', 'Salary'], ['fee', 'Fee'], ['transfer', 'Not an expense']]
+      : null;
+  if (!options) return '';
+  const chosen = t.accounting_label_source === 'you' ? t.accounting_label : '';
+  return `<div class="field"><label class="field-label" for="ledgerCounts${t.id}">Counts as</label>
+    <select class="settings-input" id="ledgerCounts${t.id}" data-initial="${_escapeHtml(chosen)}">
+      <option value="">Automatic</option>
+      ${options.map(([v, l]) => `<option value="${v}"${v === chosen ? ' selected' : ''}>${l}</option>`).join('')}
+    </select></div>`;
 }
 
 function toggleLedgerEdit(id) {
@@ -4607,6 +4632,11 @@ async function saveLedgerEdit(id) {
   const note = document.getElementById('ledgerNote' + id).value;
   const tags = document.getElementById('ledgerTags' + id).value;
   await fetch('/api/ledger/' + id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note, tags:tags.split(',').map(x=>x.trim()).filter(Boolean)})});
+  const counts = document.getElementById('ledgerCounts' + id);
+  if (counts && counts.value !== counts.dataset.initial) {
+    // "Automatic" = hand the decision back to Sara ("unknown" means no label of your own).
+    await fetch('/api/accounting/transactions/' + id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({classification: counts.value || 'unknown'})});
+  }
   await loadLedger();
 }
 

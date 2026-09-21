@@ -16,7 +16,7 @@ from app.core.session_auth import require_session
 from app.db.models import AccountingClassification, AddressBook, CostLot, Disposal, Transaction, Wallet
 from app.db.session import get_db
 from app.routers.payments import _csv_safe
-from app.services import accounting_matcher, cost_basis
+from app.services import accounting_labels, accounting_matcher, cost_basis
 
 router = APIRouter(prefix="/accounting", tags=["accounting"], dependencies=[Depends(require_session)])
 
@@ -254,10 +254,11 @@ def income_expense_report(
     income_ids: list[int] = []
     expense_ids: list[int] = []
     warnings: list[str] = []
+    own = accounting_labels.own_addresses(db)
     for tx, cls in rows:
-        if cls and cls.is_internal_transfer:
-            continue  # internal transfers never count as income/expense
-        classification = (cls.classification if cls else None) or "unknown"
+        classification, _source = accounting_labels.effective_label(tx, cls, own)
+        if classification == "transfer":
+            continue  # moves between your own wallets never count as income/expense
         value = Decimal(tx.fiat_usd_value) if tx.fiat_usd_value is not None else None
         if value is None:
             if classification in _INCOME_CLASSIFICATIONS or classification in _EXPENSE_CLASSIFICATIONS:
@@ -287,11 +288,12 @@ def data_quality_report(db: Session = Depends(get_db)):
     unpriced = [t.id for t in db.query(Transaction).filter(
         Transaction.status == "confirmed", Transaction.fiat_usd_value.is_(None)
     ).all()]
+    own = accounting_labels.own_addresses(db)
     uncategorised = [
         t.id for t, cls in db.query(Transaction, AccountingClassification)
         .outerjoin(AccountingClassification, AccountingClassification.transaction_id == Transaction.id)
         .filter(Transaction.status == "confirmed").all()
-        if cls is None or cls.classification == "unknown"
+        if accounting_labels.effective_label(t, cls, own)[0] == "unknown"
     ]
     failed = [t.id for t in db.query(Transaction).filter(Transaction.status == "failed").all()]
     incomplete = [t.id for t in db.query(Transaction).filter(

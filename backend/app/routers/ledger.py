@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import TokenDeployment, Transaction, Wallet
+from app.db.models import AccountingClassification, TokenDeployment, Transaction, Wallet
 from app.db.session import get_db
+from app.services import accounting_labels
 
 router = APIRouter(prefix="/ledger", tags=["ledger"], dependencies=[Depends(require_session)])
 
@@ -59,9 +60,16 @@ def list_ledger(
     rows = query.order_by(Transaction.timestamp.desc(), Transaction.id.desc()).limit(limit).all()
     names = {w.id: w.name for w in db.query(Wallet).all()}
     contracts = _deployed_token_contracts(db)
+    own = accounting_labels.own_addresses(db)
+    labels = {c.transaction_id: c for c in db.query(AccountingClassification).filter(
+        AccountingClassification.transaction_id.in_([r.id for r in rows])).all()} if rows else {}
     out = []
     for row in rows:
         item = _row(row, names.get(row.wallet_id))
+        # How this counts in Accounting's "Money in and money out", and whether
+        # the user set it or Sara worked it out.
+        item["accounting_label"], item["accounting_label_source"] = accounting_labels.effective_label(
+            row, labels.get(row.id), own)
         # Link a mint/burn/transfer to the token's contract page - but only when the
         # network+symbol maps to exactly one deployment, so we never link the wrong one.
         found = contracts.get((row.network, (row.token or "").upper()), set())
