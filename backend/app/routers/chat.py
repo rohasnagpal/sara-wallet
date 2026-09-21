@@ -511,32 +511,6 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         if wallets and len(wallets) == 1:
             return ("get_balance", {"wallet_name": wallets[0].name, "network": None})
 
-    # payment link / payment request — checked BEFORE crypto price matching,
-    # since "link" is a substring match for Chainlink (LINK) and "create"
-    # contains "at" (a crypto-price trigger word); same substring-collision
-    # class of bug as the old Polymarket-vs-"pol" issue.
-    pay_link_match = re.search(
-        r'(?:create\s+a\s+|make\s+a\s+|generate\s+a\s+)?(?:payment\s+link|payment\s+request|request\s+payment)'
-        r'(?:\s+for)?\s+([\d.]+)\s+(\w+)(?:\s+from\s+(\w[\w\s]*?))?$',
-        m
-    )
-    if pay_link_match:
-        amount_str, token, from_hint = pay_link_match.groups()
-        try:
-            amount = float(amount_str)
-        except ValueError:
-            amount = 0
-        wallet = _match_wallet(from_hint, wallets) if from_hint else None
-        if not wallet and len(wallets) == 1:
-            wallet = wallets[0]
-        if amount <= 0:
-            return ("send_rejected", {"message": "Enter an amount greater than zero for the payment link."})
-        if not wallet:
-            if wallets:
-                return ("payment_link_needs_wallet", {"amount": amount, "token": token.upper(), "wallets": [w.name for w in wallets]})
-            return ("send_no_wallets", {})
-        return ("create_payment_link", {"wallet_name": wallet.name, "amount": amount, "token": token.upper()})
-
     # market: crypto price — also detect "X price in Y" currency modifier
     CRYPTO_KEYWORDS = ("price", "how much is", "what is", "what's", "whats", "cost", "worth", "at", "doing")
     KNOWN_SYMBOLS = set(coingecko.SYMBOL_TO_ID.keys()) | {"BITCOIN", "ETHEREUM", "SOLANA"}
@@ -717,36 +691,40 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         def _flag(key: str) -> str:
             return "✅ configured" if _os.getenv(key) else "— not set"
 
-        bname_ready = bool(_os.getenv("SARA_NAME_REGISTRAR_ADDRESS"))
         lock_status = "🔓 unlocked" if _lock_state.is_unlocked() else "🔒 locked"
 
         return (
             "**Sara specializes in USDC payments** — sending, requesting, and moving USDC across chains "
-            "as easily as sending a text. Here's everything Sara can do:\n\n"
-            "**Payments** *(Sara's core)*\n"
-            "• Send crypto with plain English — \"send 100 USDC to zara\" — then type CONFIRM\n"
-            "• \"payment link for 10 USDC\" — a shareable link + QR code requesting payment into one of your wallets\n"
-            "• 📷 Scan to Pay — scan someone else's Sara payment QR to pre-fill a send\n"
-            "• 📋 Payment Requests — Sara checks on-chain automatically for a matching incoming transfer and marks requests paid; export them all as a CSV\n"
+            "as easily as sending a text. Type in plain English here in chat, or use the tabs across the top for the full tools. Here's everything Sara can do:\n\n"
+            "**Payments in chat** *(Sara's core)*\n"
+            "• Send crypto — \"send 100 USDC to zara\" — review the preview, then type CONFIRM\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
-            "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n\n"
+            "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n"
+            "• 📷 Scan to Pay — scan someone else's Sara payment QR to pre-fill a send\n"
+            "\n"
             "**Wallets & Chains**\n"
             f"• Create & import one EVM wallet that works across {chain_list}\n"
-            "• Check balance on any supported network\n"
-            "• Address book — save nicknames, send to them by name\n\n"
-            "**Sara Names** — a human-readable name for your wallet (Polygon Amoy testnet)\n"
-            "• \"register rohas\" — pay in USDC via a front-running-resistant commit/reveal, get a name like `rohas` linked to your wallet\n"
-            "• Send to a Sara Name directly, same as `alice.eth`\n\n"
-            "**File Proofs**\n"
-            "• Hash a file locally, authorize an exact 1 USDC Polygon checkout, and retain the encrypted BlockchainProof evidence package\n"
-            "• Verify a file fingerprint against matching public proofs from the Proofs tab\n\n"
-            "**Market Data** *(live via CoinGecko)*\n"
-            "• Crypto prices, gas fees, trending coins, global market cap\n\n"
-            "**Intelligence**\n"
-            "• News & sentiment, ENS and Sara Names resolution\n\n"
+            "• **Balance** tab — holdings and portfolio value across every wallet and network\n"
+            "• **Directory** tab — one address book for people, vendors and employees; send to them by name\n\n"
+            "**Business tabs**\n"
+            "• **Invoices** — request payment with a QR any wallet can scan; Sara checks on-chain and marks it paid automatically\n"
+            "• **Batches** — pay or airdrop many recipients from a list or CSV; review and approve before signing\n"
+            "• **Schedules** — recurring payments that create a reviewable batch each time one is due\n"
+            "• **Payroll** — run payroll for employees and contractors in one action\n"
+            "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges, batches, token transfers, contract calls, x402)\n"
+            "• **Ledger** — every send and receive with fiat value, tags and notes, linked to block explorers\n"
+            "• **Accounting** — income/expense reports, FIFO cost basis and P&L, CSV/XLSX export\n\n"
+            "**Tokens & Safety**\n"
+            "• **Tokens** — deploy your own ERC-20 from tested templates, mint/burn/transfer, airdrop, plus Treasury, Intelligence, Risk, Contracts and x402 sub-tabs\n"
+            "• **Safety** — review and revoke token allowances, screen addresses, simulate contract calls before they cost gas\n\n"
+            "**x402 agentic payments**\n"
+            "• Pay machine-priced HTTP resources in USDC automatically; a spending policy lets payments under your cap go through unattended\n\n"
+            "**Market Data & Intelligence** *(live via CoinGecko)*\n"
+            "• Crypto prices, gas fees, trending coins, global market cap\n"
+            "• News & sentiment, ENS resolution\n\n"
             "**Security**\n"
             "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
-            "• Only money-moving actions (send, swap, proof checkout, Sara Name registration) require unlocking — price checks and general chat work while locked\n"
+            "• Only money-moving actions (send, swap, bridge) require unlocking — price checks and general chat work while locked\n"
             "• 🛡️ Trusted Tokens — Sara only uses Circle's verified USDC contract and each network's native gas asset. See the pill for the full list\n\n"
             "---\n"
             "**Your current setup**\n"
@@ -755,7 +733,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             f"• AI model: {ai_status}\n"
             f"• CoinGecko API key: {_flag('COINGECKO_API_KEY')}\n"
             f"• Alchemy API key (ERC-20 balances + EVM payment reconciliation): {_flag('ALCHEMY_API_KEY')}\n"
-            f"• Sara Names registration: {'✅ ready (Polygon Amoy testnet)' if bname_ready else '— not set up yet (needs SARA_NAME_REGISTRAR_ADDRESS configured)'}\n"
             f"• Networks enabled: {chain_list}"
         )
 
@@ -919,29 +896,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         return (f"Ethereum gas — Slow: **{d['slow_gwei']} gwei** (${d['slow_usd']})  "
                 f"Standard: **{d['standard_gwei']} gwei** (${d['standard_usd']})  "
                 f"Fast: **{d['fast_gwei']} gwei** (${d['fast_usd']})")
-
-    if tool_name == "payment_link_needs_wallet":
-        names = ", ".join(f"**{n}**" for n in args["wallets"])
-        return (f"Which wallet should receive **{args['amount']} {args['token']}**?\n"
-                f"Your wallets: {names}\n"
-                f"Reply with e.g. \"payment link for {args['amount']} {args['token']} from {args['wallets'][0]}\"")
-
-    if tool_name == "create_payment_link":
-        from app.tools.payments.links import create_payment_request
-        w = _resolve_wallet(args["wallet_name"], db)
-        if not w:
-            return f"Wallet '{args['wallet_name']}' not found."
-        network = "ethereum"
-        row, result = create_payment_request(db, w, network, args["token"], args["amount"])
-        if row is None:
-            return (f"{result}. Check the 🛡️ Trusted Tokens panel for what's supported, or check your spelling.")
-        payload = result
-        return (
-            f"Payment request **{row.reference}** ready — requesting **{args['amount']} {row.token}** into **{w.name}**.\n\n"
-            f"Share this with whoever's paying: add `/?pay={payload}` to your Sara's address "
-            f"(e.g. `http://127.0.0.1:8888/?pay={payload}`) — they open it in their own Sara to pre-fill the send.\n\n"
-            f"Open the 🔗 Payment Links panel for a copy-paste link + QR, or 📋 Payment Requests to track and export it."
-        )
 
     if tool_name == "get_portfolio":
         from app.routers.portfolio import get_portfolio as _portfolio
@@ -1326,20 +1280,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     _pending[req.session_id] = new_pending
                 return _stream_text(text, db, req.session_id)
             return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
-        if pending.get("type") == "choose_payment_link_wallet":
-            if msg.upper().startswith("CANCEL"):
-                del _pending[req.session_id]
-                return _stream_text("Cancelled.", db, req.session_id)
-            selected_wallet = _wallet_named(msg, db)
-            if selected_wallet and selected_wallet.name in pending["wallets"]:
-                del _pending[req.session_id]
-                result = _handle_tool_call(
-                    "create_payment_link",
-                    {"wallet_name": selected_wallet.name, "amount": pending["amount"], "token": pending["token"]},
-                    db,
-                )
-                return _stream_text(result, db, req.session_id)
-            return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
         if pending.get("type") == "choose_bridge_wallet":
             if msg.upper().startswith("CANCEL"):
                 del _pending[req.session_id]
@@ -1704,8 +1644,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         _pending[req.session_id] = {"type": "choose_swap_wallet", **args}
                     elif tool_name == "bridge_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_bridge_wallet", **args}
-                    elif tool_name == "payment_link_needs_wallet":
-                        _pending[req.session_id] = {"type": "choose_payment_link_wallet", **args}
                     elif tool_name == "register_ask_name":
                         _pending[req.session_id] = {"type": "awaiting_name"}
                     text = result

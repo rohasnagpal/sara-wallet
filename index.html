@@ -1247,7 +1247,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="settings-status" id="invoiceStatus" style="height:auto;min-height:16px;margin-top:8px;line-height:1.8"></div>
           </div>
           <div class="card" style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Invoices</strong><button class="settings-save-btn" onclick="loadInvoices()">Refresh</button></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>Invoices</strong><span style="display:flex;gap:6px;align-items:center"><a class="mini-btn" href="/api/payments/requests/export" title="Download all invoices as CSV">Export CSV</a><button class="settings-save-btn" onclick="loadInvoices()">Refresh</button></span></div>
             <div id="invoiceList" style="font-size:11px;margin-top:8px">Loading…</div>
           </div>
           <div class="card">
@@ -1944,9 +1944,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-suggestions" id="chatToolPills" style="padding-top:0">
           <div class="chat-chip" onclick="showTrustedTokensInChat()" title="View every contract address Sara trusts">🛡️ Trusted Tokens</div>
-          <div class="chat-chip" onclick="showPaymentLinkFormInChat()" title="Create a shareable payment link or QR code">🔗 Request Payment</div>
           <div class="chat-chip" id="scanPayPill" onclick="openScanPayModal()" title="Scan a Sara payment QR code">📷 Scan to Pay</div>
-          <div class="chat-chip" onclick="showPaymentRequestsInChat()" title="Track and reconcile payment requests you've sent">📋 Track Requests</div>
           <div class="chat-chip" onclick="showCol2('proofs')" title="Create, retain, and verify BlockchainProof evidence"># File Proofs</div>
         </div>
 
@@ -2775,70 +2773,8 @@ async function showTrustedTokensInChat() {
 }
 
 // ══════════════════════════════════════
-// PAYMENT LINKS + QR (rendered inline in chat)
+// PAYMENT REQUESTS FROM SCANNED QR CODES (rendered inline in chat)
 // ══════════════════════════════════════
-
-async function showPaymentLinkFormInChat() {
-  const bubbleId = 'pl-' + Date.now();
-  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
-  let assetData = _assetSettings;
-  if (!assetData) {
-    try { assetData = await fetch('/api/settings/assets').then(r => r.json()); } catch(e) { assetData = {networks:[]}; }
-  }
-  const usdcNetworks = (assetData.networks || []).filter(n => n.enabled && n.usdc_enabled);
-  const walletOptions = wallets.length
-    ? wallets.map(w => `<option value="${_escapeHtml(w.name)}">${_escapeHtml(w.name)}</option>`).join('')
-    : '<option value="">No wallets yet</option>';
-  const networkOptions = usdcNetworks.length
-    ? usdcNetworks.map(n => `<option value="${_escapeHtml(n.id)}">${_escapeHtml(n.label)}</option>`).join('')
-    : '<option value="">No USDC networks enabled</option>';
-  const html = `
-    <div style="font-size:11.5px;margin-bottom:8px"><strong>🔗 Request a Payment</strong></div>
-    <div style="display:flex;flex-direction:column;gap:6px;max-width:260px">
-      <select class="wallet-form-select" id="${bubbleId}-wallet" style="font-size:11.5px;padding:6px">${walletOptions}</select>
-      <select class="wallet-form-select" id="${bubbleId}-network" style="font-size:11.5px;padding:6px">${networkOptions}</select>
-      <input class="wallet-form-input" id="${bubbleId}-amount" type="number" min="0" step="any" placeholder="Amount, e.g. 10" style="font-size:11.5px;padding:6px">
-      <input class="wallet-form-input" value="USDC" readonly style="font-size:11.5px;padding:6px">
-      <input class="wallet-form-input" id="${bubbleId}-note" placeholder="Note (optional)" style="font-size:11.5px;padding:6px">
-      <button class="wallet-btn-create" style="font-size:11.5px;padding:6px" onclick="_chatGenerateLink('${bubbleId}')">Generate</button>
-      <div style="font-size:10.5px;color:var(--red);min-height:13px" id="${bubbleId}-status"></div>
-    </div>`;
-  _addBotBubble(html, bubbleId);
-}
-
-async function _chatGenerateLink(bubbleId) {
-  const wallet_name = document.getElementById(bubbleId + '-wallet').value;
-  const network = document.getElementById(bubbleId + '-network').value;
-  const amount = parseFloat(document.getElementById(bubbleId + '-amount').value);
-  const token = 'USDC';
-  const note = document.getElementById(bubbleId + '-note').value.trim();
-  const statusEl = document.getElementById(bubbleId + '-status');
-  if (!wallet_name) { statusEl.textContent = 'Add a wallet first.'; return; }
-  if (!network) { statusEl.textContent = 'Enable USDC on a network in Settings first.'; return; }
-  if (!amount || amount <= 0) { statusEl.textContent = 'Enter an amount greater than zero.'; return; }
-  statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Working…';
-  try {
-    const resp = await fetch('/api/payments/link', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wallet_name, network, amount, token, note }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(_apiErrorText(data, 'Failed to create link'));
-    const url = location.origin + '/?pay=' + data.payload;
-    const bubble = document.getElementById(bubbleId);
-    const safeRef = _escapeHtml(data.reference);
-    const safeToken = _escapeHtml(data.token);
-    const safeWalletName = _escapeHtml(data.wallet_name);
-    const safeNote = _escapeHtml(data.note || '');
-    bubble.innerHTML = `
-      <div style="font-size:11.5px;margin-bottom:8px"><strong>${safeRef}</strong> - Requesting ${_fmtBal(Number(data.amount) || 0)} ${safeToken} into "${safeWalletName}"${safeNote ? ' - "' + safeNote + '"' : ''}</div>
-      <img src="/api/payments/qr?data=${encodeURIComponent(url)}" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px;display:block;margin-bottom:8px">
-      <input class="wallet-form-input" value="${_escapeHtml(url)}" readonly onclick="this.select()" style="font-size:10.5px;padding:6px;width:240px;box-sizing:border-box">`;
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  } catch (e) {
-    statusEl.style.color = 'var(--red)'; statusEl.textContent = e.message;
-  }
-}
 
 function _decodePaymentPayload(payload) {
   try {
@@ -2902,7 +2838,7 @@ let _scanPayRAF = null;
 
 function openScanPayModal() {
   if (!('BarcodeDetector' in window)) {
-    addMsg('Scan to Pay needs a browser with camera barcode scanning support (Chrome/Edge on desktop or Android). Use the payment link instead.', 'bot');
+    addMsg('Scan to Pay needs a browser with camera barcode scanning support (Chrome/Edge on desktop or Android).', 'bot');
     return;
   }
   document.getElementById('scanPayStatus').textContent = 'Point the camera at a Sara payment QR code.';
@@ -2929,8 +2865,22 @@ function openScanPayModal() {
   });
 }
 
-function _onScanPaySuccess(rawValue) {
+async function _onScanPaySuccess(rawValue) {
   closeScanPayModal();
+  // Invoice QR codes are standard EIP-681 URIs (any wallet app can scan them);
+  // the server validates them so only Sara's trusted USDC contract and each
+  // network's native asset are ever pre-filled.
+  if (/^ethereum:/i.test(rawValue)) {
+    try {
+      const resp = await fetch('/api/payments/parse-uri?uri=' + encodeURIComponent(rawValue));
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(_apiErrorText(data, 'That payment QR code could not be read.'));
+      showPaymentRequestInChat(data);
+    } catch (e) {
+      addMsg(_escapeHtml(e.message), 'bot');
+    }
+    return;
+  }
   let payload = rawValue;
   try {
     const url = new URL(rawValue);
@@ -2944,74 +2894,6 @@ function closeScanPayModal(event) {
   if (_scanPayRAF) { cancelAnimationFrame(_scanPayRAF); _scanPayRAF = null; }
   if (_scanPayStream) { _scanPayStream.getTracks().forEach(t => t.stop()); _scanPayStream = null; }
   document.getElementById('scanPayOverlay').classList.remove('open');
-}
-
-// ══════════════════════════════════════
-// PAYMENT REQUESTS (reconciliation, rendered inline in chat)
-// ══════════════════════════════════════
-
-const _PAYMENT_STATUS_COLOR = { pending: 'var(--text-muted)', paid: 'var(--green)', cancelled: 'var(--red)' };
-
-async function showPaymentRequestsInChat() {
-  try {
-    const rows = await fetch('/api/payments/requests').then(r => r.json());
-    const bubbleId = 'pr-' + Date.now();
-    _addBotBubble(_paymentRequestsRowsHtml(rows, bubbleId), bubbleId);
-  } catch (e) {
-    addMsg('Could not load payment requests.', 'bot');
-  }
-}
-
-function _paymentRequestsRowsHtml(rows, bubbleId) {
-  if (!rows.length) {
-    return '<div style="font-size:11.5px"><strong>📋 Track Requests</strong><br>No payment requests yet - try 🔗 Request Payment to create one.</div>';
-  }
-  let html = '<div style="font-size:11px;font-weight:600;margin-bottom:6px">📋 Track Requests</div>';
-  html += rows.map(r => {
-    const shortRaw = r.matched_tx_hash ? (r.matched_tx_hash.length > 14 ? r.matched_tx_hash.slice(0, 8) + '…' + r.matched_tx_hash.slice(-6) : r.matched_tx_hash) : '';
-    const short = _escapeHtml(shortRaw);
-    const safeRef = _escapeHtml(r.reference);
-    const safeToken = _escapeHtml(r.token);
-    const safeWalletName = _escapeHtml(r.wallet_name);
-    const safeNote = _escapeHtml(r.note || '');
-    const safeStatus = _escapeHtml(r.status);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-      <div>${safeRef} - ${_fmtBal(Number(r.amount) || 0)} ${safeToken} · ${safeWalletName}${safeNote ? ' · ' + safeNote : ''}${short ? ' · tx ' + short : ''}</div>
-      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <span style="color:${_PAYMENT_STATUS_COLOR[r.status] || 'var(--text-muted)'};font-size:10px;border:1px solid currentColor;border-radius:5px;padding:1px 5px">${safeStatus}</span>
-        ${r.status === 'pending' ? `<button class="dir-del" onclick="_chatCheckRequest(${r.id},'${bubbleId}')" title="Check for payment now">🔄</button>` : ''}
-        ${r.status === 'pending' ? `<button class="dir-del" onclick="_chatMarkPaid(${r.id},'${bubbleId}')" title="Mark paid manually">✓</button>` : ''}
-        <button class="dir-del" onclick="_chatDeleteRequest(${r.id},'${bubbleId}')" title="Delete">×</button>
-      </div>
-    </div>`;
-  }).join('');
-  html += '<div style="margin-top:6px"><a href="/api/payments/requests/export" style="font-size:10.5px;color:var(--accent)">Export CSV</a></div>';
-  return html;
-}
-
-async function _chatRefreshRequests(bubbleId) {
-  try {
-    const rows = await fetch('/api/payments/requests').then(r => r.json());
-    const bubble = document.getElementById(bubbleId);
-    if (bubble) bubble.innerHTML = _paymentRequestsRowsHtml(rows, bubbleId);
-  } catch (e) {}
-}
-
-async function _chatMarkPaid(id, bubbleId) {
-  await fetch('/api/payments/requests/' + id, {
-    method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ status: 'paid' }),
-  });
-  await _chatRefreshRequests(bubbleId);
-}
-
-async function _chatDeleteRequest(id, bubbleId) {
-  await fetch('/api/payments/requests/' + id, { method: 'DELETE' });
-  await _chatRefreshRequests(bubbleId);
-}
-
-async function _chatCheckRequest(id, bubbleId) {
-  await fetch('/api/payments/requests/' + id + '/check', { method: 'POST' });
-  await _chatRefreshRequests(bubbleId);
 }
 
 // Focus toggle
@@ -3273,6 +3155,7 @@ async function loadInvoices() {
       <button class="mini-btn" onclick="window.open('/api/payments/page/${encodeURIComponent(i.reference)}','_blank')">Payment page</button>
       <button class="mini-btn" onclick="downloadInvoicePng('${_escapeHtml(i.reference)}')">Download PNG</button>
       ${i.status === 'paid' ? `<button class="mini-btn" onclick="openReceipt('/api/payments/invoices/${encodeURIComponent(i.reference)}/receipt','Payment Receipt')">Receipt</button>` : ''}
+      ${i.status === 'pending' || i.status === 'overdue' ? `<button class="mini-btn" onclick="markInvoicePaid(${Number(i.id)})" title="Mark paid manually, e.g. if it was settled off-chain">Mark paid</button>` : ''}
       <button class="mini-btn" onclick="confirmDeleteInvoice(this, ${Number(i.id)})" title="Delete this invoice">Delete</button>
     </div>
   </div>`;
@@ -3310,6 +3193,13 @@ function confirmDeleteInvoice(btn, id) {
     btn.style.color = '';
     btn.style.borderColor = '';
   }, 3000);
+}
+
+async function markInvoicePaid(id) {
+  await fetch('/api/payments/requests/' + id, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: 'paid'}),
+  });
+  await loadInvoices();
 }
 
 async function deleteInvoice(id) {

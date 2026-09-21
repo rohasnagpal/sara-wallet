@@ -7,6 +7,7 @@ wallets against their own trusted-token list).
 """
 import base64
 import json
+import re
 import secrets
 from decimal import Decimal, InvalidOperation
 
@@ -95,3 +96,64 @@ def create_payment_request(db, wallet, network: str, token: str, amount, note: s
         "network": network, "token": symbol, "amount": str(exact_amount), "note": note,
     })
     return row, payload
+
+
+_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
+
+
+def parse_eip681(uri: str) -> dict:
+    """Decode an EIP-681 payment URI (`ethereum:0xUSDC@137/transfer?address=…&uint256=…`
+    or a native `ethereum:0xTo@137?value=…`) into the same shape a Sara
+    payment payload carries. Raises ValueError for anything Sara wouldn't
+    pay: another token contract, an unknown chain, a missing or non-integer
+    amount, or a malformed address."""
+    from urllib.parse import parse_qs
+    from app.core.assets import NETWORKS
+
+    raw = (uri or "").strip()
+    if raw[:9].lower() != "ethereum:":
+        raise ValueError("Not a payment QR code Sara can read.")
+    rest = raw[9:]
+    if rest.lower().startswith("pay-"):
+        rest = rest[4:]
+    path, _, query = rest.partition("?")
+    target, _, function = path.partition("/")
+    address, _, chain_part = target.partition("@")
+    try:
+        chain_id = int(chain_part) if chain_part else 1
+    except ValueError:
+        raise ValueError("This payment QR names a chain Sara can't read.")
+    network = next((n for n, d in NETWORKS.items() if d["chain_id"] == chain_id), None)
+    if network is None:
+        raise ValueError(f"Sara doesn't support chain {chain_id}.")
+    if not _ADDRESS_RE.match(address):
+        raise ValueError("This payment QR has an invalid address.")
+    params = {k: v[0] for k, v in parse_qs(query).items() if v}
+
+    def _integer(value: str | None) -> int:
+        try:
+            number = Decimal(value if value is not None else "")
+        except InvalidOperation:
+            raise ValueError("This payment QR has no valid amount.")
+        if not number.is_finite() or number <= 0 or number != number.to_integral_value():
+            raise ValueError("This payment QR has no valid amount.")
+        return int(number)
+
+    net = NETWORKS[network]
+    if function == "transfer":
+        if address.lower() != net["usdc"].lower():
+            raise ValueError(f"Sara only pays USDC from Circle's verified contract on {net['label']}; this QR names a different token.")
+        recipient = params.get("address", "")
+        if not _ADDRESS_RE.match(recipient):
+            raise ValueError("This payment QR has an invalid recipient address.")
+        token, decimals, raw_amount = "USDC", 6, _integer(params.get("uint256"))
+    elif function == "":
+        recipient, token, decimals, raw_amount = address, net["native"], 18, _integer(params.get("value"))
+    else:
+        raise ValueError("This payment QR asks for something other than a plain payment.")
+
+    amount = (Decimal(raw_amount) / (Decimal(10) ** decimals)).normalize()
+    return {
+        "v": 1, "to": recipient, "chain": "evm", "network": network,
+        "token": token, "amount": format(amount, "f"), "note": "",
+    }

@@ -31,7 +31,7 @@ Interested in open-source AI wallets? ⭐ [Star Sara](https://github.com/rohasna
 
 Sara runs locally on your laptop. The frontend is a single HTML app; the backend is a Python FastAPI server. It combines five product layers:
 
-- **Wallet and payments** — natural-language sends, payment links/QR, crypto invoicing with reconciliation, receipts, swaps and bridges
+- **Wallet and payments** — natural-language sends, crypto invoicing with wallet-scannable QR codes and reconciliation, receipts, swaps and bridges
 - **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use
 - **Business and accounting** — batch payments, crypto payroll, FIFO cost basis, spending policies, CSV/XLSX exports
 - **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate contract calls
@@ -64,7 +64,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 ## ⭐ Key Features
 
 - 💸 **Natural-language USDC payments** — resolve a recipient, show the exact amount and fee, confirm, sign
-- 🔗 **Payment links, QR codes & crypto invoicing** — shareable payment requests with automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
+- 🧾 **Crypto invoicing & QR payments** — invoices with a QR any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
 - 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, approval workflow, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)

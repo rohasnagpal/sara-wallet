@@ -14,7 +14,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Wallet, PaymentRequest, MerchantClient, AlertDestination, Transaction
-from app.tools.payments.links import decode_payload, create_payment_request, encode_payload
+from app.tools.payments.links import decode_payload, create_payment_request, encode_payload, parse_eip681
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
 from app.core.assets import NETWORKS, token_enabled
@@ -36,14 +36,6 @@ def _eip681_uri(token: str, network: str, payment_address: str | None, amount_ra
     return None
 
 router = APIRouter(prefix="/payments", tags=["payments"])
-
-
-class CreateLinkRequest(BaseModel):
-    wallet_name: str
-    amount: float
-    token: str
-    network: Optional[str] = None
-    note: Optional[str] = None
 
 
 class CreateInvoiceRequest(BaseModel):
@@ -258,31 +250,6 @@ class UpdateRequestStatus(BaseModel):
     status: str  # "pending" | "paid" | "cancelled"
 
 
-def _default_network(wallet: Wallet) -> str:
-    return "ethereum"
-
-
-@router.post("/link", dependencies=[Depends(require_session)])
-def create_link(req: CreateLinkRequest, db: Session = Depends(get_db)):
-    w = db.query(Wallet).filter(Wallet.name.ilike(req.wallet_name)).first()
-    if not w:
-        raise HTTPException(404, f"Wallet '{req.wallet_name}' not found")
-    if w.chain != "evm":
-        raise HTTPException(400, "This wallet uses a chain Sara no longer supports")
-    network = (req.network or _default_network(w)).lower()
-    from app.core.assets import network_enabled
-    if not network_enabled(network):
-        raise HTTPException(400, f"Network is disabled or unsupported: {network}")
-    row, result = create_payment_request(db, w, network, req.token, req.amount, req.note or "")
-    if row is None:
-        raise HTTPException(400, result)
-    return {
-        "payload": result, "reference": row.reference, "to": w.address, "wallet_name": w.name,
-        "chain": w.chain, "network": network, "token": row.token,
-        "amount": row.amount, "note": row.note,
-    }
-
-
 @router.get("/parse")
 def parse_link(payload: str = Query(..., max_length=2000)):
     try:
@@ -292,6 +259,21 @@ def parse_link(payload: str = Query(..., max_length=2000)):
     required = ("to", "chain", "network", "token", "amount")
     if not all(k in data for k in required):
         raise HTTPException(400, "This payment link is missing required fields.")
+    return data
+
+
+@router.get("/parse-uri")
+def parse_uri(uri: str = Query(..., max_length=2000)):
+    """Reads a wallet-standard (EIP-681) payment URI — the QR an invoice shows
+    — so Scan to Pay works on it. Only Sara's trusted USDC contract and each
+    network's native asset are accepted."""
+    from app.core.assets import token_enabled
+    try:
+        data = parse_eip681(uri)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if not token_enabled(data["token"], data["network"]):
+        raise HTTPException(400, f"{data['token']} is disabled on {data['network'].capitalize()} in Sara's settings.")
     return data
 
 
@@ -305,31 +287,6 @@ def payment_qr(data: str = Query(..., max_length=2000)):
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return Response(content=buf.getvalue(), media_type="image/png", headers={"Cache-Control": "no-store"})
-
-
-@router.get("/requests")
-def list_requests(check: bool = Query(default=True), db: Session = Depends(get_db)):
-    rows = db.query(PaymentRequest).order_by(PaymentRequest.created_at.desc()).all()
-    if check:
-        for r in rows:
-            if r.status in ("pending", "overdue"):
-                check_payment_request(db, r)
-    wallets = {w.id: w.name for w in db.query(Wallet).all()}
-    return [{
-        "id": r.id, "reference": r.reference, "wallet_name": wallets.get(r.wallet_id, "?"),
-        "chain": r.chain, "network": r.network, "token": r.token, "amount": r.amount,
-        "note": r.note, "status": r.status, "matched_tx_hash": r.matched_tx_hash,
-        "created_at": r.created_at.isoformat(),
-    } for r in rows]
-
-
-@router.post("/requests/{request_id}/check", dependencies=[Depends(require_session)])
-def check_request(request_id: int, db: Session = Depends(get_db)):
-    row = db.query(PaymentRequest).filter(PaymentRequest.id == request_id).first()
-    if not row:
-        raise HTTPException(404, "Payment request not found")
-    matched = check_payment_request(db, row)
-    return {"id": row.id, "status": row.status, "matched": matched, "matched_tx_hash": row.matched_tx_hash}
 
 
 @router.patch("/requests/{request_id}", dependencies=[Depends(require_session)])

@@ -1,7 +1,8 @@
 # Crypto Invoicing & Merchant API
 
-Sara's crypto invoicing turns a request for payment into a link a customer
-can just pay — no manual bookkeeping to mark it received.
+Sara's crypto invoicing turns a request for payment into a QR code and
+payment page a customer can just pay — no manual bookkeeping to mark it
+received.
 
 The **Invoices** screen creates persistent Polygon USDC invoices and public
 payment pages. Sara checks active invoices in the background, links a
@@ -9,9 +10,12 @@ matching on-chain transfer, and exposes a proof-of-payment receipt.
 
 ## Payment features
 
-1. **Payment links and QR codes** — generate a shareable link or QR
-   pre-filled with the amount, token and network, so anyone can pay you
-   without typing an address.
+1. **Wallet-scannable QR codes** — every invoice shows a standard EIP-681
+   QR pre-filled with the amount, token and network, so anyone can pay you
+   from MetaMask or any other wallet app without typing an address. Another
+   Sara user can scan it with **Scan to Pay** to pre-fill a send; Sara only
+   accepts its trusted USDC contract or a network's native asset from a
+   scanned QR.
 2. **Invoices with automatic on-chain reconciliation** — create an invoice
    for a customer and Sara marks it paid itself the moment a matching
    transfer lands, no manual "mark as paid."
