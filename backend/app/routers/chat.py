@@ -708,7 +708,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• **Directory** tab — one address book for people, vendors and employees; send to them by name\n\n"
             "**Business tabs**\n"
             "• **Invoices** — request payment with a QR any wallet can scan; Sara checks on-chain and marks it paid automatically\n"
-            "• **Batches** — pay or airdrop many recipients from a list or CSV; review and approve before signing\n"
+            "• **Batches** — upload a CSV to pay or airdrop many recipients; Sara checks the whole file, you review it, then press Send\n"
             "• **Schedules** — recurring payments that create a reviewable batch each time one is due\n"
             "• **Payroll** — run payroll for employees and contractors in one action\n"
             "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges, batches, token transfers, contract calls, x402)\n"

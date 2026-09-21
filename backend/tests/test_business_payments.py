@@ -396,56 +396,139 @@ class CsvImportTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
 
-    def _create_batch(self, kind="airdrop"):
-        resp = self.client.post("/api/payment-batches", json={
-            "kind": kind, "wallet_id": self.wallet.id, "network": "polygon", "token": "USDC",
-        })
-        self.assertEqual(resp.status_code, 200, resp.text)
-        return resp.json()["id"]
-
-    def _upload(self, batch_id, content: bytes):
-        return self.client.post(f"/api/payment-batches/{batch_id}/items/import-csv",
+    def _upload(self, content: bytes, kind="payment", **overrides):
+        data = {"kind": kind, "wallet_id": str(self.wallet.id), "network": "polygon", "token": "USDC", **overrides}
+        return self.client.post("/api/payment-batches/import", data=data,
                                  files={"file": ("rows.csv", content, "text/csv")})
 
-    def test_valid_csv_imports_every_row(self):
-        batch_id = self._create_batch()
+    def _valid(self):
+        return patch.object(batch_engine, "validate_batch",
+                            return_value={"ok": True, "item_errors": {}, "batch_errors": []})
+
+    def _batch_count(self):
+        return self.db.query(PaymentBatch).count()
+
+    def test_valid_csv_creates_a_validated_draft_ready_to_send(self):
         content = f"recipient_address,amount\n{ADDR_A},1.5\n{ADDR_B},2.5\n".encode()
-        resp = self._upload(batch_id, content)
+        with self._valid():
+            resp = self._upload(content)
         self.assertEqual(resp.status_code, 200, resp.text)
         data = resp.json()
-        self.assertEqual(data["imported"], 2)
-        self.assertEqual(data["errors"], [])
+        self.assertTrue(data["ok"])
+        self.assertEqual((data["batch"]["status"], data["batch"]["item_count"], data["batch"]["total_amount"]),
+                         ("draft", 2, "4"))
+        self.assertEqual(self._batch_count(), 1)
 
-    def test_duplicate_recipient_is_a_row_error_not_a_hard_failure(self):
-        batch_id = self._create_batch()
+    def test_duplicate_recipient_rejects_the_whole_file(self):
         content = f"recipient_address,amount\n{ADDR_A},1\n{ADDR_A},2\n".encode()
-        resp = self._upload(batch_id, content)
-        data = resp.json()
-        self.assertEqual(data["imported"], 1)
-        self.assertEqual(len(data["errors"]), 1)
-        self.assertIn("duplicate", data["errors"][0]["error"])
+        with self._valid():
+            data = self._upload(content).json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(len(data["row_errors"]), 1)
+        self.assertIn("duplicate", data["row_errors"][0]["error"])
+        self.assertEqual(self._batch_count(), 0)
 
-    def test_malformed_row_does_not_abort_the_whole_import(self):
-        batch_id = self._create_batch()
+    def test_malformed_row_rejects_the_whole_file_and_creates_nothing(self):
         content = f"recipient_address,amount\nnot-an-address,1\n{ADDR_C},3\n".encode()
-        resp = self._upload(batch_id, content)
-        data = resp.json()
-        self.assertEqual(data["imported"], 1)
-        self.assertEqual(len(data["errors"]), 1)
-        self.assertIn("invalid recipient_address", data["errors"][0]["error"])
+        with self._valid():
+            data = self._upload(content).json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(data["row_errors"][0]["row"], 2)
+        self.assertIn("invalid recipient_address", data["row_errors"][0]["error"])
+        self.assertEqual(self._batch_count(), 0)
+        self.assertEqual(self.db.query(PaymentBatchItem).count(), 0)
+
+    def test_spending_policy_block_is_reported_per_row(self):
+        self.db.add(SpendingPolicy(name="cap", network="polygon", token="USDC", max_amount_raw="1000000", active=True))
+        self.db.commit()
+        content = f"recipient_address,amount\n{ADDR_A},0.5\n{ADDR_B},5\n".encode()
+        with self._valid():
+            data = self._upload(content).json()
+        self.assertFalse(data["ok"])
+        self.assertEqual([e["row"] for e in data["row_errors"]], [3])
+        self.assertIn("spending policy", data["row_errors"][0]["error"])
+        self.assertEqual(self._batch_count(), 0)
+
+    def test_batch_level_failure_such_as_low_balance_creates_nothing(self):
+        content = f"recipient_address,amount\n{ADDR_A},1\n".encode()
+        failed = {"ok": False, "item_errors": {}, "batch_errors": ["insufficient USDC: 0 available"]}
+        with patch.object(batch_engine, "validate_batch", return_value=failed):
+            data = self._upload(content).json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(data["batch_errors"], ["insufficient USDC: 0 available"])
+        self.assertEqual(self._batch_count(), 0)
+        self.assertEqual(self.db.query(PaymentBatchItem).count(), 0)
+
+    def test_empty_csv_is_rejected(self):
+        with self._valid():
+            data = self._upload(b"recipient_address,amount\n").json()
+        self.assertFalse(data["ok"])
+        self.assertEqual(self._batch_count(), 0)
 
     def test_missing_required_column_is_rejected(self):
-        batch_id = self._create_batch()
-        content = b"wallet,amount\n0x1,1\n"
-        resp = self._upload(batch_id, content)
+        resp = self._upload(b"wallet,amount\n0x1,1\n")
         self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self._batch_count(), 0)
 
     def test_oversized_file_is_rejected(self):
-        batch_id = self._create_batch()
         row = f"{ADDR_A},1\n".encode()
         content = b"recipient_address,amount\n" + row * ((2 * 1024 * 1024 // len(row)) + 10)
-        resp = self._upload(batch_id, content)
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self._upload(content).status_code, 400)
+
+    def test_unknown_kind_is_rejected(self):
+        self.assertEqual(self._upload(f"recipient_address,amount\n{ADDR_A},1\n".encode(), kind="payroll").status_code, 400)
+
+
+class SendBatchTests(BusinessPaymentsTestCase):
+    def _send(self, batch_id, passphrase="pw"):
+        return payment_batches.send_batch(batch_id, payment_batches.ExecuteBody(passphrase=passphrase), self.db)
+
+    def _draft(self):
+        batch = self.make_batch()
+        self.add_item(batch, 0, ADDR_A)
+        self.db.commit()
+        return batch
+
+    def test_wrong_passphrase_leaves_a_draft_untouched(self):
+        from fastapi import HTTPException
+        batch = self._draft()
+        with patch("app.tools.wallet.lock.confirm_passphrase", return_value=False):
+            with self.assertRaises(HTTPException) as ctx:
+                self._send(batch.id, "wrong")
+        self.assertEqual(ctx.exception.status_code, 401)
+        self.assertEqual(self.db.get(PaymentBatch, batch.id).status, "draft")
+
+    def test_send_approves_a_draft_then_executes_it(self):
+        batch = self._draft()
+        calls = []
+        with patch("app.tools.wallet.lock.confirm_passphrase", return_value=True), \
+             patch("app.tools.wallet.encrypt.decrypt_key", return_value="key"), \
+             patch.object(batch_engine, "approve_batch", side_effect=lambda *a, **k: calls.append("approve")), \
+             patch.object(batch_engine, "execute_batch", side_effect=lambda *a, **k: calls.append("execute") or {"submitted": 1, "failed": 0}):
+            result = self._send(batch.id)
+        self.assertEqual(calls, ["approve", "execute"])
+        self.assertEqual(result["submitted"], 1)
+
+    def test_validation_failure_blocks_send_before_anything_is_signed(self):
+        from fastapi import HTTPException
+        batch = self._draft()
+        bad = batch_engine.BatchValidationError("batch has unresolved validation errors", {"ok": False, "item_errors": {}, "batch_errors": ["x"]})
+        with patch("app.tools.wallet.lock.confirm_passphrase", return_value=True), \
+             patch.object(batch_engine, "approve_batch", side_effect=bad), \
+             patch.object(batch_engine, "execute_batch") as execute:
+            with self.assertRaises(HTTPException) as ctx:
+                self._send(batch.id)
+        self.assertEqual(ctx.exception.status_code, 400)
+        execute.assert_not_called()
+
+    def test_cancelled_batch_cannot_be_sent(self):
+        from fastapi import HTTPException
+        batch = self._draft()
+        batch.status = "cancelled"
+        self.db.commit()
+        with self.assertRaises(HTTPException) as ctx:
+            self._send(batch.id)
+        self.assertEqual(ctx.exception.status_code, 409)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from web3 import Web3
@@ -222,22 +222,10 @@ def delete_item(batch_id: int, item_id: int, db: Session = Depends(get_db)):
     return {"deleted": item_id}
 
 
-@router.post("/{batch_id}/items/import-csv")
-async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """Airdrop/batch CSV import: required columns recipient_address, amount;
-    optional columns reference, note, tags (comma- or semicolon-separated
-    within the cell, e.g. "vendor;q1"). Row-level errors that don't abort
-    the whole import, duplicate-recipient detection, a size cap, and (for
-    airdrops) restriction to trusted/Sara-supported tokens."""
-    batch = _batch_or_404(db, batch_id)
-    if batch.status != "draft":
-        raise HTTPException(400, "Items can only be imported into a draft batch")
-    if batch.kind == "airdrop":
-        from app.tools.market.paraswap import trusted_symbols
-        if batch.token.upper() not in trusted_symbols(batch.network):
-            raise HTTPException(400, f"{batch.token} is not a trusted token on {batch.network} for airdrops")
-
-    raw = await file.read(_CSV_MAX_BYTES + 1)
+def _read_csv(raw: bytes) -> "pd.DataFrame":
+    """File-level checks: size, encoding, parseable, row cap, required
+    columns. Anything wrong here is a 400 — there's nothing to show a
+    per-row preview for."""
     if len(raw) > _CSV_MAX_BYTES:
         raise HTTPException(400, f"CSV file exceeds the {_CSV_MAX_BYTES // (1024 * 1024)}MB limit")
     try:
@@ -254,6 +242,16 @@ async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = 
     missing = _CSV_REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise HTTPException(400, f"CSV is missing required column(s): {', '.join(sorted(missing))}")
+    return df
+
+
+def _import_rows(db: Session, batch: PaymentBatch, df: "pd.DataFrame") -> tuple[int, list[dict]]:
+    """Adds one draft item per valid row (no commit) and returns
+    (imported, row_errors). Optional columns: reference, note, tags
+    (comma- or semicolon-separated within the cell, e.g. "vendor;q1"). Rows
+    are checked for a valid address, no duplicate recipient, an exactly
+    representable amount, and the active spending policies."""
+    from app.core import spending_policy
 
     decimals = _resolve_decimals(batch)
     existing = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
@@ -285,6 +283,13 @@ async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = 
         except ValueError as exc:
             row_errors.append({"row": line_no, "error": str(exc)})
             continue
+        policy = spending_policy.evaluate(
+            db, wallet_id=batch.wallet_id, network=batch.network, token=batch.token,
+            counterparty_id=None, destination_address=address, amount_raw=amount_raw,
+        )
+        if not policy.allowed:
+            row_errors.append({"row": line_no, "error": "blocked by spending policy: " + "; ".join(policy.denial_reasons)})
+            continue
         db.add(PaymentBatchItem(
             batch_id=batch.id, row_index=next_row_index, recipient_address=address,
             amount_raw=str(amount_raw), decimals=decimals, reference=reference,
@@ -293,11 +298,72 @@ async def import_csv(batch_id: int, file: UploadFile = File(...), db: Session = 
         seen.add(key)
         next_row_index += 1
         imported += 1
+    return imported, row_errors
 
-    append_audit(db, "payment_batch.items_imported", "payment_batch", resource_id=str(batch.id),
-                 details={"imported": imported, "errors": len(row_errors)})
+
+@router.post("/import")
+async def import_batch(
+    file: UploadFile = File(...),
+    kind: str = Form("payment"),
+    wallet_id: int = Form(...),
+    network: str = Form(...),
+    token: str = Form(...),
+    memo: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    """Upload a CSV and get back either a validated draft batch ready to
+    send, or a list of everything that's wrong. All-or-nothing: if any row
+    (or the batch as a whole — balance, gas, disabled token) fails, nothing
+    is created, so a partial list can never be sent by accident. Required
+    columns: recipient_address, amount."""
+    if kind not in ("payment", "airdrop"):
+        raise HTTPException(400, "kind must be 'payment' or 'airdrop'")
+    wallet = db.query(Wallet).filter(Wallet.id == wallet_id, Wallet.chain == "evm").first()
+    if not wallet:
+        raise HTTPException(404, "EVM wallet not found")
+    from app.core.assets import network_enabled
+    if not network_enabled(network):
+        raise HTTPException(400, f"network '{network}' is disabled")
+    memo = (memo or "").strip() or None
+    if memo and len(memo) > 500:
+        raise HTTPException(400, "Memo is limited to 500 characters")
+    df = _read_csv(await file.read(_CSV_MAX_BYTES + 1))
+
+    batch = PaymentBatch(
+        kind=kind, status="draft", wallet_id=wallet_id, network=network.lower(),
+        token=token.strip().upper(), memo=memo, created_by=_LOCAL_OWNER,
+    )
+    db.add(batch)
+    db.flush()
+    try:
+        if kind == "airdrop":
+            from app.tools.market.paraswap import trusted_symbols
+            if batch.token not in trusted_symbols(batch.network):
+                raise HTTPException(400, f"{batch.token} is not a trusted token on {batch.network} for airdrops")
+        imported, row_errors = _import_rows(db, batch, df)
+    except Exception:
+        db.rollback()
+        raise
+    if row_errors or not imported:
+        db.rollback()
+        return {"ok": False, "row_errors": row_errors, "batch_errors": [] if row_errors else ["The CSV has no rows."]}
+
+    result = batch_engine.validate_batch(db, batch)
+    if not result["ok"]:
+        items = db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).all()
+        rows = {i.id: i.row_index + 2 for i in items}
+        errors = [{"row": rows.get(int(item_id), 0), "error": "; ".join(errs)} for item_id, errs in result["item_errors"].items()]
+        db.query(PaymentBatchItem).filter(PaymentBatchItem.batch_id == batch.id).delete()
+        db.delete(batch)
+        db.commit()
+        return {"ok": False, "row_errors": errors, "batch_errors": result["batch_errors"]}
+
+    append_audit(db, "payment_batch.created", "payment_batch", resource_id=str(batch.id),
+                 details={"kind": batch.kind, "wallet_id": batch.wallet_id, "network": batch.network,
+                          "token": batch.token, "imported": imported, "source": "csv_upload"},
+                 actor_id=batch.created_by)
     db.commit()
-    return {"imported": imported, "errors": row_errors}
+    return {"ok": True, "batch": _batch_row(db, batch, with_items=True)}
 
 
 @router.post("/{batch_id}/validate")
@@ -344,6 +410,26 @@ def execute_batch(batch_id: int, body: ExecuteBody, db: Session = Depends(get_db
     finally:
         key = None
     return {**summary, "batch": _batch_row(db, batch, with_items=True)}
+
+
+@router.post("/{batch_id}/send")
+def send_batch(batch_id: int, body: ExecuteBody, db: Session = Depends(get_db)):
+    """Approve (if still a draft) and execute in one step, after the wallet
+    passphrase is confirmed. Approval re-validates the batch, and spending
+    policies are evaluated again before every item is signed."""
+    from app.tools.wallet.lock import confirm_passphrase
+
+    batch = _batch_or_404(db, batch_id)
+    if batch.status not in ("draft", "approved", "executing"):
+        raise HTTPException(409, f"This batch is {batch.status} and can't be sent")
+    if batch.status == "draft":
+        if not confirm_passphrase(body.passphrase):
+            raise HTTPException(401, "Incorrect passphrase")
+        try:
+            batch_engine.approve_batch(db, batch, _LOCAL_OWNER)
+        except batch_engine.BatchValidationError as exc:
+            raise HTTPException(400, {"message": str(exc), **exc.result})
+    return execute_batch(batch_id, body, db)
 
 
 @router.post("/{batch_id}/cancel")

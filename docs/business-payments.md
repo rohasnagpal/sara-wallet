@@ -9,8 +9,12 @@ duplicate.
 
 ## Batch, recurring & payroll payments
 
-1. **Batch payments** — pay or airdrop many recipients in one go from a
-   list, each sent as its own on-chain transaction.
+1. **Batch payments** — upload a CSV (`recipient_address`, `amount`, and
+   optional `reference`, `note`, `tags`), review the checked result, then
+   press Send. Each row is sent as its own on-chain transaction. Sara checks
+   the whole file first — addresses, duplicates, exact amounts, spending
+   policies, and balance and gas for the batch — and if anything fails it
+   creates nothing, so a partial list can never be sent by accident.
 2. **Recurring payments** — set a schedule (e.g. "every 1st of the month")
    that materializes a reviewable payment batch each time it's due.
 3. **Crypto payroll** — run payroll for a list of employees/contractors in
@@ -37,11 +41,12 @@ duplicate.
 
 ## Controls
 
-1. **Approval workflow** — every batch must be explicitly reviewed and
-   approved before it can be signed, as a separate step from creating it.
-   This is a deliberate speed bump against mistakes, not a maker/checker
-   control — Sara is a single-user, local wallet, so there's no
-   independent second party to approve on your behalf.
+1. **Review before sending** — a batch is validated and shown to you in
+   full before anything is signed, and **Send** asks for your wallet
+   passphrase. Sending approves and executes in one step, re-validating
+   first. This is a check against mistakes, not a maker/checker control —
+   Sara is a single-user, local wallet, so there's no independent second
+   party to approve on your behalf.
 2. **Scoped spending controls** — cap how much a wallet can send per
    transaction or per day/week/month, enforced right before signing.
 

@@ -67,7 +67,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 - 🧾 **Crypto invoicing & QR payments** — invoices with a QR any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. → [docs/invoicing.md](docs/invoicing.md)
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
-- 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, approval workflow, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
+- 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
 - 🪙 **ERC-20 token creator & safety tools** — deploy your own tokens, manage allowances, screen addresses, simulate and verify contract calls. → [docs/token-creator.md](docs/token-creator.md)
 - 🪪 **Sara Names** — human-readable names for your wallet addresses, with signed multi-network records. → [docs/sara-names.md](docs/sara-names.md)
 - 📊 **Portfolio intelligence & alerts** — spend analysis, unusual-activity detection, Telegram/email/webhook alerts. → [docs/business-payments.md](docs/business-payments.md)

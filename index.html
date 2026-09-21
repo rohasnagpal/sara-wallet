@@ -1255,8 +1255,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <!-- ── Batches View ── -->
         <div id="batchesView" style="display:none">
             <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">New payment batch</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Multi-recipient payments and airdrops. Each item is a separate on-chain transaction, sent sequentially - never one atomic transaction.</div>
+              <div style="font-size:15px;font-weight:600">Send a batch payment</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Upload a CSV, review the checked result, then send. Each row is a separate on-chain transaction, sent one after another - never one atomic transaction. If any row has a problem, nothing is created and you fix the file and upload it again.</div>
               <div class="field-grid">
                 <div class="field"><label class="field-label" for="batchKind">Kind</label><select class="settings-input" id="batchKind"><option value="payment">Payment</option><option value="airdrop">Airdrop</option></select></div>
                 <div class="field"><label class="field-label" for="batchWallet">Wallet</label><select class="settings-input" id="batchWallet"></select></div>
@@ -1264,8 +1264,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <div class="field"><label class="field-label" for="batchToken">Token symbol</label><input class="settings-input" id="batchToken" value="USDC" maxlength="20" placeholder="Token symbol"></div>
               </div>
               <div class="field" style="margin-top:7px"><label class="field-label" for="batchMemo">Memo (optional)</label><input class="settings-input" id="batchMemo" maxlength="500" placeholder="Memo (optional)"></div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="createBatch()">Create draft batch</button>
-              <div class="settings-status" id="batchCreateStatus"></div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin-top:10px">Columns: <code>recipient_address</code>, <code>amount</code> (required), <code>reference</code>, <code>note</code>, <code>tags</code> (optional - separate several tags with commas or semicolons). <a href="#" onclick="downloadBatchTemplate();return false" style="color:var(--accent)">Download a template</a></div>
+              <div class="field-row" style="margin-top:8px;align-items:flex-end">
+                <input type="file" id="batchCsvFile" accept=".csv" class="settings-input" style="padding:6px 8px" aria-label="Batch CSV file">
+                <button class="settings-save-btn" id="batchValidateBtn" onclick="validateBatchCsv()">Validate CSV</button>
+              </div>
+              <div id="batchCreateStatus" style="font-size:11px;margin-top:8px"></div>
             </div>
             <div class="card">
               <div style="display:flex;justify-content:space-between;align-items:center"><strong>Batches</strong><button class="settings-save-btn" onclick="loadBatches()">Refresh</button></div>
@@ -3430,18 +3434,51 @@ async function loadBatches() {
     </div>`).join('') : '<div style="color:var(--text-muted)">No batches yet.</div>';
 }
 
-async function createBatch() {
-  const body = {
-    kind: document.getElementById('batchKind').value,
-    wallet_id: Number(document.getElementById('batchWallet').value),
-    network: document.getElementById('batchNetwork').value,
-    token: document.getElementById('batchToken').value.trim().toUpperCase(),
-    memo: document.getElementById('batchMemo').value.trim() || null,
-  };
-  const r = await fetch('/api/payment-batches', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  document.getElementById('batchCreateStatus').textContent = r.ok ? 'Draft batch #' + data.id + ' created.' : (_apiErrorText(data, 'Could not create batch.'));
-  if (r.ok) { await loadBatches(); await openBatch(data.id); }
+function downloadBatchTemplate() {
+  const csv = 'recipient_address,amount,reference,note,tags\n0xREPLACE_WITH_RECIPIENT_ADDRESS,10.00,INV-001,March payout,vendor;q1\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+  a.download = 'sara-batch-template.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// Upload -> the server parses and validates the whole file without creating
+// anything if a single row (or the balance/gas check) fails; on success it
+// returns a draft batch that the detail card below shows for review + Send.
+async function validateBatchCsv() {
+  const status = document.getElementById('batchCreateStatus');
+  const file = document.getElementById('batchCsvFile').files[0];
+  status.style.color = 'var(--red)';
+  if (!file) { status.textContent = 'Choose a CSV file first.'; return; }
+  const wallet = document.getElementById('batchWallet').value;
+  if (!wallet) { status.textContent = 'Add a wallet first.'; return; }
+  const form = new FormData();
+  form.append('file', file);
+  form.append('kind', document.getElementById('batchKind').value);
+  form.append('wallet_id', wallet);
+  form.append('network', document.getElementById('batchNetwork').value);
+  form.append('token', document.getElementById('batchToken').value.trim().toUpperCase());
+  form.append('memo', document.getElementById('batchMemo').value.trim());
+  const btn = document.getElementById('batchValidateBtn');
+  btn.disabled = true; status.style.color = 'var(--text-muted)'; status.textContent = 'Validating…';
+  try {
+    const r = await fetch('/api/payment-batches/import', {method: 'POST', body: form});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'Could not read the CSV.'); return; }
+    if (!data.ok) {
+      const lines = [...(data.batch_errors || []).map(e => _escapeHtml(e)), ...(data.row_errors || []).map(e => `Row ${_escapeHtml(e.row)}: ${_escapeHtml(e.error)}`)];
+      status.style.color = 'var(--red)';
+      status.innerHTML = '<strong>Nothing was created - fix these and upload again:</strong><div style="margin-top:5px">' + lines.join('<br>') + '</div>';
+      closeBatch();
+      return;
+    }
+    status.style.color = 'var(--green)';
+    status.textContent = `Valid: ${data.batch.item_count} recipient(s), ${data.batch.total_amount} ${data.batch.token}. Review below, then press Send.`;
+    document.getElementById('batchCsvFile').value = '';
+    await loadBatches(); await openBatch(data.batch.id);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 let _openBatchId = null;
@@ -3452,112 +3489,56 @@ async function openBatch(id) {
   card.style.display = '';
   const b = await fetch('/api/payment-batches/' + id).then(r => r.json());
   const items = b.items || [];
+  const shown = items.slice(0, 200);
+  const sendable = b.status === 'draft' || b.status === 'approved';
   card.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><strong>Batch #${b.id}</strong> · ${_escapeHtml(b.kind)} · ${_escapeHtml(b.status)}</div>
+      <div><strong>${b.status === 'draft' ? 'Review & send' : 'Batch'} #${b.id}</strong> · ${_escapeHtml(b.kind)} · ${_escapeHtml(b.status)}</div>
       <button class="dir-del" onclick="closeBatch()">Close</button>
     </div>
-    <div style="color:var(--text-muted);font-size:10.5px;margin:4px 0 10px">wallet #${_escapeHtml(b.wallet_id)} · ${_escapeHtml(b.network)} · ${_escapeHtml(b.token)} · total ${_escapeHtml(b.total_amount)}${b.approved_by ? ' · approved by ' + _escapeHtml(b.approved_by) : ''}</div>
-    <div id="batchItemsList">${items.length ? items.map(i => `
+    <div style="color:var(--text-muted);font-size:10.5px;margin:4px 0 10px">wallet #${_escapeHtml(b.wallet_id)} · ${_escapeHtml(b.network)} · ${_escapeHtml(b.token)} · ${_escapeHtml(b.item_count)} recipient(s) · total ${_escapeHtml(b.total_amount)}${b.memo ? ' · ' + _escapeHtml(b.memo) : ''}</div>
+    <div id="batchItemsList">${shown.length ? shown.map(i => `
       <div style="padding:6px 0;border-bottom:1px solid var(--border-dark);font-size:11px">
-        <div style="display:flex;justify-content:space-between"><span>${_escapeHtml(i.recipient_address)}</span><span>${_escapeHtml(i.status)}</span></div>
-        <div style="color:var(--text-muted)">${_escapeHtml(i.amount)} ${_escapeHtml(b.token)}${i.reference ? ' · ' + _escapeHtml(i.reference) : ''}${i.note ? ' · ' + _escapeHtml(i.note) : ''}${(i.tags || []).length ? ' · ' + i.tags.map(t => _escapeHtml(t)).join(', ') : ''}${i.failure_reason ? ' · ' + _escapeHtml(i.failure_reason) : ''}${i.tx_hash ? ' · ' + _escapeHtml(i.tx_hash) : ''}</div>
+        <div style="display:flex;justify-content:space-between;gap:8px"><span style="word-break:break-all">${_escapeHtml(i.recipient_address)}</span><span>${_escapeHtml(i.status)}</span></div>
+        <div style="color:var(--text-muted)">${_escapeHtml(i.amount)} ${_escapeHtml(b.token)}${i.reference ? ' · ' + _escapeHtml(i.reference) : ''}${i.note ? ' · ' + _escapeHtml(i.note) : ''}${(i.tags || []).length ? ' · ' + i.tags.map(t => _escapeHtml(t)).join(', ') : ''}</div>
+        ${i.failure_reason ? `<div style="color:var(--red)">${_escapeHtml(i.failure_reason)}</div>` : ''}
+        ${i.tx_hash ? `<div style="color:var(--text-muted)">tx ${_escapeHtml(i.tx_hash)}</div>` : ''}
         ${b.status === 'draft' ? `<button class="dir-del" onclick="deleteBatchItem(${i.id})">Remove</button>` : ''}
-      </div>`).join('') : '<div style="color:var(--text-muted)">No items yet.</div>'}</div>
-    ${b.status === 'draft' ? `
-    <div class="field-grid" style="margin-top:10px">
-      <div class="field"><label class="field-label" for="itemRecipient">Recipient address</label><input class="settings-input" id="itemRecipient" placeholder="Recipient address (0x…)"></div>
-      <div class="field"><label class="field-label" for="itemAmount">Amount</label><input class="settings-input" id="itemAmount" placeholder="Amount"></div>
-      <div class="field"><label class="field-label" for="itemReference">Reference (optional)</label><input class="settings-input" id="itemReference" placeholder="Reference (optional)"></div>
-      <div class="field"><label class="field-label" for="itemNote">Note (optional)</label><input class="settings-input" id="itemNote" placeholder="Note (optional)"></div>
-      <div class="field"><label class="field-label" for="itemTags">Tags (optional)</label><input class="settings-input" id="itemTags" placeholder="e.g. vendor, q1"></div>
-    </div>
-    <button class="settings-save-btn" style="margin-top:6px" onclick="addBatchItem()">Add item</button>
-    <div class="result-card" style="margin-top:10px">
-      <div style="font-size:12.5px;font-weight:600">Or import a CSV</div>
-      <div style="font-size:10.5px;color:var(--text-secondary);margin-top:3px">Columns: <code>recipient_address</code>, <code>amount</code> (required), <code>reference</code>, <code>note</code>, <code>tags</code> (optional - comma or semicolon separated within the cell, e.g. "vendor;q1").</div>
-      <div class="field-row" style="margin-top:8px;align-items:flex-end">
-        <input type="file" id="csvFile" accept=".csv" class="settings-input" style="padding:6px 8px">
-        <button class="settings-save-btn" onclick="importBatchCsv()">Import CSV</button>
-      </div>
-      <div id="csvImportStatus" style="font-size:11px;margin-top:8px"></div>
-    </div>
-    ` : ''}
+      </div>`).join('') + (items.length > shown.length ? `<div style="color:var(--text-muted);font-size:11px;padding:6px 0">…and ${items.length - shown.length} more</div>` : '') : '<div style="color:var(--text-muted)">No items.</div>'}</div>
     <div id="batchValidation" style="font-size:10.5px;color:#c0392b;margin-top:8px"></div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-      <button class="settings-save-btn" onclick="validateBatch(${b.id})">Validate</button>
-      ${b.status === 'draft' ? `<button class="settings-save-btn" onclick="approveBatch(${b.id})">Approve</button>` : ''}
-      ${b.status === 'approved' ? `<button class="settings-save-btn" onclick="executeBatch(${b.id})">Execute</button>` : ''}
-      ${['draft', 'approved'].includes(b.status) ? `<button class="dir-del" onclick="cancelBatch(${b.id})">Cancel batch</button>` : ''}
+      ${sendable ? `<button class="settings-save-btn" onclick="sendBatch(${b.id})">Send ${_escapeHtml(b.total_amount)} ${_escapeHtml(b.token)}</button>` : ''}
+      ${sendable ? `<button class="dir-del" onclick="cancelBatch(${b.id})">Cancel batch</button>` : ''}
     </div>
   `;
 }
 
 function closeBatch() { _openBatchId = null; document.getElementById('batchDetailCard').style.display = 'none'; }
 
-async function addBatchItem() {
-  const body = {
-    recipient_address: document.getElementById('itemRecipient').value.trim(),
-    amount: document.getElementById('itemAmount').value.trim(),
-    reference: document.getElementById('itemReference').value.trim() || null,
-    note: document.getElementById('itemNote').value.trim() || null,
-    tags: document.getElementById('itemTags').value.split(',').map(t => t.trim()).filter(Boolean),
-  };
-  const r = await fetch(`/api/payment-batches/${_openBatchId}/items`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  if (!r.ok) { alert(_apiErrorText((await r.json().catch(() => ({}))), 'Could not add item')); return; }
-  await openBatch(_openBatchId); await loadBatches();
-}
-
 async function deleteBatchItem(itemId) {
   await fetch(`/api/payment-batches/${_openBatchId}/items/${itemId}`, {method: 'DELETE'});
   await openBatch(_openBatchId); await loadBatches();
 }
 
-async function importBatchCsv() {
-  const fileInput = document.getElementById('csvFile');
-  if (!fileInput.files.length) {
-    const s = document.getElementById('csvImportStatus');
-    s.style.color = 'var(--red)'; s.textContent = 'Choose a CSV file first.';
+// Approve + execute in one step: the server confirms the passphrase first,
+// re-validates (balance, gas, addresses), then signs each item, re-checking
+// spending policies before every one.
+async function sendBatch(id) {
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  const r = await fetch(`/api/payment-batches/${id}/send`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const d = data && data.detail;
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const problems = [...(d.batch_errors || []), ...Object.values(d.item_errors || {}).flat()];
+      alert((d.message || 'Could not send the batch') + (problems.length ? ': ' + problems.join(' · ') : ''));
+    } else {
+      alert(_apiErrorText(data, 'Send failed'));
+    }
+    await openBatch(id); await loadBatches();
     return;
   }
-  const form = new FormData(); form.append('file', fileInput.files[0]);
-  const r = await fetch(`/api/payment-batches/${_openBatchId}/items/import-csv`, {method: 'POST', body: form});
-  const data = await r.json().catch(() => ({}));
-  const ok = r.ok;
-  const errors = data.errors || [];
-  // openBatch() re-renders the whole card (wiping any status text set before
-  // it), so re-fetch the status element after the refresh and write into it.
-  await openBatch(_openBatchId); await loadBatches();
-  const status = document.getElementById('csvImportStatus');
-  if (!status) return;
-  if (!ok) { status.style.color = 'var(--red)'; status.textContent = _apiErrorText(data, 'CSV import failed.'); return; }
-  status.style.color = errors.length ? 'var(--red)' : 'var(--green)';
-  status.innerHTML = `Imported ${data.imported} row(s).` + (errors.length
-    ? `<div style="margin-top:5px;color:var(--red)">${errors.map(e => `Row ${e.row}: ${_escapeHtml(e.error)}`).join('<br>')}</div>`
-    : '');
-}
-
-async function validateBatch(id) {
-  const r = await fetch(`/api/payment-batches/${id}/validate`, {method: 'POST'});
-  const data = await r.json().catch(() => ({}));
-  const box = document.getElementById('batchValidation');
-  const errors = [...(data.batch_errors || []), ...Object.values(data.item_errors || {}).flat()];
-  box.textContent = errors.length ? errors.join(' · ') : (data.ok ? 'Batch is valid and ready to approve.' : 'Validation failed.');
-}
-
-async function approveBatch(id) {
-  const r = await fetch(`/api/payment-batches/${id}/approve`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({})});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(_apiErrorText(data, 'Approval failed')); return; }
-  await openBatch(id); await loadBatches();
-}
-
-async function executeBatch(id) {
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch(`/api/payment-batches/${id}/execute`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase})});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(_apiErrorText(data, 'Execution failed')); return; }
-  alert(`Executed: ${data.submitted} submitted, ${data.failed} failed.`);
+  alert(`Sent: ${data.submitted} submitted, ${data.failed} failed.`);
   await openBatch(id); await loadBatches();
 }
 
