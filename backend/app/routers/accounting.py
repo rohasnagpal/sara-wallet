@@ -201,7 +201,7 @@ def pnl_report(
                                                  CostLot.source == "unknown_opening_balance").all()
     }
     if any(d.lot_id in synthetic_lot_ids for d, _ in disposal_rows):
-        warnings.append("one or more disposals used a zero-cost synthetic lot because acquisition history was incomplete")
+        warnings.append("Some tokens you sent have no matching purchase record, so their cost was treated as $0 and your profit may look higher than it really is.")
 
     lot_query = db.query(CostLot).filter(CostLot.token == token, CostLot.network == network)
     if wallet_id is not None:
@@ -223,7 +223,7 @@ def pnl_report(
                 )
                 unrealized_total += remaining_qty * current_price - remaining_cost
         else:
-            warnings.append(f"could not source a current price for {token}; unrealized gain/loss omitted")
+            warnings.append(f"Couldn't get today's price for {token}, so the figure for tokens you still hold isn't shown.")
 
     return {
         "method": "FIFO", "currency": "USD", "token": token, "network": network,
@@ -261,7 +261,7 @@ def income_expense_report(
         value = Decimal(tx.fiat_usd_value) if tx.fiat_usd_value is not None else None
         if value is None:
             if classification in _INCOME_CLASSIFICATIONS or classification in _EXPENSE_CLASSIFICATIONS:
-                warnings.append(f"transaction {tx.id} has no USD valuation and was excluded from totals")
+                warnings.append(f"Transaction {tx.id} has no dollar value, so it wasn't counted.")
             continue
         if tx.direction == "incoming" and classification in _INCOME_CLASSIFICATIONS:
             income_total += value

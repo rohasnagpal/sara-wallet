@@ -142,7 +142,7 @@ class FifoCostBasisTests(AccountingTestCase):
         disposal_tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="5", fiat_usd_value="5.00",
                                     when=datetime(2026, 1, 1), tx_hash="0xdisp1")
         result = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        self.assertTrue(any("zero-cost opening balance" in w for w in result["warnings"]))
+        self.assertTrue(any("no matching purchase record" in w for w in result["warnings"]))
         disposal = self.db.query(Disposal).filter_by(disposal_transaction_id=disposal_tx.id).one()
         self.assertEqual(Decimal(disposal.cost_basis_usd), Decimal("0"))
         self.assertEqual(Decimal(disposal.realized_gain_usd), Decimal("5.00"))

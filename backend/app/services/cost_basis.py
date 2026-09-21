@@ -100,8 +100,9 @@ def rebuild_lots(db: Session, token: str, network: str) -> dict:
                 i += 1
         if remaining_need > 0:
             warnings.append(
-                f"wallet {wallet_id}: {token} disposal on {network} exceeds known acquisition history by "
-                f"{remaining_need} base units; treated as a zero-cost opening balance"
+                f"Some {token} you sent has no matching purchase record (wallet {wallet_id}, {network}), so its cost "
+                f"was treated as $0 and your profit may look higher than it really is. This usually means older "
+                f"transactions haven't been imported."
             )
             synthetic = _new_lot(wallet_id, when, remaining_need, decimals, Decimal(0), "unknown_opening_balance", None)
             synthetic.remaining_raw = "0"
@@ -110,7 +111,7 @@ def rebuild_lots(db: Session, token: str, network: str) -> dict:
 
     for t in txs:
         if t.amount_raw is None:
-            warnings.append(f"transaction {t.id} has no exact amount_raw; excluded from lot rebuild")
+            warnings.append(f"Transaction {t.id} is missing its exact amount, so it was left out.")
             continue
         quantity_raw = int(t.amount_raw)
         classification = class_by_tx.get(t.id)
@@ -122,7 +123,7 @@ def rebuild_lots(db: Session, token: str, network: str) -> dict:
             if t.fiat_usd_value is not None:
                 cost_usd = Decimal(t.fiat_usd_value)
             else:
-                warnings.append(f"transaction {t.id} ({t.tx_hash}) has no USD valuation; lot recorded with $0 cost basis")
+                warnings.append(f"Transaction {t.id} has no dollar value, so it was recorded as costing $0.")
                 cost_usd = Decimal(0)
             classification_name = (classification.classification if classification else None) or t.category
             source = _SOURCE_BY_CLASSIFICATION.get(classification_name, "transfer_in")
@@ -151,15 +152,15 @@ def rebuild_lots(db: Session, token: str, network: str) -> dict:
                         open_lots[dest.wallet_id].append(moved)
                     continue
                 warnings.append(
-                    f"transaction {t.id} is flagged as an internal transfer but its matching leg was not "
-                    f"found in this rebuild scope; treated as a disposal instead of a lot move"
+                    f"Transaction {t.id} looks like a move between your own wallets, but the other side wasn't "
+                    f"found, so it was counted as a sale."
                 )
 
             allocations = _consume_fifo(t.wallet_id, quantity_raw, t.decimals, t.timestamp)
             if t.fiat_usd_value is not None:
                 proceeds = Decimal(t.fiat_usd_value)
             else:
-                warnings.append(f"transaction {t.id} ({t.tx_hash}) has no USD valuation; proceeds recorded as $0")
+                warnings.append(f"Transaction {t.id} has no dollar value, so the sale was recorded as $0.")
                 proceeds = Decimal(0)
 
             fee_usd = None
@@ -172,7 +173,7 @@ def rebuild_lots(db: Session, token: str, network: str) -> dict:
                 except Exception:
                     fee_usd = None
                 if fee_usd is None:
-                    warnings.append(f"transaction {t.id}: could not price fee ({t.fee_token}); fee excluded from gain/loss")
+                    warnings.append(f"Transaction {t.id}: couldn't get the price of the {t.fee_token} network fee, so the fee isn't included.")
 
             total_take = sum(take for _, take in allocations) or 1
             for lot, take in allocations:
