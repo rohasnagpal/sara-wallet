@@ -1250,17 +1250,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div style="display:flex;justify-content:space-between;align-items:center"><strong>Invoices</strong><span style="display:flex;gap:6px;align-items:center"><a class="mini-btn" href="/api/payments/requests/export" title="Download all invoices as CSV">Export CSV</a><button class="settings-save-btn" onclick="loadInvoices()">Refresh</button></span></div>
             <div id="invoiceList" style="font-size:11px;margin-top:8px">Loading…</div>
           </div>
-          <div class="card">
-            <div style="font-size:13px;font-weight:600">Merchant API</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Create a scoped API key and optional signed payment webhook.</div>
-            <div class="field-row">
-              <div class="field"><label class="field-label" for="merchantName">Client name</label><input class="settings-input" id="merchantName" maxlength="80" placeholder="Client name"></div>
-              <div class="field"><label class="field-label" for="merchantWebhook">Webhook URL</label><input class="settings-input" id="merchantWebhook" placeholder="https://… webhook"></div>
-              <button class="settings-save-btn" onclick="createMerchantClient()">Create key</button>
-            </div>
-            <div id="merchantResult" style="font-size:11px;word-break:break-all;margin-top:8px"></div>
-            <div id="merchantList" style="font-size:11px;margin-top:8px"></div>
-          </div>
         </div>
 
         <!-- ── Batches View ── -->
@@ -3137,10 +3126,7 @@ async function loadInvoices() {
       ? usdcNetworks.map(n => `<option value="${_escapeHtml(n.id)}">${_escapeHtml(n.label)}</option>`).join('')
       : '<option value="">No USDC networks enabled</option>';
   }
-  const [invoices, clients] = await Promise.all([
-    fetch('/api/payments/invoices').then(r => r.ok ? r.json() : Promise.reject()),
-    fetch('/api/payments/merchant/clients').then(r => r.ok ? r.json() : []).catch(() => [])
-  ]).catch(() => [[], []]);
+  const invoices = await fetch('/api/payments/invoices').then(r => r.ok ? r.json() : Promise.reject()).catch(() => []);
   document.getElementById('invoiceList').innerHTML = invoices.length ? invoices.map(i => {
     const dueText = i.due_date ? 'Due ' + new Date(i.due_date).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'}) : '';
     const metaLine = [i.description, dueText].filter(Boolean).map(x => _escapeHtml(x)).join(' · ');
@@ -3160,7 +3146,6 @@ async function loadInvoices() {
     </div>
   </div>`;
   }).join('') : '<span style="color:var(--text-muted)">No invoices yet.</span>';
-  document.getElementById('merchantList').innerHTML = clients.map(c => `<div>${_escapeHtml(c.name)} · ${_escapeHtml(c.api_key_prefix)}… · ${c.enabled ? 'active' : 'disabled'}${c.enabled ? ` <button class="dir-del" onclick="disableMerchantClient(${Number(c.id)})">Disable</button>` : ''}</div>`).join('');
 }
 
 async function createInvoice() {
@@ -3408,19 +3393,6 @@ async function downloadInvoicePng(reference) {
   } catch (e) {
     alert('Could not generate the invoice image.');
   }
-}
-
-async function createMerchantClient() {
-  const body = {name:document.getElementById('merchantName').value, wallet_id:Number(document.getElementById('invoiceWallet').value), webhook_url:document.getElementById('merchantWebhook').value || null};
-  const r = await fetch('/api/payments/merchant/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data = await r.json().catch(()=>({})); const box = document.getElementById('merchantResult');
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not create key.'); return; }
-  box.innerHTML = `<strong>Save now - shown once.</strong><br>API key: <code>${_escapeHtml(data.api_key)}</code>${data.webhook_signing_secret ? `<br>Webhook secret: <code>${_escapeHtml(data.webhook_signing_secret)}</code>` : ''}`;
-  await loadInvoices();
-}
-
-async function disableMerchantClient(id) {
-  await fetch('/api/payments/merchant/clients/' + id,{method:'DELETE'}); await loadInvoices();
 }
 
 // ══════════════════════════════════════

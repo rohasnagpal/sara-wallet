@@ -39,7 +39,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Address book entries
 - Chat commands
 - Transaction preparation and confirmation
-- Invoices, payment QR codes, Scan to Pay, receipts, merchant API and automatic reconciliation
+- Invoices, payment QR codes, Scan to Pay, receipts and automatic reconciliation
 - Batch/recurring payments, payroll and authenticated approvals
 - Accounting, fiat valuation, FIFO cost basis, reporting and exports
 - Token creation/management, allowance controls and transaction simulation
@@ -112,4 +112,4 @@ key decryption, transaction building and signing.
 See also: [security-model.md](security-model.md) ·
 [x402.md](x402.md) · [business-payments.md](business-payments.md) ·
 [token-creator.md](token-creator.md) · [sara-names.md](sara-names.md) ·
-[merchant-api.md](merchant-api.md)
+[invoicing.md](invoicing.md)

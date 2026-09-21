@@ -1,4 +1,4 @@
-# Crypto Invoicing & Merchant API
+# Crypto Invoicing
 
 Sara's crypto invoicing turns a request for payment into a QR code and
 payment page a customer can just pay — no manual bookkeeping to mark it
@@ -26,18 +26,6 @@ matching on-chain transfer, and exposes a proof-of-payment receipt.
 `ALCHEMY_API_KEY` enables USDC balance discovery and automatic EVM
 payment-request reconciliation (instead of requiring a manual "mark
 paid").
-
-## Merchant API
-
-Create a merchant client in the Invoices screen, save the API key when
-shown, then use `X-Sara-Merchant-Key` with:
-
-- `POST /api/payments/merchant/invoices`
-- `GET /api/payments/merchant/invoices/{reference}`
-
-An optional HTTPS webhook receives `payment_request.paid`; verify the exact
-request body using HMAC-SHA256 and the `X-Sara-Signature-256` header.
-Failed webhook deliveries use Sara's bounded retry queue.
 
 ## Roadmap
 

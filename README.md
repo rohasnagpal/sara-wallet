@@ -64,7 +64,7 @@ For something you can actually run and watch pay for itself: `examples/x402/` sh
 ## ⭐ Key Features
 
 - 💸 **Natural-language USDC payments** — resolve a recipient, show the exact amount and fee, confirm, sign
-- 🧾 **Crypto invoicing & QR payments** — invoices with a QR any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. → [docs/merchant-api.md](docs/merchant-api.md)
+- 🧾 **Crypto invoicing & QR payments** — invoices with a QR any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. → [docs/invoicing.md](docs/invoicing.md)
 - 🔁 **Swaps & bridges** — trade or move stablecoins across networks with the quote shown before you sign
 - 🤖 **Agentic payments (x402)** — pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. → [docs/x402.md](docs/x402.md)
 - 🏢 **Business & accounting** — batch payments, crypto payroll, spending policies, approval workflow, FIFO cost basis, CSV/XLSX exports. → [docs/business-payments.md](docs/business-payments.md)
@@ -202,7 +202,7 @@ SARA_NAME_SERVICE_URL=
 
 At any point, type **"How to use Sara"** in the chat (it's pinned as the first suggestion chip) for a feature list and current configuration status, including configured keys, Sara Names availability and the selected AI model.
 
-For invoices/merchant API, business payments, and token/contract tools usage, see [docs/merchant-api.md](docs/merchant-api.md), [docs/business-payments.md](docs/business-payments.md) and [docs/token-creator.md](docs/token-creator.md).
+For invoicing, business payments, and token/contract tools usage, see [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md) and [docs/token-creator.md](docs/token-creator.md).
 
 ---
 
@@ -247,7 +247,7 @@ See [`LICENSE`](LICENSE) for the full text, and [`DISCLAIMER.md`](DISCLAIMER.md)
 - [docs/business-payments.md](docs/business-payments.md) — batches, payroll, accounting, intelligence, alerts
 - [docs/token-creator.md](docs/token-creator.md) — ERC-20 creation, allowances, contract tools
 - [docs/sara-names.md](docs/sara-names.md) — human-readable wallet names
-- [docs/merchant-api.md](docs/merchant-api.md) — invoices, webhooks, merchant API
+- [docs/invoicing.md](docs/invoicing.md) — invoices, QR payments, receipts
 - [docs/third-party-services.md](docs/third-party-services.md) — every external service Sara connects to, which need API keys, and Sara's no-markup policy
 - [ROADMAP.md](ROADMAP.md) — what's Now / Next / Exploring
 - [SECURITY.md](SECURITY.md) — supported versions, vulnerability reporting, audit status

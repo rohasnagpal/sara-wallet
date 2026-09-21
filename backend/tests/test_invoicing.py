@@ -8,7 +8,7 @@ from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import AlertDestination, Base, DomainEvent, MerchantClient, PaymentRequest, Transaction, Wallet
+from app.db.models import AlertDestination, Base, DomainEvent, PaymentRequest, Transaction, Wallet
 from app.routers import payments
 from app.services import alerts
 from app.tools.payments import links, reconcile
@@ -61,19 +61,7 @@ class InvoicingTests(unittest.TestCase):
         event = self.db.query(DomainEvent).filter_by(event_type="payment_request.paid").one()
         self.assertIsNone(json.loads(event.payload)["merchant_client_id"])
 
-    def test_merchant_api_key_is_hashed_and_scoped(self):
-        key = "sara_live_test-secret"
-        import hashlib
-        client = MerchantClient(name="Shop", wallet_id=self.wallet.id, api_key_prefix=key[:16],
-                                api_key_hash=hashlib.sha256(key.encode()).hexdigest())
-        self.db.add(client)
-        self.db.commit()
-        self.assertEqual(payments._merchant(key, self.db).id, client.id)
-        with self.assertRaises(Exception):
-            payments._merchant(key + "wrong", self.db)
-        self.assertNotIn("test-secret", client.api_key_hash)
-
-    def test_merchant_webhook_receives_only_its_invoice_event(self):
+    def test_scoped_webhook_receives_only_its_invoice_event(self):
         self.db.add_all([
             AlertDestination(kind="webhook", target="https://one.example/hook",
                              secret=json.dumps({"merchant_client_id": 1, "event_types": ["payment_request.paid"]})),

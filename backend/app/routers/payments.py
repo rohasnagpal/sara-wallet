@@ -1,19 +1,15 @@
 import io
 import csv
-import hashlib
 import html
-import json
-import secrets
 from datetime import datetime, timezone
 from decimal import Decimal
 from urllib.parse import quote
-from fastapi import APIRouter, HTTPException, Query, Depends, Header
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import Response, StreamingResponse, HTMLResponse
 from pydantic import BaseModel, Field
-from typing import Optional
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db.models import Wallet, PaymentRequest, MerchantClient, AlertDestination, Transaction
+from app.db.models import Wallet, PaymentRequest, Transaction
 from app.tools.payments.links import decode_payload, create_payment_request, encode_payload, parse_eip681
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
@@ -77,7 +73,7 @@ def _invoice_dict(row: PaymentRequest, wallet_name: str | None = None, *, public
     return data
 
 
-def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest, merchant_id: int | None = None):
+def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest):
     # USDC-only is deliberate, not a current-scope gap: an invoice fixes an
     # amount at creation time, and reconciliation (reconcile.py) matches it
     # exactly with no price tolerance — a stablecoin is what makes that a
@@ -100,7 +96,7 @@ def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest, mer
     row, payload = create_payment_request(
         db, wallet, body.network, body.token, body.amount, body.note,
         customer_name=body.customer_name, customer_email=body.customer_email,
-        description=body.description, due_date=due_date, merchant_client_id=merchant_id,
+        description=body.description, due_date=due_date,
     )
     if row is None: raise HTTPException(400, payload)
     return row, payload
@@ -164,86 +160,6 @@ def invoice_receipt(reference: str, db: Session = Depends(get_db)):
             "token":row.token,"network":row.network,"from":tx.from_address if tx else None,
             "to":row.payment_address,"timestamp":tx.timestamp.isoformat() if tx and tx.timestamp else None,
             "transaction_hash":row.matched_tx_hash,"customer_name":row.customer_name}
-
-
-class MerchantClientBody(BaseModel):
-    name: str = Field(..., min_length=1, max_length=80)
-    wallet_id: int
-    webhook_url: str | None = None
-
-
-@router.post("/merchant/clients", dependencies=[Depends(require_session)])
-def create_merchant_client(body: MerchantClientBody, db: Session = Depends(get_db)):
-    wallet = db.query(Wallet).filter(Wallet.id == body.wallet_id, Wallet.chain == "evm").first()
-    if not wallet: raise HTTPException(404, "EVM wallet not found")
-    if db.query(MerchantClient).filter(MerchantClient.name == body.name).first(): raise HTTPException(409, "Merchant client name exists")
-    key = "sara_live_" + secrets.token_urlsafe(32)
-    client = MerchantClient(name=body.name, wallet_id=wallet.id, api_key_prefix=key[:16], api_key_hash=hashlib.sha256(key.encode()).hexdigest())
-    db.add(client); db.flush()
-    webhook_secret = None
-    if body.webhook_url:
-        from app.services.alerts import validate_webhook_url
-        try: validate_webhook_url(body.webhook_url)
-        except ValueError as exc: raise HTTPException(400, str(exc))
-        webhook_secret = secrets.token_urlsafe(32)
-        destination = AlertDestination(kind="webhook", target=body.webhook_url,
-            secret=json.dumps({"signing_secret":webhook_secret,"event_types":["payment_request.paid"],"merchant_client_id":client.id}))
-        db.add(destination); db.flush(); client.alert_destination_id = destination.id
-    db.commit()
-    return {"id":client.id,"name":client.name,"api_key":key,"api_key_prefix":client.api_key_prefix,
-            "webhook_signing_secret":webhook_secret,"warning":"The API key and webhook secret are shown only once."}
-
-
-def _merchant(key: str, db: Session) -> MerchantClient:
-    if not key:
-        raise HTTPException(401, "Merchant API key is required")
-    digest = hashlib.sha256(key.encode()).hexdigest()
-    client = db.query(MerchantClient).filter(
-        MerchantClient.api_key_prefix == key[:16], MerchantClient.enabled.is_(True)
-    ).first()
-    if client and not secrets.compare_digest(client.api_key_hash, digest):
-        client = None
-    if not client: raise HTTPException(401, "Invalid merchant API key")
-    return client
-
-
-@router.get("/merchant/clients", dependencies=[Depends(require_session)])
-def list_merchant_clients(db: Session = Depends(get_db)):
-    rows = db.query(MerchantClient).order_by(MerchantClient.created_at.desc()).all()
-    return [{"id":r.id, "name":r.name, "wallet_id":r.wallet_id,
-             "api_key_prefix":r.api_key_prefix, "webhook_configured":bool(r.alert_destination_id),
-             "enabled":r.enabled, "created_at":r.created_at.isoformat()} for r in rows]
-
-
-@router.delete("/merchant/clients/{client_id}", dependencies=[Depends(require_session)])
-def disable_merchant_client(client_id: int, db: Session = Depends(get_db)):
-    client = db.query(MerchantClient).filter(MerchantClient.id == client_id).first()
-    if not client: raise HTTPException(404, "Merchant client not found")
-    client.enabled = False
-    if client.alert_destination_id:
-        destination = db.query(AlertDestination).filter(AlertDestination.id == client.alert_destination_id).first()
-        if destination: destination.enabled = False
-    db.commit()
-    return {"ok": True}
-
-
-@router.post("/merchant/invoices")
-def merchant_create_invoice(body: CreateInvoiceRequest, x_sara_merchant_key: str = Header(""), db: Session = Depends(get_db)):
-    client = _merchant(x_sara_merchant_key, db)
-    wallet = db.query(Wallet).filter(Wallet.id == client.wallet_id).first()
-    row, payload = _create_invoice(db, wallet, body, client.id)
-    return {**_invoice_dict(row), "payment_page":f"/api/payments/page/{row.reference}", "payload":payload}
-
-
-@router.get("/merchant/invoices/{reference}")
-def merchant_invoice(reference: str, x_sara_merchant_key: str = Header(""), db: Session = Depends(get_db)):
-    client = _merchant(x_sara_merchant_key, db)
-    row = db.query(PaymentRequest).filter(PaymentRequest.reference == reference, PaymentRequest.merchant_client_id == client.id).first()
-    if not row: raise HTTPException(404, "Invoice not found")
-    if row.status in ("pending", "overdue"): check_payment_request(db, row)
-    data = _invoice_dict(row)
-    db.commit()
-    return data
 
 
 class UpdateRequestStatus(BaseModel):
