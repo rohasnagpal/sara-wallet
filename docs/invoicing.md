@@ -12,10 +12,7 @@ matching on-chain transfer, and exposes a proof-of-payment receipt.
 
 1. **Wallet-scannable QR codes** — every invoice shows a standard EIP-681
    QR pre-filled with the amount, token and network, so anyone can pay you
-   from MetaMask or any other wallet app without typing an address. Another
-   Sara user can scan it with **Scan to Pay** to pre-fill a send; Sara only
-   accepts its trusted USDC contract or a network's native asset from a
-   scanned QR.
+   from MetaMask or any other wallet app without typing an address.
 2. **Invoices with automatic on-chain reconciliation** — create an invoice
    for a customer and Sara marks it paid itself the moment a matching
    transfer lands, no manual "mark as paid."

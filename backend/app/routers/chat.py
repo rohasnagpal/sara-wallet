@@ -701,7 +701,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• Send crypto — \"send 100 USDC to zara\" — review the preview, then type CONFIRM\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
             "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n"
-            "• 📷 Scan to Pay — scan someone else's Sara payment QR to pre-fill a send\n"
             "\n"
             "**Wallets & Chains**\n"
             f"• Create & import one EVM wallet that works across {chain_list}\n"
