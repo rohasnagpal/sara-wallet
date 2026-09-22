@@ -450,7 +450,8 @@ select.settings-input { text-overflow: ellipsis; }
   display: flex; align-items: center; gap: 8px;
 }
 .dir-nick { font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 60px; }
-.dir-addr { font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dir-addr { font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.dir-addr:hover { color: var(--text-primary); }
 .dir-chain { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; background: var(--pill-bg); padding: 2px 6px; border-radius: 5px; }
 .dir-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .dir-nick-input { font-size: 12px; font-weight: 600; color: var(--text-primary); font-family: var(--font-body); min-width: 60px; width: 90px; padding: 3px 6px; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-input); outline: none; }
@@ -3131,20 +3132,43 @@ async function submitWallet() {
 // ══════════════════════════════════════
 // COPY ADDRESS
 // ══════════════════════════════════════
+// Feedback is shown by temporarily replacing the element's whole content
+// (not just an appended icon) - some callers truncate long addresses with
+// an ellipsis, which clips an appended icon out of view entirely, making a
+// successful copy look like nothing happened.
+function _flashCopyFeedback(el, text, color) {
+  const original = el.innerHTML;
+  el.innerHTML = text;
+  el.style.color = color;
+  setTimeout(() => { el.innerHTML = original; el.style.color = ''; }, color === 'var(--red)' ? 2500 : 1500);
+}
+
+function _legacyCopy(text) {
+  // Fallback for when the async Clipboard API is unavailable or refuses to
+  // run (older WebKit, stricter permission policies, etc.) - not just a
+  // silent failure with no way to actually get the address out.
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
 function copyAddr(el) {
   const addr = el.dataset.addr;
-  navigator.clipboard.writeText(addr).then(() => {
-    const ic = el.querySelector('.copy-icon');
-    const prev = ic.textContent;
-    ic.textContent = ' Copied!';
-    ic.style.color = 'var(--green)';
-    el.style.borderColor = 'var(--green)';
-    setTimeout(() => {
-      ic.textContent = prev;
-      ic.style.color = '';
-      el.style.borderColor = '';
-    }, 1800);
-  });
+  const onSuccess = () => _flashCopyFeedback(el, '✓ Copied!', 'var(--green)');
+  const onFailure = () => _flashCopyFeedback(el, 'Could not copy - select the address manually', 'var(--red)');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(addr).then(onSuccess).catch(() => (_legacyCopy(addr) ? onSuccess() : onFailure()));
+  } else {
+    _legacyCopy(addr) ? onSuccess() : onFailure();
+  }
 }
 
 // ══════════════════════════════════════
