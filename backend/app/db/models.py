@@ -591,3 +591,31 @@ class SaraNameRecordCache(Base):
     signature       = Column(String, nullable=False)
     cached_at       = Column(DateTime, default=datetime.utcnow, nullable=False)
     revalidated_at  = Column(DateTime, nullable=True)
+
+
+class X402PaywallPage(Base):
+    """One "paste this into your site" x402 paywall config: a label, the
+    Sara wallet that gets paid, a price, and a mode. Sara only ever
+    generates a static code snippet from this row — the snippet runs
+    entirely on the seller's own server; Sara never proxies or sees any
+    traffic to the seller's paywalled page.
+
+    mode="test" always targets base-sepolia against the free public x402
+    facilitator (x402.org) — no signup, no real money, matches
+    x402_client.TESTNET_NETWORKS. mode="live" targets a real EVM mainnet
+    (base/polygon/arbitrum — the same three Coinbase's CDP facilitator
+    settles, see x402_paywall_codegen) and requires the seller's own CDP
+    API key, which is never sent to or stored unencrypted by Sara: it's
+    encrypted the same way a wallet's private key is (encrypt_key/
+    decrypt_key, gated on the same unlocked session), and only decrypted
+    momentarily to re-embed in a regenerated snippet."""
+    __tablename__ = "x402_paywall_pages"
+    id                    = Column(Integer, primary_key=True, index=True)
+    label                 = Column(String, nullable=False)
+    wallet_id             = Column(Integer, nullable=False, index=True)
+    mode                  = Column(String, nullable=False)  # "test" | "live"
+    network               = Column(String, nullable=False)  # "base-sepolia" | "base" | "polygon" | "arbitrum"
+    price_usd             = Column(String, nullable=False)  # decimal string, e.g. "0.05"
+    cdp_key_id            = Column(String, nullable=True)   # live mode only
+    encrypted_cdp_secret  = Column(Text, nullable=True)     # live mode only — AES-256-GCM, hex-encoded
+    created_at            = Column(DateTime, default=datetime.utcnow, nullable=False)

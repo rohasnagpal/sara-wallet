@@ -1652,6 +1652,61 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div style="display:flex;justify-content:space-between;align-items:center"><strong>Payment log</strong><button class="settings-save-btn" onclick="loadX402Payments()">Refresh</button></div>
               <div id="x402PaymentsList" style="font-size:11px;margin-top:8px">Loading…</div>
             </div>
+
+            <div class="card" style="margin-top:10px">
+              <div style="font-size:15px;font-weight:600">Get paid: paywall generator</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                Pick a Sara wallet and a price, and Sara writes a single PHP file for you to paste
+                at the top of any page on your own site. Once uploaded, that page charges the price
+                below per visit before showing its content - no plugin, database, or special server
+                needed (just PHP's standard <code>curl</code> and <code>sodium</code> extensions,
+                present on virtually every host). Sara never sees traffic to your page; it only
+                generates this code, once. <strong>Test mode</strong> runs on Base Sepolia
+                (testnet, free faucet USDC) with no signup, so you can try the whole flow for free.
+                <strong>Live mode</strong> settles real USDC on Base, Polygon or Arbitrum via
+                Coinbase's CDP facilitator, and needs your own free
+                <a href="https://portal.cdp.coinbase.com/" target="_blank" rel="noopener">CDP API key</a>
+                (id + secret) - Sara encrypts that secret the same way it protects a wallet's private key.
+              </div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="paywallLabel">Label</label><input class="settings-input" id="paywallLabel" placeholder="e.g. Premium article"></div>
+                <div class="field"><label class="field-label" for="paywallWallet">Gets paid to</label><select class="settings-input" id="paywallWallet"></select></div>
+                <div class="field"><label class="field-label" for="paywallPrice">Price (USDC)</label><input class="settings-input" id="paywallPrice" placeholder="0.05"></div>
+              </div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="paywallMode">Mode</label>
+                  <select class="settings-input" id="paywallMode" onchange="_onPaywallModeChange()">
+                    <option value="test">Test (Base Sepolia - free)</option>
+                    <option value="live">Live (real USDC)</option>
+                  </select>
+                </div>
+                <div class="field" id="paywallNetworkField" style="display:none"><label class="field-label" for="paywallNetwork">Network</label>
+                  <select class="settings-input" id="paywallNetwork">
+                    <option value="base">Base</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="arbitrum">Arbitrum</option>
+                  </select>
+                </div>
+              </div>
+              <div id="paywallCdpFields" style="display:none;margin-top:7px">
+                <div class="field-row">
+                  <div class="field"><label class="field-label" for="paywallCdpKeyId">CDP API key ID</label><input class="settings-input" id="paywallCdpKeyId" placeholder="organizations/.../apiKeys/..."></div>
+                  <div class="field"><label class="field-label" for="paywallCdpKeySecret">CDP API key secret</label><input class="settings-input" id="paywallCdpKeySecret" type="password" placeholder="Ed25519 or EC private key, base64"></div>
+                </div>
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="createPaywallPage()">Generate code</button>
+              <div id="paywallCreateStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+              <div id="paywallCodeBox" style="display:none;margin-top:8px">
+                <textarea id="paywallCodeOutput" readonly style="width:100%;height:220px;font-family:var(--font-mono, monospace);font-size:10.5px" onclick="this.select()"></textarea>
+                <button class="settings-save-btn" style="margin-top:6px" onclick="copyPaywallCode()">Copy code</button>
+                <span id="paywallCopyStatus" style="font-size:10.5px;color:var(--text-secondary);margin-left:6px"></span>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Your monetized pages</strong><button class="settings-save-btn" onclick="loadPaywallPages()">Refresh</button></div>
+              <div id="paywallPagesList" style="font-size:11px;margin-top:8px">Loading…</div>
+            </div>
           </div>
         </div><!-- /toolsView -->
 
@@ -3938,7 +3993,7 @@ let _toolsTab = 'tokens';
 
 async function loadToolsView() {
   syncRouteTokens();
-  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'x402Wallet']);
+  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'x402Wallet', 'paywallWallet']);
   return showToolsTab(_toolsTab);
 }
 
@@ -3958,7 +4013,7 @@ function showToolsTab(tab) {
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
   if (tab === 'treasury') loadTreasuryOverview();
-  if (tab === 'x402') loadX402Payments();
+  if (tab === 'x402') { loadX402Payments(); loadPaywallPages(); }
 }
 
 // ---- Token creator ----
@@ -4479,6 +4534,92 @@ async function loadX402Payments() {
       </div>`).join('') : '<div style="color:var(--text-muted)">No x402 payments yet.</div>';
   } catch (e) { box.textContent = 'Could not load payments.'; }
 }
+
+// ---- x402: paywall generator (sell, not buy) ----
+function _onPaywallModeChange() {
+  const live = document.getElementById('paywallMode').value === 'live';
+  document.getElementById('paywallNetworkField').style.display = live ? '' : 'none';
+  document.getElementById('paywallCdpFields').style.display = live ? '' : 'none';
+}
+
+async function createPaywallPage() {
+  const status = document.getElementById('paywallCreateStatus');
+  const mode = document.getElementById('paywallMode').value;
+  const walletId = Number(document.getElementById('paywallWallet').value);
+  const label = document.getElementById('paywallLabel').value.trim();
+  const price_usd = document.getElementById('paywallPrice').value.trim();
+  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
+  if (!label) { status.textContent = 'Give this page a label.'; return; }
+  if (!price_usd) { status.textContent = 'Set a price.'; return; }
+
+  const body = {label, wallet_id: walletId, mode, price_usd};
+  if (mode === 'live') {
+    body.network = document.getElementById('paywallNetwork').value;
+    body.cdp_key_id = document.getElementById('paywallCdpKeyId').value.trim();
+    body.cdp_key_secret = document.getElementById('paywallCdpKeySecret').value.trim();
+    if (!body.cdp_key_id || !body.cdp_key_secret) { status.textContent = 'Live mode needs your CDP API key id and secret.'; return; }
+  }
+
+  status.textContent = 'Generating…';
+  const r = await fetch('/api/x402-paywall/pages', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not generate the code.'); return; }
+
+  status.textContent = 'Done - paste the code below at the very top of the PHP file you want to gate.';
+  document.getElementById('paywallCodeOutput').value = data.code;
+  document.getElementById('paywallCodeBox').style.display = '';
+  document.getElementById('paywallCdpKeySecret').value = '';
+  await loadPaywallPages();
+}
+
+function copyPaywallCode() {
+  const output = document.getElementById('paywallCodeOutput');
+  navigator.clipboard.writeText(output.value).then(() => {
+    const status = document.getElementById('paywallCopyStatus');
+    status.textContent = 'Copied to clipboard.';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  });
+}
+
+async function loadPaywallPages() {
+  const box = document.getElementById('paywallPagesList');
+  try {
+    const data = await fetch('/api/x402-paywall/pages').then(r => r.json());
+    const rows = data.pages || [];
+    box.innerHTML = rows.length ? rows.map(p => _listCard({
+      title: p.label,
+      pill: {text: p.mode === 'live' ? 'LIVE' : 'TEST', cls: p.mode === 'live' ? 'confirmed' : 'pending'},
+      details: [
+        ['Pays to', `${p.wallet_name || 'Unknown wallet'} (${_truncMid(p.wallet_address || '')})`],
+        ['Network', p.network],
+        ['Price', `${p.price_usd} USDC`],
+        ['Balance', p.usdc_balance == null ? 'Unknown' : `${_fmtBal(p.usdc_balance)} USDC`],
+      ],
+      actions: `
+        <button class="settings-save-btn" onclick="viewPaywallCode(${p.id})">View code</button>
+        <button class="settings-save-btn" onclick="confirmDeletePaywallPage(this, ${p.id})">Delete</button>
+      `,
+    })).join('') : '<div style="color:var(--text-muted)">No monetized pages yet - generate one above.</div>';
+  } catch (e) { box.textContent = 'Could not load your monetized pages.'; }
+}
+
+async function viewPaywallCode(id) {
+  const status = document.getElementById('paywallCreateStatus');
+  status.textContent = 'Loading code…';
+  const r = await fetch(`/api/x402-paywall/pages/${id}/code`);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not load this page\'s code.'); return; }
+  status.textContent = '';
+  document.getElementById('paywallCodeOutput').value = data.code;
+  document.getElementById('paywallCodeBox').style.display = '';
+  document.getElementById('paywallCodeBox').scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+async function deletePaywallPage(id) {
+  await fetch(`/api/x402-paywall/pages/${id}`, {method: 'DELETE'});
+  await loadPaywallPages();
+}
+function confirmDeletePaywallPage(btn, id) { _armConfirm(btn, () => deletePaywallPage(id)); }
 
 let _ledgerTransactions = [];
 
