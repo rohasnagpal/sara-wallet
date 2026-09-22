@@ -24,7 +24,7 @@ def body_text(response) -> str:
 
 
 def quote(tool, name, to_amount, seconds, fee, gas):
-    return {"tool": tool, "toolDetails": {"name": name}, "transactionRequest": {"to": "0x" + "cc" * 20},
+    return {"tool": tool, "toolDetails": {"name": name}, "transactionRequest": {"to": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"},
             "estimate": {"toAmount": str(to_amount), "executionDuration": seconds, "approvalAddress": None,
                          "feeCosts": [{"amountUSD": fee}], "gasCosts": [{"amountUSD": gas}]}}
 
@@ -123,6 +123,28 @@ class BridgeRouteChoiceTests(unittest.TestCase):
             body_text(chat._stream_bridge(pending, self.db, "s1"))
         self.assertEqual(requote.call_args.kwargs["bridges"], ["across"])
         self.assertEqual(requote.call_args.kwargs["order"], "FASTEST")
+
+    def test_a_re_quote_that_ignores_the_pinned_bridge_is_refused_not_signed(self):
+        # allowBridges only *asks* LI.FI to keep the chosen route; if their
+        # API ever returns a different tool anyway, Sara must not sign it.
+        self.offer()
+        self.say("1")  # chose Polymer (Standard), the cheapest
+        pending = chat._pending["s1"]
+        web3 = MagicMock()
+        web3.eth.account.from_key.return_value.address = ME
+        allowance, execute = MagicMock(), MagicMock()
+        with patch("app.tools.wallet.encrypt.decrypt_key", return_value="k"), \
+             patch("app.chains.evm.get_web3", return_value=web3), \
+             patch("app.tools.trading.lifi.get_quote", return_value=FAST), \
+             patch("app.tools.trading.lifi.validate_bridge_transaction_static"), \
+             patch("app.tools.trading.lifi.ensure_allowance", allowance), \
+             patch("app.tools.trading.lifi.execute_bridge", execute):
+            text = body_text(chat._stream_bridge(pending, self.db, "s1"))
+        self.assertIn("route changed", text)
+        self.assertIn("Polymer (Standard)", text)
+        self.assertIn("Across", text)
+        allowance.assert_not_called()
+        execute.assert_not_called()
 
 
 if __name__ == "__main__":

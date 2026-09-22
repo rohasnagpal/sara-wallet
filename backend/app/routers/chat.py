@@ -2051,6 +2051,20 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
             if not (quote and quote.get("transactionRequest")):
                 err = quote.get("message", "no route found") if quote else "LI.FI API unavailable"
                 raise Exception(f"could not refresh quote before executing — {err}")
+            # `bridges=[pending["route_tool"]]` above only *asks* LI.FI to
+            # keep the route the user was shown and confirmed; nothing
+            # upstream actually stops a different tool coming back if their
+            # API doesn't honor that. Refuse rather than silently sign a
+            # different route (a different bridge, different trust
+            # assumptions, different real arrival time) than what the user
+            # approved — belt-and-suspenders alongside the on-chain
+            # executor/spender pinning below, not a replacement for it.
+            if pending.get("route_tool") and quote.get("tool") != pending["route_tool"]:
+                raise Exception(
+                    f"the route changed since you confirmed (was {pending.get('route_name', pending['route_tool'])}, "
+                    f"now {quote.get('toolDetails', {}).get('name', quote.get('tool', 'a different route'))}) — "
+                    f"please re-run the bridge command to review and confirm the new route."
+                )
             estimate = quote["estimate"]
             approval_addr = estimate.get("approvalAddress")
             tx_request = quote["transactionRequest"]
