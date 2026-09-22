@@ -1,10 +1,26 @@
 import os
+import threading
 import time
 
 SESSION_TIMEOUT_SECONDS = 3600  # 1 hour of inactivity
 
 _session_key: bytes | None = None
 _last_activity: float = 0.0
+
+# Serializes _stage_and_reencrypt (legacy-format upgrade and explicit
+# change_passphrase both call it): it stages a new salt/verifier to one
+# deterministic, shared file, then re-encrypts every wallet, then promotes
+# that file — two of those overlapping (e.g. a double-submitted passphrase
+# change) previously let the second call's promote() replace .env.local
+# with a salt/verifier that didn't correspond to whichever new key the
+# database actually ended up encrypted with, permanently bricking every
+# wallet: unlock() would succeed (the verifier matches), but decrypting any
+# wallet's key would fail forever, with no recovery. With this lock, the
+# second call instead simply runs after the first one is fully done, reads
+# the first call's already-re-encrypted ciphertext, and cleanly fails (its
+# now-stale old_key no longer decrypts it) with an ordinary, safe error —
+# never a silent mismatch between the persisted salt and the actual key.
+_reencrypt_lock = threading.Lock()
 
 # Unlock throttling: slows online passphrase-guessing against
 # /api/lock/unlock. A single in-memory counter is enough here — this is a
@@ -255,7 +271,8 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
 
     new_salt = os.urandom(16)
     new_key = encrypt._scrypt_key(passphrase, new_salt)
-    _stage_and_reencrypt(new_salt, new_key, old_key)
+    with _reencrypt_lock:
+        _stage_and_reencrypt(new_salt, new_key, old_key)
     return new_key
 
 
@@ -295,7 +312,8 @@ def change_passphrase(old_passphrase: str, new_passphrase: str) -> bool:
 
     new_salt = os.urandom(16)
     new_key = encrypt._scrypt_key(new_passphrase, new_salt)
-    _stage_and_reencrypt(new_salt, new_key, old_key)
+    with _reencrypt_lock:
+        _stage_and_reencrypt(new_salt, new_key, old_key)
 
     # Stays unlocked under the new key — the user just typed both
     # passphrases seconds ago; forcing an immediate re-unlock would be
