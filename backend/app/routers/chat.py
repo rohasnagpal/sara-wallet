@@ -12,6 +12,7 @@ from app.llm.litellm_client import sara_llm
 from app.llm.prompts import SARA_SYSTEM_PROMPT
 from app.tools.market import coingecko, gas_tracker
 from app.core.session_auth import require_session
+from app.core.redact import redact_for_storage
 
 router = APIRouter()
 
@@ -1284,7 +1285,10 @@ def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict
 @router.post("/chat", dependencies=[Depends(require_session)])
 async def chat(req: ChatRequest, db: Session = Depends(get_db)):
     msg = req.message.strip()
-    db.add(ChatMessage(session_id=req.session_id, role="user", content=msg))
+    # Only the stored copy is redacted (a pasted private key or seed phrase
+    # shouldn't sit in clear in sara.db indefinitely) — msg itself, used
+    # below for intent parsing and the model, is left exactly as typed.
+    db.add(ChatMessage(session_id=req.session_id, role="user", content=redact_for_storage(msg, role="user")))
     db.commit()
 
     # CONFIRM flow
@@ -1748,7 +1752,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
         finally:
             yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
             if full_response:
-                db.add(ChatMessage(session_id=req.session_id, role="assistant", content=full_response))
+                db.add(ChatMessage(session_id=req.session_id, role="assistant", content=redact_for_storage(full_response, role="assistant")))
                 db.commit()
 
     return StreamingResponse(generate(), media_type="text/event-stream",
@@ -1765,7 +1769,7 @@ def _stream_text(text: str, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -1902,7 +1906,7 @@ def _stream_send(pending: dict, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -2004,7 +2008,7 @@ def _stream_swap(pending: dict, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -2136,7 +2140,7 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=approval_note + text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(approval_note + text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -2192,7 +2196,7 @@ def _stream_sol_swap(pending: dict, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -2250,7 +2254,7 @@ def _stream_register_name(pending: dict, db: Session, session_id: str):
         for chunk in _chunk(text):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=text))
+        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
