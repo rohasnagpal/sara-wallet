@@ -53,6 +53,20 @@ class X402PaywallRouterTests(unittest.TestCase):
         self.assertEqual(page.network, "base-sepolia")
         self.assertIsNone(page.encrypted_cdp_secret)
 
+    def test_preview_message_persists_and_round_trips_through_get_code(self):
+        create = self.client.post("/api/x402-paywall/pages", json={
+            "label": "Article", "wallet_id": self.wallet.id, "mode": "test", "price_usd": "0.10",
+            "preview_message": "Subscribe for $0.10 to read more",
+        })
+        self.assertEqual(create.status_code, 200, create.text)
+        self.assertIn("Subscribe for $0.10 to read more", create.json()["code"])
+        page = self.db.query(X402PaywallPage).filter_by(id=create.json()["id"]).first()
+        self.assertEqual(page.preview_message, "Subscribe for $0.10 to read more")
+
+        resp = self.client.get(f"/api/x402-paywall/pages/{page.id}/code")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Subscribe for $0.10 to read more", resp.json()["code"])
+
     def test_create_rejects_a_price_that_isnt_a_number(self):
         resp = self.client.post("/api/x402-paywall/pages", json={
             "label": "x", "wallet_id": self.wallet.id, "mode": "test", "price_usd": "free",

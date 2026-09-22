@@ -20,6 +20,46 @@ from app.tools.payments import x402_paywall_codegen as codegen
 WALLET = "0x1234567890123456789012345678901234567890"
 
 
+def _serve_and_get_402(code: str):
+    """Actually serves generated PHP with PHP's built-in server and fetches
+    it — returns (status, headers_dict, body_text) from the real response,
+    not a guess about what the source would do."""
+    import http.client
+    import socket
+    import time
+
+    php = shutil.which("php")
+    tmp_dir = tempfile.mkdtemp()
+    (Path(tmp_dir) / "index.php").write_text(code)
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    proc = subprocess.Popen(
+        [php, "-S", f"127.0.0.1:{port}", "-t", tmp_dir],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    try:
+        resp = None
+        for _ in range(50):
+            time.sleep(0.1)
+            try:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+                conn.request("GET", "/")
+                resp = conn.getresponse()
+                break
+            except (ConnectionRefusedError, OSError):
+                resp = None
+        if resp is None:
+            raise RuntimeError("PHP built-in server never came up")
+        body = resp.read().decode()
+        headers = {k.lower(): v for k, v in resp.getheaders()}
+        return resp.status, headers, body
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 class AmountRawTests(unittest.TestCase):
     def test_dollar_price_converts_to_six_decimal_usdc_raw_units(self):
         self.assertEqual(codegen.amount_raw_for("0.05"), 50000)
@@ -141,6 +181,62 @@ class GeneratePhpTests(unittest.TestCase):
         )
         cfg = self._config(code)
         self.assertEqual(cfg["label"], tricky)
+
+    def test_file_ends_with_a_marked_place_to_paste_premium_content(self):
+        code = codegen.generate_php(
+            label="Article", wallet_address=WALLET, mode="test", network="base-sepolia", price_usd="0.10",
+        )
+        self.assertIn("PREMIUM CONTENT GOES BELOW THIS LINE", code)
+        # Ends with a closing PHP tag so plain HTML pasted right after it
+        # renders directly, without the user needing to wrap it in echo().
+        self.assertTrue(code.rstrip().endswith("?>"))
+        # The marker must come after every function definition — pasting
+        # content right after it must not land in the middle of one.
+        self.assertGreater(code.index("PREMIUM CONTENT GOES BELOW THIS LINE"), code.rindex("function "))
+
+    def test_without_a_preview_message_the_default_plain_text_is_used(self):
+        php = shutil.which("php")
+        if not php:
+            self.skipTest("php interpreter not available")
+        code = codegen.generate_php(
+            label="Article", wallet_address=WALLET, mode="test", network="base-sepolia", price_usd="0.10",
+        )
+        status, headers, body = _serve_and_get_402(code)
+        self.assertEqual(headers.get("content-type", "").split(";")[0].strip(), "text/plain")
+        self.assertIn("402 Payment Required", body)
+
+    def test_a_preview_message_is_shown_instead_of_the_default_and_as_html(self):
+        php = shutil.which("php")
+        if not php:
+            self.skipTest("php interpreter not available")
+        code = codegen.generate_php(
+            label="Article", wallet_address=WALLET, mode="test", network="base-sepolia", price_usd="0.10",
+            preview_message="<h1>Subscribe for $0.10</h1>",
+        )
+        status, headers, body = _serve_and_get_402(code)
+        self.assertEqual(status, 402)
+        self.assertEqual(headers.get("content-type", "").split(";")[0].strip(), "text/html")
+        self.assertIn("<h1>Subscribe for $0.10</h1>", body)
+        # The machine-readable challenge header must still be present
+        # unchanged — the preview is purely for a human visitor.
+        self.assertIsNotNone(headers.get("payment-required"))
+
+    def test_a_preview_message_with_a_quote_stays_intact_php_still_lints(self):
+        php = shutil.which("php")
+        if not php:
+            self.skipTest("php interpreter not available")
+        code = codegen.generate_php(
+            label="Article", wallet_address=WALLET, mode="test", network="base-sepolia", price_usd="0.10",
+            preview_message="""Come on in, it's only $0.10 "great deal" \\ backslash""",
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".php", delete=False) as f:
+            f.write(code)
+            path = f.name
+        try:
+            out = subprocess.run([php, "-l", path], capture_output=True, text=True, timeout=10)
+        finally:
+            Path(path).unlink(missing_ok=True)
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
 
     def test_generated_php_actually_lints(self):
         php = shutil.which("php")

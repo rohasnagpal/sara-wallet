@@ -618,4 +618,5 @@ class X402PaywallPage(Base):
     price_usd             = Column(String, nullable=False)  # decimal string, e.g. "0.05"
     cdp_key_id            = Column(String, nullable=True)   # live mode only
     encrypted_cdp_secret  = Column(Text, nullable=True)     # live mode only — AES-256-GCM, hex-encoded
+    preview_message       = Column(Text, nullable=True)     # shown to a visitor who hasn't paid yet
     created_at            = Column(DateTime, default=datetime.utcnow, nullable=False)

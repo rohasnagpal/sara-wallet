@@ -45,7 +45,7 @@ class MigrationTests(unittest.TestCase):
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
-                "009_drop_dual_control",
+                "009_drop_dual_control", "010_paywall_preview_message",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

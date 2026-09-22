@@ -38,6 +38,7 @@ class CreatePaywallPageBody(BaseModel):
     price_usd: str
     cdp_key_id: str | None = None
     cdp_key_secret: str | None = None
+    preview_message: str | None = Field(None, max_length=2000)
 
 
 def _wallet_for(db: Session, wallet_id: int) -> Wallet:
@@ -53,6 +54,7 @@ def _generate_and_validate(body: CreatePaywallPageBody, wallet_address: str, cdp
         return codegen.generate_php(
             label=body.label, wallet_address=wallet_address, mode=body.mode, network=network,
             price_usd=body.price_usd, cdp_key_id=body.cdp_key_id, cdp_key_secret=cdp_key_secret_plain,
+            preview_message=body.preview_message,
         )
     except codegen.PaywallCodegenError as exc:
         raise HTTPException(400, str(exc))
@@ -80,7 +82,7 @@ def create_page(body: CreatePaywallPageBody, db: Session = Depends(get_db)):
     page = X402PaywallPage(
         label=body.label, wallet_id=wallet.id, mode=body.mode, network=network,
         price_usd=body.price_usd, cdp_key_id=body.cdp_key_id if body.mode == "live" else None,
-        encrypted_cdp_secret=encrypted_secret,
+        encrypted_cdp_secret=encrypted_secret, preview_message=body.preview_message,
     )
     db.add(page)
     db.commit()
@@ -149,6 +151,7 @@ def get_page_code(page_id: int, db: Session = Depends(get_db)):
         code = codegen.generate_php(
             label=page.label, wallet_address=wallet.address, mode=page.mode, network=page.network,
             price_usd=page.price_usd, cdp_key_id=page.cdp_key_id, cdp_key_secret=cdp_secret,
+            preview_message=page.preview_message,
         )
     except codegen.PaywallCodegenError as exc:
         raise HTTPException(400, str(exc))

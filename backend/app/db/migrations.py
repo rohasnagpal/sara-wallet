@@ -144,6 +144,13 @@ def _migration_009_drop_dual_control(engine: Engine) -> None:
     _drop_column(engine, "spending_policies", "require_dual_control")
 
 
+def _migration_010_paywall_preview_message(engine: Engine) -> None:
+    """x402_paywall_pages existed for a short time without this column — an
+    install that started the app in that window needs it added explicitly
+    (create_all only creates missing tables, it never alters existing ones)."""
+    _add_columns(engine, "x402_paywall_pages", {"preview_message": "TEXT"})
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -154,6 +161,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("007_batch_item_tags_and_notes", _migration_007_batch_item_tags_and_notes),
     ("008_unify_directory_and_counterparties", _migration_008_unify_directory_and_counterparties),
     ("009_drop_dual_control", _migration_009_drop_dual_control),
+    ("010_paywall_preview_message", _migration_010_paywall_preview_message),
 )
 
 

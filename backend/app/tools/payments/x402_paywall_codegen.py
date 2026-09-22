@@ -94,9 +94,16 @@ def _php_str(value: str) -> str:
 def generate_php(
     *, label: str, wallet_address: str, mode: str, network: str, price_usd: str,
     cdp_key_id: str | None = None, cdp_key_secret: str | None = None,
+    preview_message: str | None = None,
 ) -> str:
     """Returns a single, self-contained PHP file the user pastes at the very
-    top of the page they want to gate — before any other output."""
+    top of the page they want to gate — before any other output. Anything
+    they write after the marked line at the end of this file is the
+    premium content: it only ever renders once a payment has verified and
+    settled, since an unpaid request calls PHP's exit() before reaching it.
+    preview_message (optional) is shown to a visitor who hasn't paid yet,
+    in place of the generic "402 Payment Required" text — e.g. a teaser or
+    a plain-language explanation of what's behind the paywall."""
     if mode not in ("test", "live"):
         raise PaywallCodegenError("mode must be 'test' or 'live'")
     if mode == "test" and network != TEST_NETWORK:
@@ -136,6 +143,7 @@ def generate_php(
         price_literal=_php_str(price_usd),
         facilitator_url_literal=_php_str(facilitator_url),
         auth_literal=auth_literal,
+        preview_literal=_php_str(preview_message) if preview_message else "null",
     )
 
 
@@ -163,6 +171,9 @@ sara_x402_paywall([
     'pay_to' => {pay_to_literal},
     'facilitator_url' => {facilitator_url_literal},
     'auth' => {auth_literal},
+    // Shown to a visitor who hasn't paid yet, instead of a bare error.
+    // Edit this string (or leave it null for a plain default message).
+    'preview' => {preview_literal},
 ]);
 
 function sara_x402_paywall(array $cfg): void {{
@@ -225,8 +236,13 @@ function sara_x402_challenge(array $cfg, array $requirement, ?string $reason = n
     ];
     header('payment-required: ' . base64_encode(json_encode($challenge)));
     http_response_code(402);
-    header('Content-Type: text/plain');
-    echo '402 Payment Required - pay $' . $cfg['price_usd'] . ' USDC to access this page.' . "\\n";
+    if (!empty($cfg['preview'])) {{
+        header('Content-Type: text/html; charset=utf-8');
+        echo $cfg['preview'];
+    }} else {{
+        header('Content-Type: text/plain');
+        echo '402 Payment Required - pay $' . $cfg['price_usd'] . ' USDC to access this page.' . "\\n";
+    }}
     exit;
 }}
 
@@ -272,4 +288,13 @@ function sara_cdp_jwt(array $auth, string $method, string $host, string $path): 
     $signature = sodium_crypto_sign_detached($signingInput, $secretKey);
     return $signingInput . '.' . $b64url($signature);
 }}
+
+// ===================================================================
+// YOUR PREMIUM CONTENT GOES BELOW THIS LINE.
+// A visitor only ever reaches this point after paying — sara_x402_paywall()
+// above calls PHP's exit() for anyone who hasn't, so nothing below this
+// comment ever runs or renders for them. Delete this comment and write
+// (or require/include) your actual page content here.
+// ===================================================================
+?>
 '''

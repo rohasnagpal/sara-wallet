@@ -1720,14 +1720,25 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 </div>
               </div>
               <div id="paywallCdpFields" style="display:none;margin-top:7px">
-                <div class="field-row">
-                  <div class="field"><label class="field-label" for="paywallCdpKeyId">CDP API key ID</label><input class="settings-input" id="paywallCdpKeyId" placeholder="organizations/.../apiKeys/..."></div>
-                  <div class="field"><label class="field-label" for="paywallCdpKeySecret">CDP API key secret</label><input class="settings-input" id="paywallCdpKeySecret" type="password" placeholder="Ed25519 or EC private key, base64"></div>
+                <div style="font-size:10.5px;color:var(--text-secondary);margin-bottom:6px">
+                  Get these from <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">portal.cdp.coinbase.com &rarr; API Keys</a> (free).
+                  When creating the key, choose the <strong>Ed25519</strong> key type - this generator only supports Ed25519, not EC/ES256.
                 </div>
+                <div class="field" style="margin-bottom:7px"><label class="field-label" for="paywallCdpKeyId">CDP API key ID</label><input class="settings-input" id="paywallCdpKeyId" placeholder="organizations/.../apiKeys/..."></div>
+                <div class="field"><label class="field-label" for="paywallCdpKeySecret">CDP API key secret</label><input class="settings-input" id="paywallCdpKeySecret" type="password" placeholder="Ed25519 private key, base64"></div>
+              </div>
+              <div class="field" style="margin-top:7px">
+                <label class="field-label" for="paywallPreview">Message shown to visitors who haven't paid (optional)</label>
+                <input class="settings-input" id="paywallPreview" placeholder="e.g. Subscribe for $0.05 to read the full article">
               </div>
               <button class="settings-save-btn" style="margin-top:8px" onclick="createPaywallPage()">Generate code</button>
               <div id="paywallCreateStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
               <div id="paywallCodeBox" style="display:none;margin-top:8px">
+                <div style="font-size:10.5px;color:var(--text-secondary);margin-bottom:4px">
+                  Paste this at the very top of your PHP page. Everything you write <strong>after</strong> the
+                  marked line near the bottom of this code only renders once someone has paid - that's where
+                  your premium content goes.
+                </div>
                 <textarea id="paywallCodeOutput" readonly style="width:100%;height:220px;font-family:var(--font-mono, monospace);font-size:10.5px" onclick="this.select()"></textarea>
                 <button class="settings-save-btn" style="margin-top:6px" onclick="copyPaywallCode()">Copy code</button>
                 <span id="paywallCopyStatus" style="font-size:10.5px;color:var(--text-secondary);margin-left:6px"></span>
@@ -4634,6 +4645,8 @@ async function createPaywallPage() {
   if (!price_usd) { status.textContent = 'Set a price.'; return; }
 
   const body = {label, wallet_id: walletId, mode, price_usd};
+  const preview = document.getElementById('paywallPreview').value.trim();
+  if (preview) body.preview_message = preview;
   if (mode === 'live') {
     body.network = document.getElementById('paywallNetwork').value;
     body.cdp_key_id = document.getElementById('paywallCdpKeyId').value.trim();
