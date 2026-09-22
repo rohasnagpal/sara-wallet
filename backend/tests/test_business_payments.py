@@ -196,6 +196,82 @@ class SpendingPolicyTests(BusinessPaymentsTestCase):
         self.assertTrue(result.allowed)
 
 
+class CounterpartyPolicyAppliesEverywhereTests(BusinessPaymentsTestCase):
+    """A spending policy scoped to a Directory/vendor entry (counterparty_id)
+    used to only ever match a caller that already knew and passed that id —
+    in practice, only a manually-tagged batch item. Every other path (chat
+    sends/swaps/bridges, x402, token transfers, CSV imports) always called
+    evaluate() with counterparty_id=None, so a vendor cap silently never
+    applied to any of them: not the per-payment max, and not the cumulative
+    total either. Regression tests for both halves of that gap."""
+
+    def setUp(self):
+        super().setUp()
+        self.vendor = AddressBook(nickname="vendor.sara", address=ADDR_A, chain="evm", type="vendor")
+        self.db.add(self.vendor)
+        self.db.commit()
+
+    def _evaluate(self, amount_raw, destination=ADDR_A):
+        # Mirrors exactly what chat._spending_policy_denial (and every other
+        # non-batch call site) does: it has no idea who the counterparty is
+        # and passes None, relying on evaluate() to work it out.
+        return spending_policy.evaluate(
+            self.db, wallet_id=self.wallet.id, network="polygon", token="USDC",
+            counterparty_id=None, destination_address=destination, amount_raw=amount_raw,
+        )
+
+    def test_a_vendor_cap_blocks_a_chat_style_payment_to_that_vendor(self):
+        self.db.add(SpendingPolicy(name="vendor-cap", counterparty_id=self.vendor.id,
+                                    max_amount_raw="1000000", active=True))
+        self.db.commit()
+        result = self._evaluate(5_000_000)
+        self.assertFalse(result.allowed, "a vendor-scoped cap must apply to a chat-style send, not just batches")
+        self.assertTrue(any("caps a single payment" in r for r in result.denial_reasons))
+
+    def test_a_vendor_cap_does_not_affect_payments_to_someone_else(self):
+        self.db.add(SpendingPolicy(name="vendor-cap", counterparty_id=self.vendor.id,
+                                    max_amount_raw="1000000", active=True))
+        self.db.commit()
+        result = self._evaluate(5_000_000, destination=ADDR_B)
+        self.assertTrue(result.allowed)
+
+    def test_cumulative_vendor_cap_counts_a_prior_chat_send_not_just_batch_items(self):
+        # The prior spend to this vendor happened as a plain chat send —
+        # recorded only in Transaction, never in a PaymentBatchItem. The old
+        # counterparty-scoped cumulative check only ever scanned
+        # PaymentBatchItem, so it would have missed this entirely.
+        self.db.add(SpendingPolicy(name="vendor-daily-cap", counterparty_id=self.vendor.id,
+                                    period="day", period_limit_raw="1000000", active=True))
+        self.db.add(Transaction(
+            wallet_id=self.wallet.id, chain="evm", network="polygon", tx_hash="0xpriorchat",
+            from_address=self.wallet.address, to_address=ADDR_A, amount=0.9,
+            amount_raw="900000", decimals=6, token="USDC", status="confirmed", direction="outgoing",
+        ))
+        self.db.commit()
+        result = self._evaluate(200_000)  # 0.9 already spent + 0.2 now > 1.0 cap
+        self.assertFalse(result.allowed)
+        self.assertTrue(any("cumulative spend" in r for r in result.denial_reasons))
+
+    def test_an_explicitly_passed_counterparty_id_still_works_as_before(self):
+        # Batch items that already carry a real counterparty_id (the one
+        # existing call site that worked correctly) must keep working
+        # exactly as before this change.
+        self.db.add(SpendingPolicy(name="vendor-cap", counterparty_id=self.vendor.id,
+                                    max_amount_raw="1000000", active=True))
+        self.db.commit()
+        result = spending_policy.evaluate(
+            self.db, wallet_id=self.wallet.id, network="polygon", token="USDC",
+            counterparty_id=self.vendor.id, destination_address=ADDR_A, amount_raw=5_000_000,
+        )
+        self.assertFalse(result.allowed)
+
+    def test_resolve_counterparty_id_matches_case_insensitively_and_returns_none_for_unknown(self):
+        self.assertEqual(spending_policy.resolve_counterparty_id(self.db, ADDR_A.upper()), self.vendor.id)
+        self.assertIsNone(spending_policy.resolve_counterparty_id(self.db, ADDR_B))
+        self.assertIsNone(spending_policy.resolve_counterparty_id(self.db, None))
+        self.assertIsNone(spending_policy.resolve_counterparty_id(self.db, ""))
+
+
 class PolicyFormTests(BusinessPaymentsTestCase):
     def _create(self, **fields):
         body = spending_policies.PolicyBody(**{"name": "p", **fields})

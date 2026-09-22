@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import Base, SpendingPolicy, Transaction, Wallet
+from app.db.models import AddressBook, Base, SpendingPolicy, Transaction, Wallet
 from app.routers import chat
 
 ME = "0x" + "11" * 20
@@ -52,6 +52,21 @@ class ChatSpendingPolicyTest(unittest.TestCase):
         self.assertIsNone(chat._spending_policy_denial(db=self.db, amount_raw=500_000, **args))
         self.assertIsNone(chat._spending_policy_denial(
             db=self.db, amount_raw=9_000_000, wallet_id=self.wallet.id, network="base", token="USDC", destination=BOB))
+
+    def test_a_vendor_scoped_cap_blocks_a_plain_chat_send_to_that_vendor(self):
+        # chat._spending_policy_denial has no counterparty_id parameter at
+        # all — it always calls evaluate() with counterparty_id=None — so a
+        # policy scoped to a Directory entry only ever protects that vendor
+        # if evaluate() itself resolves the counterparty from the address.
+        vendor = AddressBook(nickname="vendor.sara", address=BOB, chain="evm", type="vendor")
+        self.db.add(vendor)
+        self.cap(counterparty_id=vendor.id, max_amount_raw="1000000")
+        denial = chat._spending_policy_denial(
+            db=self.db, wallet_id=self.wallet.id, network="polygon", token="USDC",
+            destination=BOB, amount_raw=5_000_000,
+        )
+        self.assertIsNotNone(denial)
+        self.assertIn("caps a single payment", denial)
 
     def test_prior_chat_swap_counts_toward_period_limit(self):
         self.cap(network="polygon", token="USDC", period="day", period_limit_raw="1000000")

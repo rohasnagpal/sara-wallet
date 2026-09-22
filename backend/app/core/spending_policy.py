@@ -17,9 +17,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.db.models import PaymentBatch, PaymentBatchItem, SpendingPolicy, Transaction
+from app.db.models import AddressBook, SpendingPolicy, Transaction
 
 _PERIOD_DELTAS = {"day": timedelta(days=1), "week": timedelta(weeks=1), "month": timedelta(days=30)}
 
@@ -29,6 +30,24 @@ class PolicyResult:
     allowed: bool
     denial_reasons: list[str] = field(default_factory=list)
     matched_policy_ids: list[int] = field(default_factory=list)
+
+
+def resolve_counterparty_id(db: Session, destination_address: str | None) -> int | None:
+    """Looks up the Directory (AddressBook) entry for a raw destination
+    address, if one exists — so a vendor-scoped policy applies no matter
+    which payment path (chat send/swap/bridge, x402, token transfer, batch
+    or CSV import) sends to that same address, without every one of those
+    call sites having to resolve it themselves. A caller that already knows
+    the counterparty (e.g. a batch item explicitly tagged with one) should
+    keep passing that; this is only consulted when it doesn't."""
+    if not destination_address:
+        return None
+    entry = (
+        db.query(AddressBook)
+        .filter(AddressBook.chain == "evm", func.lower(AddressBook.address) == destination_address.strip().lower())
+        .first()
+    )
+    return entry.id if entry else None
 
 
 def _matches(policy: SpendingPolicy, *, wallet_id: int, network: str, token: str,
@@ -60,49 +79,42 @@ def _within_window(policy: SpendingPolicy, when: datetime) -> bool:
 
 
 def _cumulative_raw(db: Session, policy: SpendingPolicy, when: datetime, principal_id: str) -> int:
+    """Sums every outgoing, submitted/confirmed payment this policy's window
+    covers. Transaction is the single ledger every payment path writes to
+    exactly once it's broadcast — chat sends/swaps/bridges, batches
+    (including CSV imports), payroll, token transfers, x402 and Sara Names —
+    so summing it here (rather than separately re-deriving the same total
+    from PaymentBatchItem for counterparty-scoped policies, as before) is
+    both simpler and correctly counts spend regardless of which of those
+    paths it went through. A counterparty-scoped policy is resolved to that
+    Directory entry's address and matched the same way any other
+    destination-address-scoped policy is."""
     delta = _PERIOD_DELTAS.get(policy.period)
     if delta is None:
         return 0
     since = when - delta
-    if policy.counterparty_id is None:
-        query = db.query(Transaction).filter(
-            Transaction.direction == "outgoing", Transaction.status.in_(("submitted", "confirmed")),
-            Transaction.timestamp >= since, Transaction.wallet_id == policy.wallet_id if policy.wallet_id is not None else True,
-        )
-        if policy.network:
-            query = query.filter(Transaction.network == policy.network.lower())
-        if policy.token:
-            query = query.filter(Transaction.token == policy.token.upper())
-        if policy.destination_address:
-            query = query.filter(Transaction.to_address == policy.destination_address)
-        return sum(int(row.amount_raw or 0) for row in query.all())
-
-    rows = (
-        db.query(PaymentBatchItem, PaymentBatch)
-        .join(PaymentBatch, PaymentBatch.id == PaymentBatchItem.batch_id)
-        .filter(PaymentBatchItem.status.in_(("submitted", "confirmed")))
-        .filter(PaymentBatchItem.updated_at >= since)
-        .all()
+    query = db.query(Transaction).filter(
+        Transaction.direction == "outgoing", Transaction.status.in_(("submitted", "confirmed")),
+        Transaction.timestamp >= since,
     )
-    total = 0
-    for item, batch in rows:
-        if policy.principal_id and batch.created_by != principal_id:
-            continue
-        if policy.wallet_id is not None and policy.wallet_id != batch.wallet_id:
-            continue
-        if policy.network and policy.network.lower() != (batch.network or "").lower():
-            continue
-        if policy.token and policy.token.upper() != (batch.token or "").upper():
-            continue
-        if policy.counterparty_id is not None and policy.counterparty_id != item.counterparty_id:
-            continue
-        if policy.destination_address and policy.destination_address.lower() != (item.recipient_address or "").lower():
-            continue
-        try:
-            total += int(item.amount_raw)
-        except (TypeError, ValueError):
-            continue
-    return total
+    if policy.wallet_id is not None:
+        query = query.filter(Transaction.wallet_id == policy.wallet_id)
+    if policy.network:
+        query = query.filter(Transaction.network == policy.network.lower())
+    if policy.token:
+        query = query.filter(Transaction.token == policy.token.upper())
+    if policy.destination_address:
+        query = query.filter(func.lower(Transaction.to_address) == policy.destination_address.lower())
+    rows = query.all()
+    if policy.counterparty_id is not None:
+        entry = db.query(AddressBook).filter(AddressBook.id == policy.counterparty_id).first()
+        counterparty_address = entry.address.strip().lower() if entry else None
+        rows = [r for r in rows if counterparty_address and (r.to_address or "").strip().lower() == counterparty_address]
+    # Sara is single-user (principal_id always defaults to "local-owner"
+    # everywhere it's threaded through); Transaction carries no notion of
+    # who/what initiated it, so a policy scoped to a different principal_id
+    # already never matches in _matches() and this is a no-op in practice.
+    return sum(int(row.amount_raw or 0) for row in rows)
 
 
 def evaluate(
@@ -111,6 +123,12 @@ def evaluate(
     principal_id: str = "local-owner",
 ) -> PolicyResult:
     when = when or datetime.now(timezone.utc)
+    if counterparty_id is None:
+        # Every current caller either doesn't know the counterparty or
+        # leaves this at its default of None — without this, a policy
+        # scoped to a vendor/Directory entry silently never applied outside
+        # the one call site that happened to pass a real counterparty_id.
+        counterparty_id = resolve_counterparty_id(db, destination_address)
     policies = db.query(SpendingPolicy).filter(SpendingPolicy.active == True).all()  # noqa: E712
     matched = [
         p for p in policies
