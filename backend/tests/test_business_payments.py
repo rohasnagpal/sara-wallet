@@ -391,6 +391,49 @@ class PayrollTests(BusinessPaymentsTestCase):
         self.assertEqual(second_run["items"], 0)
         self.assertEqual(len(second_run["skipped"]), 1)
 
+    def test_a_relabeled_period_does_not_pay_the_same_person_again(self):
+        # Regression test: the occurrence key used to be built from the raw,
+        # un-normalized period_label, so "2026-01", " 2026-01 " and "2026-01 "
+        # (whitespace/case variants of the same period) each looked like a
+        # distinct, never-before-paid period and minted a fresh payroll batch
+        # for the same person every time.
+        entry = AddressBook(nickname="jane.sara", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
+        self.db.add(entry)
+        self.db.commit()
+        payroll.create_payroll_person(
+            payroll.PayrollPersonBody(
+                counterparty_id=entry.id, wallet_id=self.wallet.id, network="polygon", token="USDC",
+                amount="10", rrule="FREQ=MONTHLY;INTERVAL=1", start_date=datetime(2026, 1, 1),
+            ),
+            self.db,
+        )
+        variants = ["Jan 2026", " Jan 2026 ", "JAN 2026", "jan 2026\t"]
+        results = [
+            payroll.create_payroll_run(
+                payroll.PayrollRunBody(wallet_id=self.wallet.id, network="polygon", token="USDC", period_label=label),
+                self.db,
+            )
+            for label in variants
+        ]
+        self.assertEqual(results[0]["items"], 1)
+        for later in results[1:]:
+            self.assertEqual(later["items"], 0, later)
+            self.assertIn("already paid", later["skipped"][0]["reason"])
+        # Exactly one payroll batch item was ever created for this person/period,
+        # no matter how many spelling variants of the same label were tried.
+        self.assertEqual(
+            self.db.query(PaymentBatchItem).filter(PaymentBatchItem.reference.like("payroll:%")).count(), 1,
+        )
+
+    def test_blank_period_label_is_rejected(self):
+        from fastapi import HTTPException
+        with self.assertRaises(HTTPException) as ctx:
+            payroll.create_payroll_run(
+                payroll.PayrollRunBody(wallet_id=self.wallet.id, network="polygon", token="USDC", period_label="   "),
+                self.db,
+            )
+        self.assertEqual(ctx.exception.status_code, 400)
+
 
 class CsvImportTests(unittest.TestCase):
     """Airdrop CSV import goes through FastAPI's own multipart parsing, so

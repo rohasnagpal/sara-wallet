@@ -144,9 +144,18 @@ def create_payroll_run(body: PayrollRunBody, db: Session = Depends(get_db)):
     """Groups every due, active payroll profile for one period into a single
     reviewable batch. Each person is guarded against being paid twice for the
     same period_label by a unique ScheduleRun occurrence key, exactly like a
-    plain recurring schedule's restart-safety guarantee."""
+    plain recurring schedule's restart-safety guarantee.
+
+    The label is normalized (stripped, casefolded) before it's used as part
+    of that key — "2026-01", " 2026-01 " and "2026-01" typed again all mean
+    the same period, and without this a run could be re-triggered for
+    everyone just by retyping the label slightly differently."""
     if not db.query(Wallet).filter(Wallet.id == body.wallet_id, Wallet.chain == "evm").first():
         raise HTTPException(404, "EVM wallet not found")
+    period_label = body.period_label.strip()
+    if not period_label:
+        raise HTTPException(400, "period_label is required")
+    period_key = period_label.casefold()
 
     query = db.query(PayrollProfile).filter(PayrollProfile.active == True)  # noqa: E712
     if body.profile_ids is not None:
@@ -157,7 +166,7 @@ def create_payroll_run(body: PayrollRunBody, db: Session = Depends(get_db)):
 
     batch = PaymentBatch(
         kind="payroll", status="draft", wallet_id=body.wallet_id, network=body.network.lower(),
-        token=body.token.upper(), payroll_period=body.period_label, created_by="local-owner",
+        token=body.token.upper(), payroll_period=period_label, created_by="local-owner",
     )
     db.add(batch)
     db.flush()
@@ -170,9 +179,9 @@ def create_payroll_run(body: PayrollRunBody, db: Session = Depends(get_db)):
         if not schedule or schedule.network != batch.network or schedule.token != batch.token:
             skipped.append({"profile_id": profile.id, "reason": "schedule network/token does not match this run"})
             continue
-        occurrence_key = f"payroll:{schedule.id}:{body.period_label}"
+        occurrence_key = f"payroll:{schedule.id}:{period_key}"
         if db.query(ScheduleRun).filter_by(schedule_id=schedule.id, occurrence_key=occurrence_key).first():
-            skipped.append({"profile_id": profile.id, "reason": f"already paid for period {body.period_label}"})
+            skipped.append({"profile_id": profile.id, "reason": f"already paid for period {period_label}"})
             continue
         try:
             if schedule.fiat_amount:
@@ -193,13 +202,13 @@ def create_payroll_run(body: PayrollRunBody, db: Session = Depends(get_db)):
             db.commit()
         except IntegrityError:
             db.rollback()
-            skipped.append({"profile_id": profile.id, "reason": f"already paid for period {body.period_label}"})
+            skipped.append({"profile_id": profile.id, "reason": f"already paid for period {period_label}"})
             continue
 
         db.add(PaymentBatchItem(
             batch_id=batch.id, row_index=row_index, recipient_address=recipient,
             counterparty_id=schedule.counterparty_id, amount_raw=str(amount_raw), decimals=decimals,
-            reference=f"payroll:{body.period_label}",
+            reference=f"payroll:{period_label}",
         ))
         row_index += 1
         nxt = _next_after(schedule, now)
@@ -207,7 +216,7 @@ def create_payroll_run(body: PayrollRunBody, db: Session = Depends(get_db)):
         db.commit()
 
     append_audit(db, "payroll.run_created", "payment_batch", resource_id=str(batch.id),
-                 details={"period_label": body.period_label, "items": row_index, "skipped": len(skipped)})
+                 details={"period_label": period_label, "items": row_index, "skipped": len(skipped)})
     db.commit()
     return {"batch_id": batch.id, "items": row_index, "skipped": skipped}
 
