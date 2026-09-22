@@ -1531,6 +1531,37 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
               <div id="routeResult" style="font-size:11px;margin-top:8px"></div>
             </div>
+
+            <div class="card" style="margin-top:10px">
+              <div style="font-size:15px;font-weight:600">USDC yield (Aave)</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                Supply USDC to Aave's v3 lending pool and earn its variable supply rate - your USDC
+                stays withdrawable at any time. Sara only ever supplies or withdraws your own funds;
+                it never borrows against them. Supported on Ethereum, Base, Arbitrum, Optimism and Polygon.
+              </div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="aaveWallet">Wallet</label><select class="settings-input" id="aaveWallet" onchange="loadAavePosition()"></select></div>
+                <div class="field"><label class="field-label" for="aaveNetwork">Network</label>
+                  <select class="settings-input" id="aaveNetwork" onchange="loadAavePosition()">
+                    <option value="base">Base</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="optimism">Optimism</option>
+                    <option value="ethereum">Ethereum</option>
+                  </select>
+                </div>
+              </div>
+              <div id="aavePosition" style="font-size:12px;margin:6px 0;color:var(--text-secondary)">Pick a wallet to see your position.</div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="aaveSupplyAmount">Supply amount (USDC)</label><input class="settings-input" id="aaveSupplyAmount" placeholder="100"></div>
+                <button class="settings-save-btn" onclick="aaveSupply()">Supply</button>
+              </div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="aaveWithdrawAmount">Withdraw amount (USDC, blank = all)</label><input class="settings-input" id="aaveWithdrawAmount" placeholder="Leave blank to withdraw everything"></div>
+                <button class="settings-save-btn" onclick="aaveWithdraw()">Withdraw</button>
+              </div>
+              <div id="aaveActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
           </div>
 
           <div id="toolsIntelPane" style="display:none">
@@ -4012,7 +4043,7 @@ function showToolsTab(tab) {
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
-  if (tab === 'treasury') loadTreasuryOverview();
+  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet']); loadAavePosition(); }
   if (tab === 'x402') { loadX402Payments(); loadPaywallPages(); }
 }
 
@@ -4262,6 +4293,56 @@ async function loadTreasuryOverview() {
     <div style="margin-top:6px">${(data.proposals || []).map(p => `<div>⚠ ${_escapeHtml(p.description)}</div>`).join('') || 'No proposals - nothing flagged.'}</div>
     <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.note)}</div>
   `;
+}
+
+// ---- Aave USDC yield (supply/withdraw only, no borrowing) ----
+async function loadAavePosition() {
+  const box = document.getElementById('aavePosition');
+  const walletId = Number(document.getElementById('aaveWallet').value);
+  const network = document.getElementById('aaveNetwork').value;
+  if (!walletId) { box.textContent = 'Create or choose a wallet first.'; return; }
+  box.textContent = 'Loading…';
+  try {
+    const r = await fetch(`/api/aave/position?wallet_id=${walletId}&network=${encodeURIComponent(network)}`);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load your Aave position.'); return; }
+    box.innerHTML = `Supplied: <strong>${_escapeHtml(_fmtBal(data.usdc_supplied))} USDC</strong> · Current supply APY: <strong>${_escapeHtml(data.supply_apy_pct.toFixed(2))}%</strong>`;
+  } catch (e) { box.textContent = 'Could not load your Aave position.'; }
+}
+
+async function aaveSupply() {
+  const status = document.getElementById('aaveActionStatus');
+  const walletId = Number(document.getElementById('aaveWallet').value);
+  const network = document.getElementById('aaveNetwork').value;
+  const amount = document.getElementById('aaveSupplyAmount').value.trim();
+  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
+  if (!amount) { status.textContent = 'Enter an amount to supply.'; return; }
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  status.textContent = 'Supplying…';
+  const r = await fetch('/api/aave/supply', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({wallet_id: walletId, network, amount, passphrase}),
+  });
+  const data = await r.json().catch(() => ({}));
+  status.textContent = r.ok ? `Supplied - tx ${data.tx_hash}` : _apiErrorText(data, 'Supply failed.');
+  if (r.ok) { document.getElementById('aaveSupplyAmount').value = ''; await loadAavePosition(); }
+}
+
+async function aaveWithdraw() {
+  const status = document.getElementById('aaveActionStatus');
+  const walletId = Number(document.getElementById('aaveWallet').value);
+  const network = document.getElementById('aaveNetwork').value;
+  const amount = document.getElementById('aaveWithdrawAmount').value.trim() || null;
+  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  status.textContent = 'Withdrawing…';
+  const r = await fetch('/api/aave/withdraw', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({wallet_id: walletId, network, amount, passphrase}),
+  });
+  const data = await r.json().catch(() => ({}));
+  status.textContent = r.ok ? `Withdrawn - tx ${data.tx_hash}` : _apiErrorText(data, 'Withdraw failed.');
+  if (r.ok) { document.getElementById('aaveWithdrawAmount').value = ''; await loadAavePosition(); }
 }
 
 // Sara supports each network's own gas token plus USDC (POL on Polygon, ETH

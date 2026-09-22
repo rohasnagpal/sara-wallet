@@ -1796,14 +1796,19 @@ def _record_submitted_transaction(
     db: Session, *, wallet_id: int, network: str, tx_hash: str,
     from_address: str, to_address: str, amount, amount_raw: int,
     decimals: int, token: str, category: str, reference: str | None = None,
-    note: str | None = None, tags: list[str] | None = None,
+    note: str | None = None, tags: list[str] | None = None, direction: str = "outgoing",
 ):
-    """Persist the ledger row, audit record and outbox event atomically."""
+    """Persist the ledger row, audit record and outbox event atomically.
+
+    direction defaults to "outgoing" (every send/swap/bridge/x402-payment
+    caller genuinely pays out); pass "incoming" for money coming back to
+    the wallet (e.g. an Aave withdrawal) so it isn't shown as an outflow."""
     from datetime import datetime
     from app.core.audit import append_audit
     from app.core.events import publish
     from app.db.models import Transaction
 
+    counterparty = to_address if direction == "outgoing" else from_address
     try:
         existing = db.query(Transaction).filter(
             Transaction.chain == "evm", Transaction.network == network,
@@ -1815,8 +1820,8 @@ def _record_submitted_transaction(
             wallet_id=wallet_id, chain="evm", network=network, tx_hash=tx_hash,
             from_address=from_address, to_address=to_address,
             amount=float(amount), amount_raw=str(amount_raw), decimals=decimals,
-            token=token, status="submitted", direction="outgoing",
-            category=category, counterparty=to_address, reference=reference,
+            token=token, status="submitted", direction=direction,
+            category=category, counterparty=counterparty, reference=reference,
             note=note, tags=json.dumps(tags) if tags else None,
             timestamp=datetime.utcnow(),
         )
