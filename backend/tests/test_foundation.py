@@ -46,6 +46,7 @@ class MigrationTests(unittest.TestCase):
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
                 "009_drop_dual_control", "010_paywall_preview_message",
+                "011_fetched_content_file_path",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):
@@ -77,6 +78,42 @@ class MigrationTests(unittest.TestCase):
                                        period="day", period_limit_raw="1000000", active=True))
             session.commit()
             self.assertEqual(sorted(p.name for p in session.query(SpendingPolicy)), ["new cap", "old cap"])
+            session.close()
+
+    def test_fetched_content_table_created_under_the_old_body_schema_still_works(self):
+        """x402_fetched_content originally stored the fetched body directly
+        in a NOT NULL `body` column; switching to file-based storage
+        renamed that to `file_path` in the model without a matching
+        migration for a database that already created the table under the
+        old schema - every insert (NOT NULL body unset) and every read (no
+        such column file_path) then failed outright. This is exactly the
+        real bug, reproduced against the real migration path rather than
+        just asserted against the model."""
+        from app.db.models import X402FetchedContent
+        with tempfile.NamedTemporaryFile(suffix=".db") as db_file:
+            engine = create_engine(f"sqlite:///{db_file.name}")
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "CREATE TABLE x402_fetched_content (id INTEGER PRIMARY KEY, wallet_id INTEGER NOT NULL, "
+                    "network VARCHAR NOT NULL, url TEXT NOT NULL, content_type VARCHAR, "
+                    "status_code INTEGER NOT NULL, body TEXT NOT NULL, amount_raw VARCHAR NOT NULL, "
+                    "tx_hash VARCHAR, transaction_id INTEGER, fetched_at DATETIME NOT NULL)"
+                ))
+            Base.metadata.create_all(engine)
+            run_migrations(engine)
+
+            columns = {c["name"] for c in inspect(engine).get_columns("x402_fetched_content")}
+            self.assertIn("file_path", columns)
+            self.assertNotIn("body", columns)
+
+            session = sessionmaker(bind=engine)()
+            session.add(X402FetchedContent(
+                wallet_id=1, network="base", url="https://example.com/a", status_code=200,
+                file_path="abc123.txt", amount_raw="10000",
+            ))
+            session.commit()
+            row = session.query(X402FetchedContent).one()
+            self.assertEqual(row.file_path, "abc123.txt")
             session.close()
 
 

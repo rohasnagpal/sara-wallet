@@ -151,6 +151,20 @@ def _migration_010_paywall_preview_message(engine: Engine) -> None:
     _add_columns(engine, "x402_paywall_pages", {"preview_message": "TEXT"})
 
 
+def _migration_011_fetched_content_file_path(engine: Engine) -> None:
+    """x402_fetched_content originally stored the fetched body directly in
+    a NOT NULL `body` column. Switching to file-based storage renamed that
+    to `file_path` in the model, but an install that already created this
+    table under the old schema never got the new column — every insert and
+    read against it failed outright (NOT NULL body / no such column
+    file_path) rather than degrading gracefully, since create_all only
+    creates missing tables. Drop is safe: this table only ever holds
+    disposable, regenerable fetch history, never a wallet key or anything
+    that can't be re-fetched (at the cost of a fresh payment)."""
+    _add_columns(engine, "x402_fetched_content", {"file_path": "TEXT"})
+    _drop_column(engine, "x402_fetched_content", "body")
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -162,6 +176,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("008_unify_directory_and_counterparties", _migration_008_unify_directory_and_counterparties),
     ("009_drop_dual_control", _migration_009_drop_dual_control),
     ("010_paywall_preview_message", _migration_010_paywall_preview_message),
+    ("011_fetched_content_file_path", _migration_011_fetched_content_file_path),
 )
 
 
