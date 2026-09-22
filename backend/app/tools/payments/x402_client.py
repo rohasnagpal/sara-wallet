@@ -126,6 +126,42 @@ def _pick_trusted_requirement(accepts, network: str) -> X402Requirement:
     )
 
 
+def select_requirement_to_pay(
+    requirements, *, caip2: str, trusted_usdc: str, network: str,
+    expected_amount_raw: str | None, expected_pay_to: str | None,
+):
+    """The actual security decision pay_and_fetch's payment-requirements
+    selector makes, pulled out to a plain function so it's testable without
+    driving the whole x402/httpx transport stack. Only ever returns a
+    requirement in Sara's own trusted USDC contract on the expected
+    network, and — when the caller supplies what it already approved
+    (typically the same probe() saw and a policy/passphrase just cleared) —
+    refuses anything that asks for a different amount or a different payee,
+    since this is a second, independent request/402 round trip that a
+    resource could answer differently from the first."""
+    trusted_usdc = trusted_usdc.lower()
+    for req in requirements:
+        if req.network != caip2 or req.asset.lower() != trusted_usdc:
+            continue
+        if expected_amount_raw is not None and req.amount != expected_amount_raw:
+            raise X402Error(
+                f"the price changed since it was approved (expected {expected_amount_raw}, "
+                f"the resource now asks for {req.amount}) — refusing to pay a different "
+                f"amount than what was approved; try again to review and approve the new price"
+            )
+        if expected_pay_to is not None and req.pay_to.lower() != expected_pay_to.lower():
+            raise X402Error(
+                f"the recipient changed since it was approved (expected {expected_pay_to}, "
+                f"the resource now asks to pay {req.pay_to}) — refusing to pay someone "
+                f"different than who was approved; try again to review and approve the new request"
+            )
+        return req
+    raise X402Error(
+        f"The resource's 402 response did not offer payment in Sara's trusted USDC "
+        f"contract on {network} - refusing to authorize an unrecognized asset."
+    )
+
+
 async def probe(
     *, url: str, method: str, network: str,
     headers: dict[str, str] | None = None, json_body: dict | None = None,
@@ -162,9 +198,23 @@ async def pay_and_fetch(
     *, url: str, method: str, private_key: str, network: str,
     headers: dict[str, str] | None = None, json_body: dict | None = None,
     timeout_seconds: float = 30.0,
+    expected_amount_raw: str | None = None, expected_pay_to: str | None = None,
 ) -> X402Result:
     """Pays (if the resource asks for it, in Sara's trusted USDC contract
-    only) and returns the resource. Raises X402Error on anything else."""
+    only) and returns the resource. Raises X402Error on anything else.
+
+    pay_and_fetch does its own independent request/402 round trip against
+    the resource — a second, separate exchange from whatever probe() saw
+    earlier. Without expected_amount_raw/expected_pay_to, nothing here
+    stops a resource from quoting a small, policy-approved price to probe()
+    and then a larger one (still in Sara's trusted USDC contract, so the
+    asset check alone doesn't catch it) at the moment it's actually paid —
+    the caller has typically already checked the probed price against a
+    spending policy, or had the user approve that specific price with their
+    passphrase, and paying something the resource changed its mind about
+    after that isn't the same thing as re-approving it. Callers that truly
+    have nothing to compare against (there are none in this codebase) can
+    omit both and get the old, asset-only behavior."""
     _require_https(url)
     network = _require_supported(network)
     caip2 = _caip2(network)
@@ -177,12 +227,9 @@ async def pay_and_fetch(
     from x402.mechanisms.evm.signers import EthAccountSigner
 
     def _trusted_selector(version, requirements):
-        for req in requirements:
-            if req.network == caip2 and req.asset.lower() == trusted_usdc:
-                return req
-        raise X402Error(
-            f"The resource's 402 response did not offer payment in Sara's trusted USDC "
-            f"contract on {network} - refusing to authorize an unrecognized asset."
+        return select_requirement_to_pay(
+            requirements, caip2=caip2, trusted_usdc=trusted_usdc, network=network,
+            expected_amount_raw=expected_amount_raw, expected_pay_to=expected_pay_to,
         )
 
     account = Account.from_key(private_key)

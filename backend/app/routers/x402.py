@@ -118,6 +118,11 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
     try:
         result = await x402_client.pay_and_fetch(
             url=body.url, method=body.method, private_key=key, network=network, json_body=body.json_body,
+            # Pin to exactly what was just evaluated (auto-approved by
+            # policy, or approved by the user's passphrase moments ago) —
+            # pay_and_fetch does its own separate 402 round trip and must
+            # refuse rather than silently pay a different price/recipient.
+            expected_amount_raw=str(amount_raw), expected_pay_to=requirement.pay_to,
         )
     except x402_client.X402Error as exc:
         raise HTTPException(400, str(exc))
