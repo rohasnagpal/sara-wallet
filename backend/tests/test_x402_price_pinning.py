@@ -116,6 +116,48 @@ class FetchEndpointWiringTests(unittest.TestCase):
         self.assertEqual(pay_mock.call_args.kwargs["expected_amount_raw"], "10000")
         self.assertEqual(pay_mock.call_args.kwargs["expected_pay_to"], PAY_TO)
 
+    def test_a_decrypt_failure_is_a_clean_400_not_a_raw_crash(self):
+        """A wallet whose key can't be decrypted with the current session
+        key (e.g. after the passphrase-change race the app now prevents,
+        or an install restored onto a different master key) must surface
+        a real, JSON error - not an unhandled ValueError that crashes the
+        endpoint with a non-JSON 500 the frontend can't even parse."""
+        from fastapi import HTTPException
+        from app.routers import x402
+
+        probed = x402_client.X402Requirement(network="polygon", asset=POLYGON_USDC, amount_raw="10000", pay_to=PAY_TO)
+        body = x402.X402FetchBody(wallet_id=self.wallet.id, network="polygon", url="https://example.com/resource")
+
+        with patch("app.tools.wallet.lock.is_unlocked", return_value=True), \
+             patch.object(x402_client, "probe", AsyncMock(return_value=probed)), \
+             patch("app.tools.wallet.encrypt.decrypt_key",
+                   side_effect=ValueError("wallet private key cannot be decrypted with the current SARA_MASTER_KEY")):
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(x402.fetch(body, self.db))
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("cannot be decrypted", ctx.exception.detail)
+
+    def test_an_unexpected_exception_from_pay_and_fetch_is_a_clean_502_not_a_raw_crash(self):
+        """Only X402Error was ever caught around pay_and_fetch - any other
+        exception type (a bug in a dependency, an unexpected library
+        error, ...) used to propagate uncaught and crash the endpoint with
+        a bare, non-JSON response the UI could only show as a generic
+        'x402 fetch failed.' with no way to tell what actually happened."""
+        from fastapi import HTTPException
+        from app.routers import x402
+
+        probed = x402_client.X402Requirement(network="polygon", asset=POLYGON_USDC, amount_raw="10000", pay_to=PAY_TO)
+        body = x402.X402FetchBody(wallet_id=self.wallet.id, network="polygon", url="https://example.com/resource")
+
+        with patch("app.tools.wallet.lock.is_unlocked", return_value=True), \
+             patch.object(x402_client, "probe", AsyncMock(return_value=probed)), \
+             patch("app.tools.wallet.encrypt.decrypt_key", return_value="k"), \
+             patch.object(x402_client, "pay_and_fetch", AsyncMock(side_effect=RuntimeError("boom"))):
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(x402.fetch(body, self.db))
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertIn("boom", ctx.exception.detail)
+
 
 if __name__ == "__main__":
     unittest.main()

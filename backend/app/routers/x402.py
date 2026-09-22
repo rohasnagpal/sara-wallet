@@ -143,7 +143,11 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
         if not confirm_passphrase(body.passphrase):
             raise HTTPException(401, "Incorrect passphrase")
 
-    key = decrypt_key(wallet.encrypted_key)
+    try:
+        key = decrypt_key(wallet.encrypted_key)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
     try:
         result = await x402_client.pay_and_fetch(
             url=body.url, method=body.method, private_key=key, network=network, json_body=body.json_body,
@@ -155,6 +159,11 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
         )
     except x402_client.X402Error as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        # Whatever this is, it must never surface as a raw, non-JSON 500 -
+        # that's indistinguishable in the UI from a network hiccup and
+        # leaves the real reason only in the server's own log.
+        raise HTTPException(502, f"x402 payment failed: {exc}")
     finally:
         key = None
 
