@@ -5444,7 +5444,7 @@ async function loadWalletMgmt() {
     list.innerHTML = wallets.map(w => `
       <div class="dir-entry" data-wallet-id="${w.id}">
         <div class="dir-nick" id="walletName-${w.id}">${_escapeHtml(w.name)}</div>
-        <div class="dir-addr" title="${_escapeHtml(w.address)}">${_escapeHtml(w.address)}</div>
+        <div class="dir-addr" data-addr="${_escapeHtml(w.address)}" onclick="copyAddr(this)" title="Click to copy">${_escapeHtml(w.address)}<span class="copy-icon"> ⎘</span></div>
         <div class="dir-chain">${_escapeHtml(w.chain)}</div>
         <button class="dir-del" onclick="startEditWalletName(this, ${w.id}, '${_jsAttrString(w.name)}')" title="Rename wallet">✎</button>
         <button class="dir-del" onclick="openExportModal(${w.id}, '${_jsAttrString(w.name)}')" title="Reveal private key">🔑</button>
