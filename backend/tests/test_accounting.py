@@ -19,7 +19,7 @@ class AccountingTestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = Session()
         self.wallet_a = Wallet(name="A", chain="evm", address="0x" + "11" * 20, encrypted_key="x")
         self.wallet_b = Wallet(name="B", chain="evm", address="0x" + "22" * 20, encrypted_key="x")
@@ -282,7 +282,7 @@ class ExportTests(unittest.TestCase):
 
         self.engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = Session()
         self.wallet = Wallet(name="Treasury", chain="evm", address="0x" + "11" * 20, encrypted_key="x")
         self.db.add(self.wallet)

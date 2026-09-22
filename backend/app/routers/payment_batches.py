@@ -343,6 +343,11 @@ async def import_batch(
             if batch.token not in trusted_symbols(batch.network):
                 raise HTTPException(400, f"{batch.token} is not a trusted token on {batch.network} for airdrops")
         imported, row_errors = _import_rows(db, batch, df)
+        # _import_rows only db.add()s items; the session has autoflush=False
+        # (app/db/session.py), so validate_batch's own query for this batch's
+        # items would otherwise see none of them and always fail with
+        # "batch has no items" — flush before any read of what was just added.
+        db.flush()
     except Exception:
         db.rollback()
         raise

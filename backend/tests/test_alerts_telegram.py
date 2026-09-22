@@ -31,7 +31,7 @@ class AlertsTestCase(unittest.TestCase):
     def setUp(self):
         engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(engine)
-        self.db = sessionmaker(bind=engine, expire_on_commit=False)()
+        self.db = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)()
 
     def tearDown(self):
         self.db.close()

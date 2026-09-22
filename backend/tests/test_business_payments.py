@@ -25,7 +25,7 @@ class BusinessPaymentsTestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = Session()
         self.wallet = Wallet(name="Treasury", chain="evm", address="0x" + "11" * 20, encrypted_key="x")
         self.db.add(self.wallet)
@@ -408,7 +408,7 @@ class CsvImportTests(unittest.TestCase):
             "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
         )
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = Session()
         self.wallet = Wallet(name="Treasury", chain="evm", address="0x" + "11" * 20, encrypted_key="x")
         self.db.add(self.wallet)
@@ -507,6 +507,24 @@ class CsvImportTests(unittest.TestCase):
 
     def test_unknown_kind_is_rejected(self):
         self.assertEqual(self._upload(f"recipient_address,amount\n{ADDR_A},1\n".encode(), kind="payroll").status_code, 400)
+
+    def test_a_valid_csv_actually_imports_against_the_real_validator(self):
+        # Every other test in this class patches batch_engine.validate_batch
+        # itself, which would hide a bug where the imported rows are never
+        # visible to it at all (as _valid_csv_creates... would, if the
+        # session's autoflush=False and nothing flushes between adding the
+        # items and validate_batch's own query for them - regression test
+        # for exactly that: a previously-shipped bug where every CSV import
+        # failed with "batch has no items" no matter how valid the file was).
+        content = f"recipient_address,amount\n{ADDR_A},1.5\n{ADDR_B},2.5\n".encode()
+        with patch("app.chains.evm.get_native_transfer_preview_raw",
+                   return_value={"has_funds": True, "unit": "POL", "balance": 100.0, "total": 4.0}):
+            resp = self._upload(content, token="POL")
+        data = resp.json()
+        self.assertEqual(resp.status_code, 200, data)
+        self.assertTrue(data["ok"], data)
+        self.assertEqual(data["batch"]["item_count"], 2)
+        self.assertEqual(self._batch_count(), 1)
 
 
 class DeleteBatchTests(BusinessPaymentsTestCase):

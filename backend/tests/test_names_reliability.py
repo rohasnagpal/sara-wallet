@@ -20,7 +20,7 @@ class Stage7TestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = Session()
         self.wallet = Wallet(name="Treasury", chain="evm", address=ADDR_A, encrypted_key="x")
         self.db.add(self.wallet)

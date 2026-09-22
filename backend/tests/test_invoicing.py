@@ -18,7 +18,7 @@ class InvoicingTests(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        self.Session = sessionmaker(bind=self.engine, expire_on_commit=False, autoflush=False)
         self.db = self.Session()
         self.wallet = Wallet(name="Treasury", chain="evm", address="0x" + "11" * 20, encrypted_key="x")
         self.db.add(self.wallet)

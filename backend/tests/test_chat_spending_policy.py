@@ -30,7 +30,7 @@ class ChatSpendingPolicyTest(unittest.TestCase):
     def setUp(self):
         engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(engine)
-        self.db = sessionmaker(bind=engine, expire_on_commit=False)()
+        self.db = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)()
         self.wallet = Wallet(name="Main", chain="evm", address=ME, encrypted_key="x")
         self.db.add(self.wallet)
         self.db.commit()
