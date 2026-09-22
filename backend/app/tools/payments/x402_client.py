@@ -177,8 +177,17 @@ async def probe(
     from x402 import x402Client
     from x402.http.x402_http_client import x402HTTPClient
 
-    async with httpx.AsyncClient(timeout=timeout_seconds) as http:
-        response = await http.request(method.upper(), url, headers=headers, json=json_body)
+    try:
+        async with httpx.AsyncClient(timeout=timeout_seconds) as http:
+            response = await http.request(method.upper(), url, headers=headers, json=json_body)
+    except X402Error:
+        raise
+    except Exception as exc:
+        # Same treatment pay_and_fetch already gives its own httpx call - a
+        # timeout, DNS failure, connection reset, or TLS error here must
+        # become a clean, callable error, not an uncaught exception that
+        # crashes the /fetch endpoint with a raw, non-JSON response.
+        raise X402Error(str(exc)) from exc
     if response.status_code != 402:
         return None
 

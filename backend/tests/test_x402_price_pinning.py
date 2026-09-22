@@ -79,6 +79,33 @@ class SelectRequirementToPayTests(unittest.TestCase):
         self.assertEqual(req.amount, "500000")
 
 
+class ProbeNetworkErrorTests(unittest.TestCase):
+    """probe() runs first, on every /fetch attempt, and unlike
+    pay_and_fetch() its own httpx call had no error handling at all - a
+    timeout, DNS failure, or connection reset there used to propagate as a
+    raw, uncaught exception straight through the router (which only ever
+    caught X402Error), crashing the endpoint with a non-JSON response the
+    frontend could only show as a generic, unhelpful failure message."""
+
+    def test_a_network_failure_during_probe_becomes_a_clean_x402error(self):
+        import httpx
+
+        class _FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def request(self, *a, **kw):
+                raise httpx.ConnectError("Connection refused")
+
+        with patch.object(httpx, "AsyncClient", return_value=_FakeClient()):
+            with self.assertRaises(x402_client.X402Error) as ctx:
+                asyncio.run(x402_client.probe(url="https://example.com/x", method="GET", network="polygon"))
+        self.assertIn("Connection refused", str(ctx.exception))
+
+
 class FetchEndpointWiringTests(unittest.TestCase):
     """Confirms the /x402/fetch endpoint actually passes what it evaluated
     into pay_and_fetch, rather than just the fix existing in isolation."""
@@ -157,6 +184,22 @@ class FetchEndpointWiringTests(unittest.TestCase):
                 asyncio.run(x402.fetch(body, self.db))
         self.assertEqual(ctx.exception.status_code, 502)
         self.assertIn("boom", ctx.exception.detail)
+
+    def test_an_unexpected_exception_from_probe_is_also_a_clean_502(self):
+        """Defense in depth at the call site, on top of the fix inside
+        probe() itself - the exact bug class that slipped through before:
+        pay_and_fetch() was hardened against this, but probe() (which runs
+        first, unconditionally, on every attempt) was not."""
+        from fastapi import HTTPException
+        from app.routers import x402
+
+        body = x402.X402FetchBody(wallet_id=self.wallet.id, network="polygon", url="https://example.com/resource")
+        with patch("app.tools.wallet.lock.is_unlocked", return_value=True), \
+             patch.object(x402_client, "probe", AsyncMock(side_effect=ConnectionError("network is unreachable"))):
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(x402.fetch(body, self.db))
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertIn("network is unreachable", ctx.exception.detail)
 
 
 if __name__ == "__main__":

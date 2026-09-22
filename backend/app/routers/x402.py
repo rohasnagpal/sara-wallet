@@ -109,6 +109,10 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
         )
     except x402_client.X402Error as exc:
         raise HTTPException(400, str(exc))
+    except Exception as exc:
+        # Defense in depth alongside the fix inside probe() itself - this
+        # call must never crash the endpoint with a raw, non-JSON response.
+        raise HTTPException(502, f"Could not check whether payment is required: {exc}")
 
     if requirement is None:
         # Nothing to pay for - fetch it directly, no wallet/policy involved.
