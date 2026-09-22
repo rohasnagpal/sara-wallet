@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import secrets
 from decimal import Decimal
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -29,6 +30,34 @@ from app.tools.payments import x402_client
 router = APIRouter(prefix="/x402", tags=["x402"], dependencies=[Depends(require_session)])
 
 _USDC_DECIMALS = 6  # Circle's USDC is 6 decimals on every EVM chain x402_client supports
+
+# Where a paid /fetch's response body is saved (see X402FetchedContent) —
+# a sibling of sara.db, not tracked in git, same as the database itself.
+# Not encrypted: the user explicitly chose plain storage for this data.
+FETCHED_CONTENT_DIR = Path(__file__).resolve().parents[2] / "data" / "x402_fetched"
+
+_EXTENSION_BY_CONTENT_TYPE = {
+    "application/json": ".json",
+    "text/html": ".html",
+    "text/csv": ".csv",
+    "text/xml": ".xml",
+    "application/xml": ".xml",
+}
+
+
+def _extension_for(content_type: str | None) -> str:
+    base = (content_type or "").split(";")[0].strip().lower()
+    return _EXTENSION_BY_CONTENT_TYPE.get(base, ".txt")
+
+
+def _save_fetched_content(body_text: str, content_type: str | None) -> str:
+    """Writes the body to its own file and returns the filename (relative
+    to FETCHED_CONTENT_DIR) — never a full/absolute path, so a row can't be
+    made to point outside this directory."""
+    FETCHED_CONTENT_DIR.mkdir(parents=True, exist_ok=True)
+    filename = secrets.token_hex(16) + _extension_for(content_type)
+    (FETCHED_CONTENT_DIR / filename).write_text(body_text, encoding="utf-8")
+    return filename
 
 
 @router.get("/networks")
@@ -151,6 +180,25 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
         )
         db.commit()
 
+    content_id = None
+    if result.paid:
+        # x402 has no session or receipt concept - the resource is returned
+        # exactly once, in this response. Save it now (paid or free-tier
+        # testnet alike) or it's gone forever the moment this request ends,
+        # and refetching the same URL charges again.
+        from app.db.models import X402FetchedContent
+        filename = _save_fetched_content(result.body_text, result.content_type)
+        saved = X402FetchedContent(
+            wallet_id=wallet.id, network=network, url=body.url,
+            content_type=result.content_type, status_code=result.status_code,
+            file_path=filename, amount_raw=str(amount_raw), tx_hash=result.tx_hash,
+            transaction_id=ledger_row.id if ledger_row else None,
+        )
+        db.add(saved)
+        db.commit()
+        db.refresh(saved)
+        content_id = saved.id
+
     return {
         "paid": result.paid, "status_code": result.status_code, "body": result.body_text,
         "content_type": result.content_type, "tx_hash": result.tx_hash,
@@ -159,6 +207,7 @@ async def fetch(body: X402FetchBody, db: Session = Depends(get_db)):
         # blank on success, which showed as "0 USDC" even after a real payment.
         "amount_raw": str(amount_raw), "network": result.network or network, "is_testnet": is_testnet,
         "auto_approved": auto_approved, "transaction_id": ledger_row.id if ledger_row else None,
+        "content_id": content_id,
     }
 
 
@@ -176,3 +225,49 @@ def list_payments(wallet_id: int | None = None, db: Session = Depends(get_db)):
         "tags": _json.loads(r.tags) if r.tags else [], "status": r.status,
         "tx_hash": r.tx_hash, "timestamp": r.timestamp.isoformat() if r.timestamp else None,
     } for r in rows]}
+
+
+@router.get("/fetched")
+def list_fetched_content(wallet_id: int | None = None, db: Session = Depends(get_db)):
+    """Metadata only (no file reads) — fast even with a long history."""
+    from app.db.models import X402FetchedContent
+    query = db.query(X402FetchedContent)
+    if wallet_id is not None:
+        query = query.filter(X402FetchedContent.wallet_id == wallet_id)
+    rows = query.order_by(X402FetchedContent.fetched_at.desc()).limit(200).all()
+    return {"items": [{
+        "id": r.id, "wallet_id": r.wallet_id, "network": r.network, "url": r.url,
+        "content_type": r.content_type, "status_code": r.status_code,
+        "amount_raw": r.amount_raw, "tx_hash": r.tx_hash,
+        "fetched_at": r.fetched_at.isoformat() if r.fetched_at else None,
+    } for r in rows]}
+
+
+@router.get("/fetched/{content_id}")
+def get_fetched_content(content_id: int, db: Session = Depends(get_db)):
+    from app.db.models import X402FetchedContent
+    row = db.query(X402FetchedContent).filter(X402FetchedContent.id == content_id).first()
+    if not row:
+        raise HTTPException(404, "No saved content with that id")
+    file_path = FETCHED_CONTENT_DIR / row.file_path
+    try:
+        body = file_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise HTTPException(410, "This content's file is missing on disk (moved or deleted outside Sara)")
+    return {
+        "id": row.id, "url": row.url, "network": row.network, "content_type": row.content_type,
+        "status_code": row.status_code, "amount_raw": row.amount_raw, "tx_hash": row.tx_hash,
+        "fetched_at": row.fetched_at.isoformat() if row.fetched_at else None, "body": body,
+    }
+
+
+@router.delete("/fetched/{content_id}")
+def delete_fetched_content(content_id: int, db: Session = Depends(get_db)):
+    from app.db.models import X402FetchedContent
+    row = db.query(X402FetchedContent).filter(X402FetchedContent.id == content_id).first()
+    if not row:
+        raise HTTPException(404, "No saved content with that id")
+    (FETCHED_CONTENT_DIR / row.file_path).unlink(missing_ok=True)
+    db.delete(row)
+    db.commit()
+    return {"deleted": True}

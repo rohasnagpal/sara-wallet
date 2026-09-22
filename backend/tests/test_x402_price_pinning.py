@@ -98,6 +98,8 @@ class FetchEndpointWiringTests(unittest.TestCase):
         self.db.close()
 
     def test_probed_amount_and_payee_are_pinned_into_pay_and_fetch(self):
+        import tempfile
+        from pathlib import Path
         from app.routers import x402
 
         probed = x402_client.X402Requirement(network="polygon", asset=POLYGON_USDC, amount_raw="10000", pay_to=PAY_TO)
@@ -107,6 +109,7 @@ class FetchEndpointWiringTests(unittest.TestCase):
         with patch("app.tools.wallet.lock.is_unlocked", return_value=True), \
              patch.object(x402_client, "probe", AsyncMock(return_value=probed)), \
              patch("app.tools.wallet.encrypt.decrypt_key", return_value="k"), \
+             patch.object(x402, "FETCHED_CONTENT_DIR", Path(tempfile.mkdtemp())), \
              patch.object(x402_client, "pay_and_fetch", AsyncMock(return_value=paid_result)) as pay_mock:
             asyncio.run(x402.fetch(body, self.db))
 

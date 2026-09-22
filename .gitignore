@@ -40,6 +40,9 @@ venv.bak/
 *.sqlite
 *.sqlite3
 
+# ── User data saved outside the database ──
+backend/data/
+
 # ── macOS ──
 .DS_Store
 .AppleDouble

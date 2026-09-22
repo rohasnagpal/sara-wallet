@@ -1685,6 +1685,19 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
 
             <div class="card" style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Previously purchased content</strong><button class="settings-save-btn" onclick="loadX402FetchedContent()">Refresh</button></div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                x402 has no concept of a receipt or a session - once you pay for something, the resource is
+                returned exactly once. Sara saves what you paid for here so you don't lose it (and don't have
+                to pay again just to see it a second time).
+              </div>
+              <div id="x402FetchedList" style="font-size:11px;margin-top:8px">Loading…</div>
+              <div id="x402FetchedViewBox" style="display:none;margin-top:8px">
+                <div class="result-desc" style="font-family:var(--font-mono);white-space:pre-wrap;word-break:break-all;max-height:280px;overflow:auto" id="x402FetchedViewBody"></div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:10px">
               <div style="font-size:15px;font-weight:600">Get paid: paywall generator</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
                 Pick a Sara wallet and a price, and Sara writes a single PHP file for you to paste
@@ -4055,7 +4068,7 @@ function showToolsTab(tab) {
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
   if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet']); loadAavePosition(); }
-  if (tab === 'x402') { loadX402Payments(); loadPaywallPages(); }
+  if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
 }
 
 // ---- Token creator ----
@@ -4611,7 +4624,7 @@ async function x402Fetch() {
       ` : ''}
       <div class="result-desc" style="font-family:var(--font-mono);white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto">${_escapeHtml(bodyPreview)}${(data.body || '').length > 2000 ? '\n…' : ''}</div>
     </div>`;
-  if (data.paid) await loadX402Payments();
+  if (data.paid) { await loadX402Payments(); await loadX402FetchedContent(); }
 }
 
 async function loadX402Payments() {
@@ -4626,6 +4639,49 @@ async function loadX402Payments() {
       </div>`).join('') : '<div style="color:var(--text-muted)">No x402 payments yet.</div>';
   } catch (e) { box.textContent = 'Could not load payments.'; }
 }
+
+async function loadX402FetchedContent() {
+  const box = document.getElementById('x402FetchedList');
+  try {
+    const data = await fetch('/api/x402/fetched').then(r => r.json());
+    const rows = data.items || [];
+    box.innerHTML = rows.length ? rows.map(item => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <span class="tx-title-text" title="${_escapeHtml(item.url)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escapeHtml(item.url)}</span>
+          <span style="color:var(--text-muted);white-space:nowrap">${_escapeHtml(item.network)}</span>
+        </div>
+        <div style="color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+          <span>${_escapeHtml(_fmtBal(Number(item.amount_raw || 0) / 1e6))} USDC · ${item.fetched_at ? new Date(item.fetched_at).toLocaleString() : ''}</span>
+          <span>
+            <button class="settings-save-btn" onclick="viewX402FetchedContent(${item.id})">View</button>
+            <button class="settings-save-btn" onclick="confirmDeleteX402FetchedContent(this, ${item.id})">Delete</button>
+          </span>
+        </div>
+      </div>`).join('') : '<div style="color:var(--text-muted)">Nothing purchased yet.</div>';
+  } catch (e) { box.textContent = 'Could not load your purchased content.'; }
+}
+
+async function viewX402FetchedContent(id) {
+  const viewBox = document.getElementById('x402FetchedViewBox');
+  const body = document.getElementById('x402FetchedViewBody');
+  body.textContent = 'Loading…';
+  viewBox.style.display = '';
+  try {
+    const r = await fetch(`/api/x402/fetched/${id}`);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { body.textContent = _apiErrorText(data, 'Could not load this content.'); return; }
+    body.textContent = data.body;
+    viewBox.scrollIntoView({behavior: 'smooth', block: 'center'});
+  } catch (e) { body.textContent = 'Could not load this content.'; }
+}
+
+async function deleteX402FetchedContent(id) {
+  await fetch(`/api/x402/fetched/${id}`, {method: 'DELETE'});
+  document.getElementById('x402FetchedViewBox').style.display = 'none';
+  await loadX402FetchedContent();
+}
+function confirmDeleteX402FetchedContent(btn, id) { _armConfirm(btn, () => deleteX402FetchedContent(id)); }
 
 // ---- x402: paywall generator (sell, not buy) ----
 function _onPaywallModeChange() {

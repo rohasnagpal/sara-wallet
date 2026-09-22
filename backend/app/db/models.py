@@ -620,3 +620,29 @@ class X402PaywallPage(Base):
     encrypted_cdp_secret  = Column(Text, nullable=True)     # live mode only — AES-256-GCM, hex-encoded
     preview_message       = Column(Text, nullable=True)     # shown to a visitor who hasn't paid yet
     created_at            = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class X402FetchedContent(Base):
+    """Records a paid x402 /fetch — x402 itself has no session or receipt
+    concept: once paid, the resource is returned in that one HTTP response
+    and nothing else. Without saving it, Sara would show it once in a
+    result box and then lose it forever, even though the user already paid
+    for it and refetching would charge again.
+
+    Hybrid storage: this row is metadata only (for a fast, searchable
+    list); the actual response body lives in its own file under
+    app.routers.x402.FETCHED_CONTENT_DIR, named by this row's own id once
+    known. Not encrypted — matches the user's explicit choice for this
+    data, unlike a wallet key or proof evidence."""
+    __tablename__ = "x402_fetched_content"
+    id             = Column(Integer, primary_key=True, index=True)
+    wallet_id      = Column(Integer, nullable=False, index=True)
+    network        = Column(String, nullable=False)
+    url            = Column(Text, nullable=False)
+    content_type   = Column(String, nullable=True)
+    status_code    = Column(Integer, nullable=False)
+    file_path      = Column(Text, nullable=False)  # relative to FETCHED_CONTENT_DIR
+    amount_raw     = Column(String, nullable=False)
+    tx_hash        = Column(String, nullable=True)
+    transaction_id = Column(Integer, nullable=True)  # set only when also recorded to the ledger (mainnet, non-testnet)
+    fetched_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
