@@ -70,7 +70,7 @@ parsimonious==0.10.0
 peewee==4.2.3
 pillow==12.3.0
 platformdirs==4.10.0
-propcache==0.5.2
+propcache==0.5.4
 protobuf==7.35.1
 pycparser==3.0
 pycryptodome==3.23.0
