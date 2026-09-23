@@ -58,7 +58,7 @@ markdown-it-py==4.2.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
 mnemonic==0.21
-multidict==6.7.1
+multidict==6.9.0
 multitasking==0.0.13
 nest-asyncio==1.6.0
 numpy==2.5.1
