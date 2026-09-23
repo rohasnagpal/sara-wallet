@@ -674,3 +674,18 @@ class CctpTransfer(Base):
     status               = Column(String, nullable=False, default="burned")  # "burned" | "complete"
     created_at           = Column(DateTime, default=datetime.utcnow, nullable=False)
     completed_at         = Column(DateTime, nullable=True)
+
+
+class OnrampSettings(Base):
+    """Singleton row (always id=1) holding the Coinbase CDP API key used
+    to create onramp sessions (see app.tools.payments.cdp_onramp) — an
+    account-level credential, not tied to any one wallet, since a single
+    CDP key can fund any of a user's wallets. The secret is encrypted the
+    same way a wallet's private key is (encrypt_key/decrypt_key, gated on
+    the same unlocked session) — this is the same kind of credential the
+    x402 paywall's CDP facilitator option already protects the same way."""
+    __tablename__ = "onramp_settings"
+    id                    = Column(Integer, primary_key=True)
+    cdp_key_id            = Column(String, nullable=True)
+    encrypted_cdp_secret  = Column(Text, nullable=True)
+    updated_at            = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

@@ -1609,6 +1609,31 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong style="font-size:12px">Transfers</strong><button class="settings-save-btn" onclick="loadCctpTransfers()">Refresh</button></div>
               <div id="cctpTransfersList" style="font-size:11px;margin-top:6px">Loading…</div>
             </div>
+
+            <div class="card" style="margin-top:10px">
+              <div style="font-size:15px;font-weight:600">Add funds (buy USDC)</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                Buy USDC with a card or bank transfer, straight into a Sara wallet, via Coinbase's own
+                hosted checkout page opened in a new tab - Sara never touches the payment. Set up a free
+                CDP API key in Settings first. Once you're done on Coinbase's page, come back here and
+                refresh your balance.
+              </div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="onrampWallet">Deposit to wallet</label><select class="settings-input" id="onrampWallet"></select></div>
+                <div class="field"><label class="field-label" for="onrampNetwork">Network</label>
+                  <select class="settings-input" id="onrampNetwork">
+                    <option value="base">Base</option>
+                    <option value="ethereum">Ethereum</option>
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="optimism">Optimism</option>
+                  </select>
+                </div>
+                <div class="field"><label class="field-label" for="onrampAmount">Amount in USD (optional)</label><input class="settings-input" id="onrampAmount" placeholder="100"></div>
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="startOnramp()">Buy USDC</button>
+              <div id="onrampActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+            </div>
           </div>
 
           <div id="toolsIntelPane" style="display:none">
@@ -1959,6 +1984,31 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="saveSetting('ALCHEMY_API_KEY')">Save</button>
               </div>
               <div class="settings-status" id="sstatus-ALCHEMY_API_KEY"></div>
+            </div>
+
+            <!-- Buy USDC -->
+            <div class="settings-section-title">Buy USDC (Coinbase Onramp)</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
+              Lets you buy USDC with a card or bank transfer, straight into a Sara wallet, via
+              Coinbase's own hosted checkout page - Sara never touches the payment or your card details.
+              Get a free key from the <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">CDP Portal &rarr; API Keys</a>
+              (choose the <strong>Ed25519</strong> key type). This isn't Circle's own "Onramp Kit" -
+              that one isn't publicly documented yet, so Coinbase's separately-built, publicly available
+              equivalent is used instead; the end result (USDC lands in your wallet) is the same.
+            </div>
+            <div class="settings-row" id="srow-onrampCdpKeyId">
+              <div class="settings-label">CDP API Key ID</div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="onrampCdpKeyId" type="text" placeholder="organizations/.../apiKeys/..." autocomplete="off">
+              </div>
+            </div>
+            <div class="settings-row" id="srow-onrampCdpKeySecret">
+              <div class="settings-label">CDP API Key Secret</div>
+              <div class="settings-input-row">
+                <input class="settings-input" id="onrampCdpKeySecret" type="password" placeholder="Ed25519 private key, base64" autocomplete="off">
+                <button class="settings-save-btn" onclick="saveOnrampSettings()">Save</button>
+              </div>
+              <div class="settings-status" id="onrampSettingsStatus"></div>
             </div>
 
             <!-- Networks & Tokens -->
@@ -4144,7 +4194,7 @@ function showToolsTab(tab) {
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
-  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet', 'cctpWallet']); loadAavePosition(); loadCctpTransfers(); }
+  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet', 'cctpWallet', 'onrampWallet']); loadAavePosition(); loadCctpTransfers(); }
   if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
 }
 
@@ -5386,6 +5436,7 @@ async function _loadSettingsView() {
     await _loadOpenrouterModels();
     _updateAIActiveLabel(savedModel);
     await _loadAssetSettings();
+    await _loadOnrampSettings();
   } catch(e) {}
 }
 
@@ -5442,6 +5493,52 @@ async function saveAssetSettings() {
     statusEl.textContent = e.message;
     statusEl.style.color = 'var(--red)';
   }
+}
+
+// ---- Buy USDC via Coinbase's CDP Onramp ----
+async function _loadOnrampSettings() {
+  try {
+    const data = await fetch('/api/onramp/settings').then(r => r.json());
+    if (data.configured) {
+      document.getElementById('onrampCdpKeyId').value = data.cdp_key_id || '';
+      document.getElementById('onrampCdpKeySecret').placeholder = _SETTINGS_FILLED_PLACEHOLDER;
+    }
+  } catch(e) {}
+}
+
+async function saveOnrampSettings() {
+  const status = document.getElementById('onrampSettingsStatus');
+  const cdp_key_id = document.getElementById('onrampCdpKeyId').value.trim();
+  const cdp_key_secret = document.getElementById('onrampCdpKeySecret').value.trim();
+  if (!cdp_key_id || !cdp_key_secret) { status.textContent = 'Enter both the key ID and secret.'; status.style.color = 'var(--red)'; return; }
+  status.textContent = 'Saving…'; status.style.color = '';
+  const r = await fetch('/api/onramp/settings', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({cdp_key_id, cdp_key_secret}),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not save.'); status.style.color = 'var(--red)'; return; }
+  status.textContent = 'Saved!'; status.style.color = 'var(--green)';
+  document.getElementById('onrampCdpKeySecret').value = '';
+  document.getElementById('onrampCdpKeySecret').placeholder = _SETTINGS_FILLED_PLACEHOLDER;
+  setTimeout(() => { status.textContent = ''; }, 3000);
+}
+
+async function startOnramp() {
+  const status = document.getElementById('onrampActionStatus');
+  const walletId = Number(document.getElementById('onrampWallet').value);
+  const network = document.getElementById('onrampNetwork').value;
+  const amount_usd = document.getElementById('onrampAmount').value.trim() || null;
+  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
+  status.textContent = 'Opening Coinbase checkout…';
+  const r = await fetch('/api/onramp/session', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({wallet_id: walletId, network, amount_usd}),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not start checkout.'); return; }
+  window.open(data.onramp_url, '_blank', 'noopener');
+  status.textContent = 'Opened in a new tab - come back and refresh your balance once you\'re done.';
 }
 
 async function _loadOpenrouterModels() {
