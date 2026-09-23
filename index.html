@@ -2035,6 +2035,33 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <div class="settings-status" id="assetSettingsStatus" style="height:auto;margin:0"></div>
             </div>
 
+            <!-- Recovery Phrases -->
+            <div class="settings-section-title">Recovery Phrases</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
+              A recovery phrase (24 words) backs up every wallet derived from it - the same standard
+              MetaMask and other wallets use. Sara creates one automatically ("Default") the first time
+              you create a wallet; each wallet after that derives from it too, unless you deliberately
+              add another. Wallets you've <strong>imported</strong> from a private key aren't covered by
+              any phrase - use Reveal Private Key for those instead.
+            </div>
+            <div id="seedsSettingsList"></div>
+            <div style="margin-top:8px">
+              <button class="settings-save-btn" onclick="toggleAddSeedForm()">+ Add another seed</button>
+            </div>
+            <div id="addSeedForm" style="display:none;margin-top:10px;padding:10px;border:1px solid var(--border-dark);border-radius:8px">
+              <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
+                Advanced: a second, separate recovery phrase - e.g. to keep a business seed apart from a
+                personal one. Leave the phrase blank to generate a brand-new one, or paste an existing
+                24-word phrase to import it instead (e.g. recovering onto a fresh Sara install).
+              </div>
+              <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
+                <input class="settings-input" id="addSeedLabel" type="text" placeholder="Label (e.g. Business)" autocomplete="off">
+                <textarea class="settings-input" id="addSeedPhrase" rows="2" placeholder="Leave blank to generate a new phrase, or paste an existing 24-word phrase to import it" style="font-family:var(--font-mono);font-size:11px;resize:none"></textarea>
+                <button class="settings-save-btn" onclick="submitAddSeed()">Add Seed</button>
+              </div>
+              <div class="settings-status" id="addSeedStatus"></div>
+            </div>
+
             <!-- Security -->
             <div class="settings-section-title">Security</div>
 
@@ -2210,6 +2237,44 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <div class="wallet-modal-actions">
         <button class="wallet-btn-cancel" onclick="copyExportedKey()">Copy</button>
         <button class="wallet-btn-create" onclick="closeExportModal()">Done</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Recovery Phrase Modal (mandatory-backup on first wallet, and Settings → Recovery Phrases → Reveal) ── -->
+<div class="wallet-modal-overlay" id="seedModalOverlay" onclick="closeSeedModal(event)">
+  <div class="wallet-modal" onclick="event.stopPropagation()">
+    <div class="wallet-modal-title">Recovery Phrase</div>
+
+    <div id="seedStepPass">
+      <div style="font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:12px;line-height:1.5">
+        ⚠ Anyone with this phrase can recreate every wallet ever derived from it. Never share it, screenshot it, or type it into any website. Sara will never ask you for it.
+      </div>
+      <div class="wallet-form-group">
+        <div class="wallet-form-label">Confirm your Sara passphrase</div>
+        <input class="wallet-form-input" id="seedPassInput" type="password" placeholder="Passphrase" autocomplete="off" />
+      </div>
+      <div style="font-size:11px;color:var(--red);min-height:14px" id="seedPassStatus"></div>
+      <div class="wallet-modal-actions">
+        <button class="wallet-btn-cancel" onclick="closeSeedModal()">Cancel</button>
+        <button class="wallet-btn-create" id="seedRevealBtn" onclick="submitRevealSeed()">Reveal</button>
+      </div>
+    </div>
+
+    <div id="seedStepPhrase" style="display:none">
+      <div style="font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:12px;line-height:1.5">
+        ⚠ This is the only time Sara will show you this phrase this way. Write it down (or copy it somewhere safe and offline) - anyone who has it can recreate every wallet derived from it, on any device, forever.
+      </div>
+      <div class="wallet-form-group">
+        <div class="wallet-form-label" id="seedPhraseLabel"></div>
+        <textarea class="wallet-form-input" id="seedPhraseOutput" readonly rows="3" style="font-family:var(--font-mono);font-size:11px;resize:none;word-break:break-word"></textarea>
+      </div>
+      <div style="font-size:11px;color:var(--green);min-height:14px" id="seedCopyStatus"></div>
+      <div class="wallet-modal-actions">
+        <button class="wallet-btn-cancel" onclick="copySeedPhrase()">Copy</button>
+        <button class="wallet-btn-create" onclick="closeSeedModal()">Done, I've saved it</button>
       </div>
     </div>
 
@@ -3238,6 +3303,13 @@ async function submitWallet() {
     closeWalletModal();
     const action = walletTab === 'create' ? 'created' : 'imported';
     addMsg('Wallet "' + _escapeHtml(data.name) + '" ' + action + '! Address: ' + _escapeHtml(data.address), 'bot');
+    if (data.seed_phrase) {
+      // Only present the one time a seed is auto-created (this wallet's
+      // very first creation) - mandatory backup, same moment MetaMask
+      // shows its own recovery phrase during onboarding.
+      openSeedModalWithPhrase(data.seed_phrase, data.seed_label);
+      data.seed_phrase = '';
+    }
     loadWalletMgmt();
     loadPortfolioView();
   } catch(e) { addMsg('Error: ' + _escapeHtml(e.message), 'bot'); }
@@ -5453,6 +5525,7 @@ async function _loadSettingsView() {
     _updateAIActiveLabel(savedModel);
     await _loadAssetSettings();
     await _loadOnrampSettings();
+    await loadSeedsSettings();
   } catch(e) {}
 }
 
@@ -5841,6 +5914,147 @@ function copyExportedKey() {
     status.textContent = 'Copied to clipboard.';
     setTimeout(() => { status.textContent = ''; }, 2500);
   });
+}
+
+// ══════════════════════════════════════
+// RECOVERY PHRASES (BIP-39 seeds - one phrase backs up many wallets)
+// ══════════════════════════════════════
+let _seedRevealId = null;
+
+function _openSeedModal() {
+  document.getElementById('seedModalOverlay').classList.add('open');
+}
+
+function closeSeedModal(event) {
+  if (event && event.target !== document.getElementById('seedModalOverlay')) return;
+  document.getElementById('seedModalOverlay').classList.remove('open');
+  // Never leave phrase material sitting in the DOM after the modal closes.
+  document.getElementById('seedPassInput').value = '';
+  document.getElementById('seedPhraseOutput').value = '';
+  _seedRevealId = null;
+  loadSeedsSettings();
+}
+
+function _showSeedPhraseStep(phrase, label) {
+  document.getElementById('seedPhraseLabel').textContent = label || 'Default';
+  document.getElementById('seedPhraseOutput').value = phrase;
+  document.getElementById('seedStepPass').style.display = 'none';
+  document.getElementById('seedStepPhrase').style.display = '';
+}
+
+// Called right after a wallet's creation response includes seed_phrase -
+// the phrase is already in hand (this Sara session is already unlocked),
+// so this shows it directly without asking for the passphrase again.
+function openSeedModalWithPhrase(phrase, label) {
+  document.getElementById('seedPassInput').value = '';
+  document.getElementById('seedPassStatus').textContent = '';
+  _showSeedPhraseStep(phrase, label);
+  _openSeedModal();
+}
+
+// Called from Settings → Recovery Phrases → Reveal, for a seed that
+// already exists - passphrase-gated, same as Reveal Private Key.
+function openSeedModalForReveal(id, label) {
+  _seedRevealId = id;
+  document.getElementById('seedPhraseLabel').textContent = label;
+  document.getElementById('seedPassInput').value = '';
+  document.getElementById('seedPassStatus').textContent = '';
+  document.getElementById('seedPhraseOutput').value = '';
+  document.getElementById('seedCopyStatus').textContent = '';
+  document.getElementById('seedStepPass').style.display = '';
+  document.getElementById('seedStepPhrase').style.display = 'none';
+  _openSeedModal();
+  document.getElementById('seedPassInput').focus();
+}
+
+async function submitRevealSeed() {
+  const passInput = document.getElementById('seedPassInput');
+  const status = document.getElementById('seedPassStatus');
+  const passphrase = passInput.value;
+  if (!passphrase) { status.textContent = 'Enter your passphrase.'; return; }
+  const btn = document.getElementById('seedRevealBtn');
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  status.textContent = '';
+  try {
+    const r = await fetch('/api/wallets/seeds/' + _seedRevealId + '/reveal', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ passphrase })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(_apiErrorText(data, 'Failed'));
+    passInput.value = '';
+    _showSeedPhraseStep(data.seed_phrase, data.label);
+    data.seed_phrase = '';
+  } catch(e) {
+    status.textContent = e.message === 'Incorrect passphrase' ? 'Incorrect passphrase.' : ('Error: ' + e.message);
+  }
+  btn.textContent = 'Reveal'; btn.disabled = false;
+}
+
+function copySeedPhrase() {
+  const output = document.getElementById('seedPhraseOutput');
+  navigator.clipboard.writeText(output.value).then(() => {
+    const status = document.getElementById('seedCopyStatus');
+    status.textContent = 'Copied to clipboard.';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+  });
+}
+
+async function loadSeedsSettings() {
+  const list = document.getElementById('seedsSettingsList');
+  if (!list) return;
+  list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Loading…</div>';
+  try {
+    const seeds = await fetch('/api/wallets/seeds').then(r => r.json());
+    if (!seeds.length) {
+      list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No wallets created yet - a recovery phrase is generated automatically the first time you create one.</div>';
+      return;
+    }
+    list.innerHTML = seeds.map(s => `
+      <div class="settings-row">
+        <div class="settings-label">${_escapeHtml(s.label)} <span style="font-weight:400;text-transform:none;letter-spacing:0">${s.wallet_count} wallet${s.wallet_count === 1 ? '' : 's'}</span></div>
+        <button class="settings-save-btn" onclick="openSeedModalForReveal(${s.id}, '${_jsAttrString(s.label)}')">Reveal</button>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading recovery phrases.</div>';
+  }
+}
+
+function toggleAddSeedForm() {
+  const form = document.getElementById('addSeedForm');
+  form.style.display = form.style.display === 'none' ? '' : 'none';
+  if (form.style.display !== 'none') {
+    document.getElementById('addSeedLabel').value = '';
+    document.getElementById('addSeedPhrase').value = '';
+    document.getElementById('addSeedStatus').textContent = '';
+  }
+}
+
+async function submitAddSeed() {
+  const label = document.getElementById('addSeedLabel').value.trim() || 'Default';
+  const phrase = document.getElementById('addSeedPhrase').value.trim();
+  const status = document.getElementById('addSeedStatus');
+  status.textContent = '';
+  try {
+    const body = { label };
+    if (phrase) body.seed_phrase = phrase;
+    const r = await fetch('/api/wallets/seeds', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(_apiErrorText(data, 'Failed'));
+    document.getElementById('addSeedPhrase').value = '';
+    toggleAddSeedForm();
+    if (data.seed_phrase) {
+      openSeedModalWithPhrase(data.seed_phrase, data.label);
+    } else {
+      loadSeedsSettings();
+    }
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+  }
 }
 
 const DIR_TYPE_LABELS = {vendor:'Vendor', customer:'Customer', employee:'Employee', contractor:'Contractor', friend:'Friend', other:'Other'};

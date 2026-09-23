@@ -25,6 +25,24 @@ class Wallet(Base):
     address       = Column(String, nullable=False)
     encrypted_key = Column(Text, nullable=False)     # AES-256-GCM, hex-encoded blob
     created_at    = Column(DateTime, default=datetime.utcnow)
+    # Both nullable: a wallet imported from a key the user already had
+    # elsewhere (or created before seed phrases existed) has no seed at
+    # all - that's a normal, permanent state, not a migration gap.
+    seed_id            = Column(Integer, nullable=True)  # WalletSeed.id this key was derived from
+    derivation_index   = Column(Integer, nullable=True)  # account index under that seed (m/44'/60'/0'/0/{index})
+
+class WalletSeed(Base):
+    """One BIP-39 recovery phrase, from which any number of wallets can be
+    derived (m/44'/60'/0'/0/{index}, the same path MetaMask uses) - see
+    app/tools/wallet/seeds.py. Sara auto-creates one ("Default") the first
+    time a wallet is created with no seed yet; adding another is an
+    advanced, explicit action, never automatic."""
+    __tablename__ = "wallet_seeds"
+    id             = Column(Integer, primary_key=True, index=True)
+    label          = Column(String, nullable=False, default="Default")
+    encrypted_seed = Column(Text, nullable=False)    # AES-256-GCM, hex-encoded blob - same scheme as encrypted_key
+    next_index     = Column(Integer, nullable=False, default=0)
+    created_at     = Column(DateTime, default=datetime.utcnow)
 
 class AddressBook(Base):
     """The single "who do I know" list — a free, local nickname/address

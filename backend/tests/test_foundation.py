@@ -46,7 +46,7 @@ class MigrationTests(unittest.TestCase):
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
                 "009_drop_dual_control", "010_paywall_preview_message",
-                "011_fetched_content_file_path", "012_paywall_facilitator",
+                "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

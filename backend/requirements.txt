@@ -10,6 +10,7 @@ platformdirs>=4.10.0  # OS-correct user-data dir for the desktop_launcher.py pac
 aiofiles>=23.0.0
 web3>=7.0.0
 eth-account>=0.13.0
+mnemonic>=0.21
 cryptography>=48.0.1
 solders>=0.27.0
 solana>=0.36.0

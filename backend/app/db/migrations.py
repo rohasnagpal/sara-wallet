@@ -181,6 +181,16 @@ def _migration_012_paywall_facilitator(engine: Engine) -> None:
         ))
 
 
+def _migration_013_wallet_seeds(engine: Engine) -> None:
+    """wallet_seeds is a brand-new table (SQLAlchemy's create_all handles
+    that on its own, no migration needed) - only wallets needs altering,
+    since it predates seed-derived wallets. Both columns stay NULL for
+    every wallet that already exists (imported keys, or anything created
+    before this feature) - that's their normal, permanent state, not
+    unmigrated data."""
+    _add_columns(engine, "wallets", {"seed_id": "INTEGER", "derivation_index": "INTEGER"})
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -194,6 +204,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("010_paywall_preview_message", _migration_010_paywall_preview_message),
     ("011_fetched_content_file_path", _migration_011_fetched_content_file_path),
     ("012_paywall_facilitator", _migration_012_paywall_facilitator),
+    ("013_wallet_seeds", _migration_013_wallet_seeds),
 )
 
 
