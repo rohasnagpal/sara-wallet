@@ -165,6 +165,22 @@ def _migration_011_fetched_content_file_path(engine: Engine) -> None:
     _drop_column(engine, "x402_fetched_content", "body")
 
 
+def _migration_012_paywall_facilitator(engine: Engine) -> None:
+    """x402_paywall_pages predates the "circle" facilitator option — every
+    live-mode row created before this column existed used Coinbase's CDP
+    facilitator exclusively (it was the only one available). Backfill it
+    explicitly so an existing live page's code still regenerates with the
+    facilitator it actually was built for, instead of silently defaulting
+    to "circle" (config that row was never given) the next time its code
+    is fetched. Test-mode rows are left null - the column is live-mode
+    only, matching the model."""
+    _add_columns(engine, "x402_paywall_pages", {"facilitator": "TEXT"})
+    with engine.begin() as conn:
+        conn.execute(text(
+            "UPDATE x402_paywall_pages SET facilitator = 'cdp' WHERE mode = 'live' AND facilitator IS NULL"
+        ))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -177,6 +193,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("009_drop_dual_control", _migration_009_drop_dual_control),
     ("010_paywall_preview_message", _migration_010_paywall_preview_message),
     ("011_fetched_content_file_path", _migration_011_fetched_content_file_path),
+    ("012_paywall_facilitator", _migration_012_paywall_facilitator),
 )
 
 

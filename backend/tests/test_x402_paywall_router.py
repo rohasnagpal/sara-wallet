@@ -83,11 +83,12 @@ class X402PaywallRouterTests(unittest.TestCase):
         with patch("app.tools.wallet.encrypt.encrypt_key", return_value="ENCRYPTED_BLOB") as enc:
             resp = self.client.post("/api/x402-paywall/pages", json={
                 "label": "Report", "wallet_id": self.wallet.id, "mode": "live", "network": "base",
-                "price_usd": "2", "cdp_key_id": "orgs/x/apiKeys/y", "cdp_key_secret": "topsecret",
+                "facilitator": "cdp", "price_usd": "2", "cdp_key_id": "orgs/x/apiKeys/y", "cdp_key_secret": "topsecret",
             })
         self.assertEqual(resp.status_code, 200, resp.text)
         enc.assert_called_once_with("topsecret")
         page = self.db.query(X402PaywallPage).filter_by(id=resp.json()["id"]).first()
+        self.assertEqual(page.facilitator, "cdp")
         self.assertEqual(page.encrypted_cdp_secret, "ENCRYPTED_BLOB")
         self.assertNotIn("topsecret", page.encrypted_cdp_secret)
 
@@ -96,10 +97,53 @@ class X402PaywallRouterTests(unittest.TestCase):
         with patch("app.tools.wallet.encrypt.encrypt_key", side_effect=WalletLockedError("locked")):
             resp = self.client.post("/api/x402-paywall/pages", json={
                 "label": "Report", "wallet_id": self.wallet.id, "mode": "live", "network": "base",
-                "price_usd": "2", "cdp_key_id": "k", "cdp_key_secret": "s",
+                "facilitator": "cdp", "price_usd": "2", "cdp_key_id": "k", "cdp_key_secret": "s",
             })
         self.assertEqual(resp.status_code, 423)
         self.assertEqual(self.db.query(X402PaywallPage).count(), 0)
+
+    def test_live_mode_via_circle_needs_no_unlock_and_no_cdp_key(self):
+        """Circle's facilitator is keyless - creating a page for it must
+        never touch encrypt_key at all, so it works even while locked."""
+        with patch("app.tools.wallet.encrypt.encrypt_key") as enc:
+            resp = self.client.post("/api/x402-paywall/pages", json={
+                "label": "Article", "wallet_id": self.wallet.id, "mode": "live", "network": "base",
+                "facilitator": "circle", "price_usd": "0.50",
+            })
+        self.assertEqual(resp.status_code, 200, resp.text)
+        enc.assert_not_called()
+        page = self.db.query(X402PaywallPage).filter_by(id=resp.json()["id"]).first()
+        self.assertEqual(page.facilitator, "circle")
+        self.assertIsNone(page.encrypted_cdp_secret)
+        self.assertIsNone(page.cdp_key_id)
+        self.assertIn("gateway-api.circle.com", resp.json()["code"])
+
+    def test_circle_is_the_default_facilitator_when_omitted(self):
+        resp = self.client.post("/api/x402-paywall/pages", json={
+            "label": "Article", "wallet_id": self.wallet.id, "mode": "live", "network": "base",
+            "price_usd": "0.50",
+        })
+        self.assertEqual(resp.status_code, 200, resp.text)
+        self.assertIn("gateway-api.circle.com", resp.json()["code"])
+
+    def test_circle_facilitator_rejects_polygon(self):
+        resp = self.client.post("/api/x402-paywall/pages", json={
+            "label": "x", "wallet_id": self.wallet.id, "mode": "live", "network": "polygon",
+            "facilitator": "circle", "price_usd": "1",
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self.db.query(X402PaywallPage).count(), 0)
+
+    def test_get_code_for_a_circle_page_never_needs_decrypt_key(self):
+        create = self.client.post("/api/x402-paywall/pages", json={
+            "label": "Article", "wallet_id": self.wallet.id, "mode": "live", "network": "base",
+            "facilitator": "circle", "price_usd": "0.50",
+        })
+        page_id = create.json()["id"]
+        with patch("app.tools.wallet.encrypt.decrypt_key") as dec:
+            resp = self.client.get(f"/api/x402-paywall/pages/{page_id}/code")
+        self.assertEqual(resp.status_code, 200)
+        dec.assert_not_called()
 
     def test_list_annotates_each_page_with_its_wallet_usdc_balance(self):
         self.client.post("/api/x402-paywall/pages", json={
@@ -131,7 +175,7 @@ class X402PaywallRouterTests(unittest.TestCase):
         with patch("app.tools.wallet.encrypt.encrypt_key", return_value="ENCRYPTED_BLOB"):
             create = self.client.post("/api/x402-paywall/pages", json={
                 "label": "Report", "wallet_id": self.wallet.id, "mode": "live", "network": "arbitrum",
-                "price_usd": "3", "cdp_key_id": "k", "cdp_key_secret": "topsecret",
+                "facilitator": "cdp", "price_usd": "3", "cdp_key_id": "k", "cdp_key_secret": "topsecret",
             })
         page_id = create.json()["id"]
         with patch("app.tools.wallet.encrypt.decrypt_key", return_value="topsecret") as dec:

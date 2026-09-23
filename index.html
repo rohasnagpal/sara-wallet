@@ -1708,10 +1708,11 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 present on virtually every host). Sara never sees traffic to your page; it only
                 generates this code, once. <strong>Test mode</strong> runs on Base Sepolia
                 (testnet, free faucet USDC) with no signup, so you can try the whole flow for free.
-                <strong>Live mode</strong> settles real USDC on Base, Polygon or Arbitrum via
-                Coinbase's CDP facilitator, and needs your own free
-                <a href="https://portal.cdp.coinbase.com/" target="_blank" rel="noopener">CDP API key</a>
-                (id + secret) - Sara encrypts that secret the same way it protects a wallet's private key.
+                <strong>Live mode</strong> settles real USDC via one of two facilitators:
+                <strong>Circle's Gateway</strong> (Base only, completely free, no signup or API key at all)
+                or <strong>Coinbase's CDP</strong> (Base, Polygon or Arbitrum, needs your own free
+                <a href="https://portal.cdp.coinbase.com/" target="_blank" rel="noopener">CDP API key</a> -
+                Sara encrypts that secret the same way it protects a wallet's private key).
               </div>
               <div class="field-grid">
                 <div class="field"><label class="field-label" for="paywallLabel">Label</label><input class="settings-input" id="paywallLabel" placeholder="e.g. Premium article"></div>
@@ -1725,13 +1726,19 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                     <option value="live">Live (real USDC)</option>
                   </select>
                 </div>
-                <div class="field" id="paywallNetworkField" style="display:none"><label class="field-label" for="paywallNetwork">Network</label>
-                  <select class="settings-input" id="paywallNetwork">
-                    <option value="base">Base</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="arbitrum">Arbitrum</option>
+                <div class="field" id="paywallFacilitatorField" style="display:none"><label class="field-label" for="paywallFacilitator">Facilitator</label>
+                  <select class="settings-input" id="paywallFacilitator" onchange="_onPaywallFacilitatorChange()">
+                    <option value="circle">Circle Gateway (Base - no signup)</option>
+                    <option value="cdp">Coinbase CDP (Base, Polygon, Arbitrum)</option>
                   </select>
                 </div>
+              </div>
+              <div class="field" id="paywallNetworkField" style="display:none;margin-top:7px"><label class="field-label" for="paywallNetwork">Network</label>
+                <select class="settings-input" id="paywallNetwork">
+                  <option value="base">Base</option>
+                  <option value="polygon">Polygon</option>
+                  <option value="arbitrum">Arbitrum</option>
+                </select>
               </div>
               <div id="paywallCdpFields" style="display:none;margin-top:7px">
                 <div style="font-size:10.5px;color:var(--text-secondary);margin-bottom:6px">
@@ -4710,8 +4717,18 @@ function confirmDeleteX402FetchedContent(btn, id) { _armConfirm(btn, () => delet
 // ---- x402: paywall generator (sell, not buy) ----
 function _onPaywallModeChange() {
   const live = document.getElementById('paywallMode').value === 'live';
-  document.getElementById('paywallNetworkField').style.display = live ? '' : 'none';
-  document.getElementById('paywallCdpFields').style.display = live ? '' : 'none';
+  document.getElementById('paywallFacilitatorField').style.display = live ? '' : 'none';
+  if (live) _onPaywallFacilitatorChange(); else {
+    document.getElementById('paywallNetworkField').style.display = 'none';
+    document.getElementById('paywallCdpFields').style.display = 'none';
+  }
+}
+
+function _onPaywallFacilitatorChange() {
+  const cdp = document.getElementById('paywallFacilitator').value === 'cdp';
+  // Circle only settles Base - no network choice needed when using it.
+  document.getElementById('paywallNetworkField').style.display = cdp ? '' : 'none';
+  document.getElementById('paywallCdpFields').style.display = cdp ? '' : 'none';
 }
 
 async function createPaywallPage() {
@@ -4728,10 +4745,16 @@ async function createPaywallPage() {
   const preview = document.getElementById('paywallPreview').value.trim();
   if (preview) body.preview_message = preview;
   if (mode === 'live') {
-    body.network = document.getElementById('paywallNetwork').value;
-    body.cdp_key_id = document.getElementById('paywallCdpKeyId').value.trim();
-    body.cdp_key_secret = document.getElementById('paywallCdpKeySecret').value.trim();
-    if (!body.cdp_key_id || !body.cdp_key_secret) { status.textContent = 'Live mode needs your CDP API key id and secret.'; return; }
+    const facilitator = document.getElementById('paywallFacilitator').value;
+    body.facilitator = facilitator;
+    if (facilitator === 'cdp') {
+      body.network = document.getElementById('paywallNetwork').value;
+      body.cdp_key_id = document.getElementById('paywallCdpKeyId').value.trim();
+      body.cdp_key_secret = document.getElementById('paywallCdpKeySecret').value.trim();
+      if (!body.cdp_key_id || !body.cdp_key_secret) { status.textContent = 'Live mode via Coinbase CDP needs your API key id and secret.'; return; }
+    } else {
+      body.network = 'base'; // Circle's facilitator only settles Base
+    }
   }
 
   status.textContent = 'Generating…';
@@ -4766,6 +4789,7 @@ async function loadPaywallPages() {
       details: [
         ['Pays to', `${p.wallet_name || 'Unknown wallet'} (${_truncMid(p.wallet_address || '')})`],
         ['Network', p.network],
+        p.facilitator ? ['Facilitator', p.facilitator === 'circle' ? 'Circle Gateway' : 'Coinbase CDP'] : null,
         ['Price', `${p.price_usd} USDC`],
         ['Balance', p.usdc_balance == null ? 'Unknown' : `${_fmtBal(p.usdc_balance)} USDC`],
       ],

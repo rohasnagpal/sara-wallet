@@ -135,7 +135,7 @@ class GeneratePhpTests(unittest.TestCase):
     def test_live_mode_embeds_cdp_key_and_targets_cdp_facilitator(self):
         code = codegen.generate_php(
             label="Report", wallet_address=WALLET, mode="live", network="polygon",
-            price_usd="2.00", cdp_key_id="orgs/x/apiKeys/y", cdp_key_secret="c2VjcmV0",
+            facilitator="cdp", price_usd="2.00", cdp_key_id="orgs/x/apiKeys/y", cdp_key_secret="c2VjcmV0",
         )
         cfg = self._config(code)
         self.assertEqual(cfg["network"], "eip155:137")
@@ -144,17 +144,50 @@ class GeneratePhpTests(unittest.TestCase):
         self.assertEqual(cfg["auth"]["key_id"], "orgs/x/apiKeys/y")
         self.assertEqual(cfg["auth"]["key_secret"], "c2VjcmV0")
 
-    def test_live_mode_requires_a_cdp_key(self):
+    def test_live_mode_requires_a_cdp_key_when_using_the_cdp_facilitator(self):
         with self.assertRaises(codegen.PaywallCodegenError):
             codegen.generate_php(
-                label="x", wallet_address=WALLET, mode="live", network="base", price_usd="1",
+                label="x", wallet_address=WALLET, mode="live", network="base",
+                facilitator="cdp", price_usd="1",
             )
 
     def test_live_mode_rejects_a_network_the_cdp_facilitator_cannot_settle(self):
         with self.assertRaises(codegen.PaywallCodegenError):
             codegen.generate_php(
                 label="x", wallet_address=WALLET, mode="live", network="ethereum",
-                price_usd="1", cdp_key_id="k", cdp_key_secret="s",
+                facilitator="cdp", price_usd="1", cdp_key_id="k", cdp_key_secret="s",
+            )
+
+    def test_live_mode_via_circle_needs_no_key_and_targets_the_gateway_facilitator(self):
+        code = codegen.generate_php(
+            label="Report", wallet_address=WALLET, mode="live", network="base",
+            facilitator="circle", price_usd="0.50",
+        )
+        cfg = self._config(code)
+        self.assertEqual(cfg["network"], "eip155:8453")
+        self.assertIn("gateway-api.circle.com", cfg["facilitator_url"])
+        self.assertIsNone(cfg["auth"])
+
+    def test_live_mode_via_circle_rejects_polygon_and_arbitrum(self):
+        for network in ("polygon", "arbitrum"):
+            with self.subTest(network=network):
+                with self.assertRaises(codegen.PaywallCodegenError):
+                    codegen.generate_php(
+                        label="x", wallet_address=WALLET, mode="live", network=network,
+                        facilitator="circle", price_usd="1",
+                    )
+
+    def test_circle_is_the_default_facilitator(self):
+        code = codegen.generate_php(
+            label="x", wallet_address=WALLET, mode="live", network="base", price_usd="1",
+        )
+        self.assertIn("gateway-api.circle.com", self._config(code)["facilitator_url"])
+
+    def test_unknown_facilitator_is_rejected(self):
+        with self.assertRaises(codegen.PaywallCodegenError):
+            codegen.generate_php(
+                label="x", wallet_address=WALLET, mode="live", network="base",
+                facilitator="bogus", price_usd="1",
             )
 
     def test_test_mode_is_pinned_to_base_sepolia(self):
@@ -244,7 +277,7 @@ class GeneratePhpTests(unittest.TestCase):
             self.skipTest("php interpreter not available")
         code = codegen.generate_php(
             label="Lint check", wallet_address=WALLET, mode="live", network="arbitrum",
-            price_usd="0.99", cdp_key_id="k", cdp_key_secret="s",
+            facilitator="cdp", price_usd="0.99", cdp_key_id="k", cdp_key_secret="s",
         )
         with tempfile.NamedTemporaryFile("w", suffix=".php", delete=False) as f:
             f.write(code)

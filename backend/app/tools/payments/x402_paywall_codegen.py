@@ -10,27 +10,36 @@ Two modes, matching what's actually reachable today:
     uses on Sara's buyer side, for the same reason: it's the only network
     the free public facilitator actually settles for EVM (confirmed live
     against x402.org/facilitator/supported — see x402_client.py).
-  - "live": a real EVM mainnet, settled via Coinbase's CDP facilitator
-    (the only mainnet-capable x402 facilitator readily available without
-    running one's own) — which only supports Base, Polygon and Arbitrum,
-    not Ethereum or Optimism (per docs.cdp.coinbase.com, confirmed live).
-    Requires the seller's own free CDP API key (id + secret); every CDP
-    request needs a short-lived Ed25519-signed JWT per
-    docs.cdp.coinbase.com/api-reference/v2/authentication — reproduced
-    here in plain PHP using the `sodium` extension (bundled with PHP since
-    7.2, present on virtually every host including shared hosting — no
-    Composer dependency needed). This part is implemented strictly from
-    Coinbase's documented JWT scheme; unlike the test-mode path, it hasn't
-    been exercised against a real CDP account (Sara has none), so a seller
-    turning on live mode should confirm a real request settles before
-    relying on it.
+  - "live": a real EVM mainnet, settled via one of two facilitators
+    (`facilitator=` param):
+      - "circle" (default when available): Circle's own Gateway
+        Nanopayments facilitator (developers.circle.com/gateway/
+        nanopayments) — also keyless, no signup, no API key — confirmed
+        live via its OpenAPI spec (`security: []` on both /verify and
+        /settle). Only settles Base mainnet today (confirmed against the
+        spec's supported-networks list) — nothing else.
+      - "cdp": Coinbase's CDP facilitator, needed for Polygon or
+        Arbitrum (Circle's doesn't reach those yet) — supports Base,
+        Polygon and Arbitrum, not Ethereum or Optimism (per
+        docs.cdp.coinbase.com, confirmed live). Requires the seller's own
+        free CDP API key (id + secret); every CDP request needs a
+        short-lived Ed25519-signed JWT per docs.cdp.coinbase.com/
+        api-reference/v2/authentication — reproduced here in plain PHP
+        using the `sodium` extension (bundled with PHP since 7.2, present
+        on virtually every host including shared hosting — no Composer
+        dependency needed). This part is implemented strictly from
+        Coinbase's documented JWT scheme; unlike the test-mode and Circle
+        paths, it hasn't been exercised against a real CDP account (Sara
+        has none), so a seller turning it on should confirm a real
+        request settles before relying on it.
 
-The wire protocol both modes speak (the 402 challenge header, the payment
-submission header, and the facilitator's /verify + /settle calls) was
-captured empirically by Sara's developers by running x402's own reference
-seller (examples/x402/demo_seller.py) and inspecting real traffic — not
-guessed from documentation alone. See app/tools/payments/x402_client.py
-for the buyer-side implementation of the same protocol.
+The wire protocol every path speaks (the 402 challenge header, the
+payment submission header, and the facilitator's /verify + /settle calls)
+was captured empirically by Sara's developers by running x402's own
+reference seller (examples/x402/demo_seller.py) and inspecting real
+traffic — not guessed from documentation alone. See
+app/tools/payments/x402_client.py for the buyer-side implementation of
+the same protocol.
 """
 from __future__ import annotations
 
@@ -55,6 +64,14 @@ SUPPORTED_NETWORKS = (TEST_NETWORK,) + LIVE_NETWORKS
 _CDP_FACILITATOR = "https://api.cdp.coinbase.com/platform/v2/x402"
 _CDP_HOST = "api.cdp.coinbase.com"
 _CDP_PATH_PREFIX = "/platform/v2/x402"
+
+# Circle's own x402 facilitator (Gateway Nanopayments) — keyless, same as
+# the public test facilitator, but settles real Base-mainnet USDC. Only
+# Base today (confirmed against its OpenAPI spec's supported networks) —
+# not Polygon or Arbitrum, so CDP remains the only live option there.
+_CIRCLE_GATEWAY_FACILITATOR = "https://gateway-api.circle.com/v1/x402"
+CIRCLE_GATEWAY_NETWORKS = ("base",)
+LIVE_FACILITATORS = ("circle", "cdp")
 
 
 class PaywallCodegenError(Exception):
@@ -93,6 +110,7 @@ def _php_str(value: str) -> str:
 
 def generate_php(
     *, label: str, wallet_address: str, mode: str, network: str, price_usd: str,
+    facilitator: str = "circle",
     cdp_key_id: str | None = None, cdp_key_secret: str | None = None,
     preview_message: str | None = None,
 ) -> str:
@@ -103,32 +121,51 @@ def generate_php(
     settled, since an unpaid request calls PHP's exit() before reaching it.
     preview_message (optional) is shown to a visitor who hasn't paid yet,
     in place of the generic "402 Payment Required" text — e.g. a teaser or
-    a plain-language explanation of what's behind the paywall."""
+    a plain-language explanation of what's behind the paywall.
+
+    facilitator only matters in live mode: "circle" (default) needs no key
+    at all but only settles Base; "cdp" also covers Polygon and Arbitrum
+    but needs the seller's own CDP API key."""
     if mode not in ("test", "live"):
         raise PaywallCodegenError("mode must be 'test' or 'live'")
     if mode == "test" and network != TEST_NETWORK:
         raise PaywallCodegenError("Test mode always uses base-sepolia")
-    if mode == "live" and network not in LIVE_NETWORKS:
-        raise PaywallCodegenError(f"Live mode network must be one of: {', '.join(LIVE_NETWORKS)}")
-    if mode == "live" and not (cdp_key_id and cdp_key_secret):
-        raise PaywallCodegenError("Live mode needs a CDP API key id and secret")
-
-    asset = network_asset(network)
-    amount_raw = amount_raw_for(price_usd)
-    facilitator_url = _TESTNET_FACILITATOR if mode == "test" else _CDP_FACILITATOR
 
     auth_literal = "null"
     if mode == "live":
-        auth_literal = (
-            "[\n        'key_id' => " + _php_str(cdp_key_id) + ",\n"
-            "        'key_secret' => " + _php_str(cdp_key_secret) + ",\n    ]"
-        )
+        if facilitator not in LIVE_FACILITATORS:
+            raise PaywallCodegenError(f"facilitator must be one of: {', '.join(LIVE_FACILITATORS)}")
+        if facilitator == "circle":
+            if network not in CIRCLE_GATEWAY_NETWORKS:
+                raise PaywallCodegenError(
+                    f"Circle's facilitator only settles: {', '.join(CIRCLE_GATEWAY_NETWORKS)} "
+                    "(use facilitator='cdp' for Polygon or Arbitrum)"
+                )
+        else:  # cdp
+            if network not in LIVE_NETWORKS:
+                raise PaywallCodegenError(f"Live mode network must be one of: {', '.join(LIVE_NETWORKS)}")
+            if not (cdp_key_id and cdp_key_secret):
+                raise PaywallCodegenError("Live mode via Coinbase CDP needs a CDP API key id and secret")
+            auth_literal = (
+                "[\n        'key_id' => " + _php_str(cdp_key_id) + ",\n"
+                "        'key_secret' => " + _php_str(cdp_key_secret) + ",\n    ]"
+            )
 
-    mode_comment = (
-        "TEST (Base Sepolia testnet, free faucet USDC only — not real money)"
-        if mode == "test" else
-        f"LIVE ({network} mainnet, real USDC, settled via Coinbase's CDP facilitator)"
-    )
+    asset = network_asset(network)
+    amount_raw = amount_raw_for(price_usd)
+    if mode == "test":
+        facilitator_url = _TESTNET_FACILITATOR
+    elif facilitator == "circle":
+        facilitator_url = _CIRCLE_GATEWAY_FACILITATOR
+    else:
+        facilitator_url = _CDP_FACILITATOR
+
+    if mode == "test":
+        mode_comment = "TEST (Base Sepolia testnet, free faucet USDC only — not real money)"
+    elif facilitator == "circle":
+        mode_comment = f"LIVE ({network} mainnet, real USDC, settled via Circle's Gateway Nanopayments facilitator — no API key needed)"
+    else:
+        mode_comment = f"LIVE ({network} mainnet, real USDC, settled via Coinbase's CDP facilitator)"
 
     return _TEMPLATE.format(
         label_comment=label.replace("*/", "* /"),

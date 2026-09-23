@@ -602,22 +602,25 @@ class X402PaywallPage(Base):
 
     mode="test" always targets base-sepolia against the free public x402
     facilitator (x402.org) — no signup, no real money, matches
-    x402_client.TESTNET_NETWORKS. mode="live" targets a real EVM mainnet
-    (base/polygon/arbitrum — the same three Coinbase's CDP facilitator
-    settles, see x402_paywall_codegen) and requires the seller's own CDP
-    API key, which is never sent to or stored unencrypted by Sara: it's
-    encrypted the same way a wallet's private key is (encrypt_key/
-    decrypt_key, gated on the same unlocked session), and only decrypted
-    momentarily to re-embed in a regenerated snippet."""
+    x402_client.TESTNET_NETWORKS. mode="live" settles on a real EVM
+    mainnet via one of two facilitators (see x402_paywall_codegen):
+    "circle" (Circle's own Gateway Nanopayments — keyless, Base only) or
+    "cdp" (Coinbase's — needs the seller's own API key, also covers
+    Polygon/Arbitrum). Only a "cdp" row ever has a secret: it's encrypted
+    the same way a wallet's private key is (encrypt_key/decrypt_key,
+    gated on the same unlocked session), and only decrypted momentarily
+    to re-embed in a regenerated snippet. A "circle" row never touches
+    encryption at all — there's nothing secret in it."""
     __tablename__ = "x402_paywall_pages"
     id                    = Column(Integer, primary_key=True, index=True)
     label                 = Column(String, nullable=False)
     wallet_id             = Column(Integer, nullable=False, index=True)
     mode                  = Column(String, nullable=False)  # "test" | "live"
     network               = Column(String, nullable=False)  # "base-sepolia" | "base" | "polygon" | "arbitrum"
+    facilitator           = Column(String, nullable=True)   # live mode only: "circle" | "cdp"
     price_usd             = Column(String, nullable=False)  # decimal string, e.g. "0.05"
-    cdp_key_id            = Column(String, nullable=True)   # live mode only
-    encrypted_cdp_secret  = Column(Text, nullable=True)     # live mode only — AES-256-GCM, hex-encoded
+    cdp_key_id            = Column(String, nullable=True)   # "cdp" facilitator only
+    encrypted_cdp_secret  = Column(Text, nullable=True)     # "cdp" facilitator only — AES-256-GCM, hex-encoded
     preview_message       = Column(Text, nullable=True)     # shown to a visitor who hasn't paid yet
     created_at            = Column(DateTime, default=datetime.utcnow, nullable=False)
 
