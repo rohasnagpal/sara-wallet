@@ -10,7 +10,7 @@ SYMBOL_TO_ID = {
     "UNI": "uniswap", "AAVE": "aave", "ARB": "arbitrum",
     "OP": "optimism", "LTC": "litecoin", "ATOM": "cosmos",
     "NEAR": "near", "FTM": "fantom", "INJ": "injective-protocol",
-    "USDC": "usd-coin", "USDT": "tether", "DAI": "dai",
+    "USDC": "usd-coin", "USDT": "tether", "DAI": "dai", "EURC": "euro-coin",
     "TIA": "celestia", "SUI": "sui", "SEI": "sei-network",
     "TON": "the-open-network", "PEPE": "pepe", "WIF": "dogwifcoin",
 }

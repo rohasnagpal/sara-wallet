@@ -122,6 +122,7 @@ _NETWORK_NATIVE_TOKEN = {
     "base": "ETH",
     "optimism": "ETH",
     "polygon": "POL",
+    "arc": "USDC",  # Arc pays gas in USDC itself — see app.core.assets.NETWORKS
 }
 
 _ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
@@ -235,6 +236,17 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             hinted_network = net_hint.lower()
             if _NETWORK_NATIVE_TOKEN.get(hinted_network) == token.upper():
                 network = hinted_network
+        elif net_hint and network is None and _NETWORK_NATIVE_TOKEN.get(net_hint.lower()) == token.upper():
+            # A token that's native ONLY on the explicitly-hinted network
+            # (USDC on Arc — Arc pays gas in USDC itself, see
+            # app.core.assets.NETWORKS) has no single default network the
+            # way ETH/POL do, since USDC is ALSO a normal ERC-20 on five
+            # other networks — so it's deliberately absent from
+            # _TOKEN_TO_NETWORK. Only resolve it as native here when the
+            # hint itself says so; a bare "send 5 USDC" with no network
+            # still correctly falls through to the ERC-20 path below,
+            # defaulting to Ethereum exactly as before.
+            network = net_hint.lower()
         token_address = None
         token_decimals = None
         token_corrected_from = None
@@ -247,6 +259,15 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             resolve_network = (net_hint or "ethereum").lower()
             from app.tools.market.paraswap import resolve_token_with_correction
             token_result, corrected = resolve_token_with_correction(token, resolve_network)
+            if not token_result:
+                # EURC (Ethereum/Base/Arc only) — kept out of Paraswap's own
+                # per-chain token table on purpose, so adding it here never
+                # makes it swappable and doesn't need a Paraswap chain-id
+                # entry for Arc, which doesn't have one.
+                from app.core.assets import resolve_extra_token
+                extra = resolve_extra_token(token, resolve_network)
+                if extra:
+                    token_result = extra
             if token_result:
                 token_address, token_decimals = token_result
                 network = resolve_network
@@ -255,13 +276,13 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     token = corrected
         if network is None:
             resolve_network = (net_hint or "ethereum").lower()
-            from app.tools.market.paraswap import trusted_symbols
-            trusted = trusted_symbols(resolve_network)
+            from app.core.assets import sendable_symbols
+            trusted = sendable_symbols(resolve_network)
             supported = ", ".join(trusted) if trusted else "none (network disabled or unsupported)"
             return ("send_rejected", {
                 "message": f"I don't recognize **{token.upper()}** as a token I can send. "
-                           f"Sara supports USDC and the native gas asset on "
-                           f"{resolve_network.capitalize()}: {supported}. "
+                           f"Sara supports: {supported} on "
+                           f"{resolve_network.capitalize()}. "
                            f"Sara only ever sends to contracts on this trusted list — see the 🛡️ Trusted Tokens pill for the full set."
             })
         from app.core.assets import token_enabled

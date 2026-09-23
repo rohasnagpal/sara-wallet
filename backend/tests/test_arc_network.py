@@ -79,8 +79,16 @@ class Erc20BalancesFallbackTests(unittest.TestCase):
              patch("requests.post") as alchemy_post:
             result = tokens.get_erc20_balances("0x" + "11" * 20, "arc")
         alchemy_post.assert_not_called()
-        direct_call.assert_called_once_with(assets.NETWORKS["arc"]["usdc"], 6, "0x" + "11" * 20, "arc")
-        self.assertEqual(result, [{"symbol": "USDC", "name": "USD Coin", "balance": 12.5, "network": "arc"}])
+        # Two calls now, not one: Arc trusts both USDC (native) and EURC
+        # (see test_eurc.py) for balance display, each checked via its own
+        # direct RPC balanceOf() call.
+        self.assertEqual(direct_call.call_count, 2)
+        direct_call.assert_any_call(assets.NETWORKS["arc"]["usdc"], 6, "0x" + "11" * 20, "arc")
+        direct_call.assert_any_call(assets.EURC_ADDRESSES["arc"], assets.EURC_DECIMALS, "0x" + "11" * 20, "arc")
+        self.assertCountEqual(result, [
+            {"symbol": "USDC", "name": "USD Coin", "balance": 12.5, "network": "arc"},
+            {"symbol": "EURC", "name": "EURC", "balance": 12.5, "network": "arc"},
+        ])
 
     def test_a_zero_balance_returns_no_holdings(self):
         with patch("app.chains.evm.get_erc20_balance", return_value=0.0):

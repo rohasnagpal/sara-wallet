@@ -2762,7 +2762,7 @@ chatInput.addEventListener('input', () => {
 
 const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'ETH', polygon:'POL' };
 const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'OP Mainnet', polygon:'Polygon PoS' };
-const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', USDC:'🔵' };
+const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', USDC:'🔵', EURC:'🟡' };
 
 function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '-'); }
 function _symbolIcon(sym) { return SYMBOL_ICONS[sym] || (sym ? sym.charAt(0) : '?'); }
