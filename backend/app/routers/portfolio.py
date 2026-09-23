@@ -15,6 +15,10 @@ router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 NATIVE_SYMBOLS = {
     "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
     "polygon": "POL",
+    # "arc" is deliberately absent: Arc pays gas in USDC itself, so its
+    # native balance and its USDC (ERC-20) balance are the exact same
+    # money in two decimal representations, not two separate assets.
+    # Counting both would double the portfolio's Arc total.
 }
 
 COLORS = ["#f59e0b","#6366f1","#10b981","#8b5cf6","#94a3b8","#ef4444","#14b8a6"]
@@ -59,7 +63,11 @@ def get_portfolio(db: Session = Depends(get_db)):
             future_map = {}
             for w in evm_wallets:
                 for net in networks:
-                    future_map[ex.submit(_fetch_native, w.address, net)] = ("native", w, net)
+                    # Arc has no separate native balance to fetch (see
+                    # NATIVE_SYMBOLS above) - only its USDC/ERC-20 balance,
+                    # from _fetch_tokens.
+                    if net in NATIVE_SYMBOLS:
+                        future_map[ex.submit(_fetch_native, w.address, net)] = ("native", w, net)
                     future_map[ex.submit(_fetch_tokens, w.address, net)] = ("tokens", w, net)
             try:
                 for fut in as_completed(future_map, timeout=15):

@@ -332,18 +332,30 @@ class AssetPolicyTests(unittest.TestCase):
     def test_supported_networks_and_circle_usdc_contracts(self):
         self.assertEqual(
             set(assets.NETWORKS),
-            {"ethereum", "arbitrum", "base", "optimism", "polygon"},
+            {"ethereum", "arbitrum", "base", "optimism", "polygon", "arc"},
         )
         self.assertEqual(assets.NETWORKS["ethereum"]["usdc"], "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
         self.assertEqual(assets.NETWORKS["arbitrum"]["usdc"], "0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
         self.assertEqual(assets.NETWORKS["base"]["usdc"], "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
         self.assertEqual(assets.NETWORKS["optimism"]["usdc"], "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85")
         self.assertEqual(assets.NETWORKS["polygon"]["usdc"], "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359")
+        # Arc's USDC is an enshrined precompile, not a deployed contract -
+        # a different kind of address than every other network here, so
+        # it's asserted on its own rather than folded into the loop above.
+        self.assertEqual(assets.NETWORKS["arc"]["usdc"], "0x3600000000000000000000000000000000000000")
+        self.assertEqual(assets.NETWORKS["arc"]["native"], "USDC")
 
     def test_only_usdc_and_native_assets_are_trusted(self):
         enabled = ",".join(assets.ALL_NETWORKS)
         with patch.dict(os.environ, {"SARA_ENABLED_NETWORKS": enabled, "SARA_USDC_NETWORKS": enabled}):
             for network in assets.ALL_NETWORKS:
+                if network == "arc":
+                    # Arc is deliberately not wired into Paraswap - no swap
+                    # aggregator has a confirmed Arc integration yet, so
+                    # trusted_symbols() correctly returns nothing for it
+                    # rather than pretending support that doesn't exist.
+                    self.assertEqual(paraswap.trusted_symbols(network), [])
+                    continue
                 self.assertEqual(
                     paraswap.trusted_symbols(network),
                     [assets.NETWORKS[network]["native"], "USDC"],

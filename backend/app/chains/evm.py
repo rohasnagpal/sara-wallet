@@ -8,11 +8,12 @@ _RPC = {
     "base":      os.getenv("BASE_RPC") or "https://mainnet.base.org",
     "polygon":   os.getenv("POLY_RPC") or "https://polygon-bor-rpc.publicnode.com",
     "optimism":  os.getenv("OP_RPC")   or "https://mainnet.optimism.io",
+    "arc":       os.getenv("ARC_RPC")  or "https://rpc.mainnet.arc.io",
 }
 
 _CHAIN_IDS = {
     "ethereum": 1, "arbitrum": 42161, "base": 8453,
-    "polygon": 137, "optimism": 10,
+    "polygon": 137, "optimism": 10, "arc": 5042,
 }
 
 _NATIVE_TOKEN = {
@@ -21,6 +22,7 @@ _NATIVE_TOKEN = {
     "base":      "ETH",
     "optimism":  "ETH",
     "polygon":   "POL",
+    "arc":       "USDC",  # Arc pays gas in USDC itself - no separate native token
 }
 
 # Chains Alchemy's API supports — shared by reconcile.py (asset-transfer

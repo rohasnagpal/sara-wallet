@@ -30,6 +30,21 @@ NETWORKS = {
         "label": "Polygon PoS", "chain_id": 137, "native": "POL",
         "usdc": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     },
+    "arc": {
+        # Arc (Circle's own L1, mainnet launched 2026-09-16) pays gas in
+        # USDC itself - there is no separate native token. USDC here is an
+        # "enshrined" precompile, not a bridged/deployed contract: verified
+        # live on-chain (decimals=6, symbol="USDC", name="USDC") at this
+        # exact address, kept in sync with the native 18-decimal balance by
+        # Arc itself. Deliberately not yet wired into swap (Paraswap),
+        # bridge (LI.FI), CCTP, Aave or the x402 facilitators - none of
+        # those have a confirmed Arc integration as of this network's
+        # addition, so claiming otherwise here would be a guess, not a
+        # verified fact. Wallet creation, balance display and plain sends
+        # are the only things Sara currently supports on Arc.
+        "label": "Arc", "chain_id": 5042, "native": "USDC",
+        "usdc": "0x3600000000000000000000000000000000000000",
+    },
 }
 
 ALL_NETWORKS = tuple(NETWORKS)

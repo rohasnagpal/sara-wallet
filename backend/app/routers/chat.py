@@ -749,6 +749,12 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         from app.core.assets import enabled_networks
         from concurrent.futures import ThreadPoolExecutor, as_completed
         EVM_NETWORKS = list(enabled_networks())
+        # Arc pays gas in USDC itself - its "native" balance and its USDC
+        # (ERC-20) balance are the exact same money, not two separate
+        # assets, so it's excluded here to avoid listing it twice; the
+        # ERC-20 loop below (which does include it) already shows it once,
+        # correctly labeled USDC.
+        NATIVE_FETCH_NETWORKS = [n for n in EVM_NETWORKS if n != "arc"]
         blocks = []
         for w in wallets:
             card = []
@@ -761,7 +767,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
                         return None
                 balances = []
                 with ThreadPoolExecutor(max_workers=5) as ex:
-                    futures = {ex.submit(_fetch, net): net for net in EVM_NETWORKS}
+                    futures = {ex.submit(_fetch, net): net for net in NATIVE_FETCH_NETWORKS}
                     for fut in as_completed(futures, timeout=8):
                         result = fut.result()
                         if result and result["balance"] > 0.000001:
