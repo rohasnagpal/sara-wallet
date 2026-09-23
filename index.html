@@ -1613,10 +1613,17 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div class="card" style="margin-top:10px">
               <div style="font-size:15px;font-weight:600">Add funds (buy USDC)</div>
               <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                Buy USDC with a card or bank transfer, straight into a Sara wallet, via Coinbase's own
-                hosted checkout page opened in a new tab - Sara never touches the payment. Set up a free
-                CDP API key in Settings first. Once you're done on Coinbase's page, come back here and
-                refresh your balance.
+                Buy USDC with a card or bank transfer, straight into a Sara wallet. Needs a free CDP API
+                key set up once in <strong>Settings &rarr; Buy USDC</strong> first.
+                <br><br>
+                Pick a wallet, network and (optionally) an amount below, then click <strong>Buy USDC</strong> -
+                Coinbase's own hosted checkout page opens in a new browser tab; Sara never sees the payment
+                or your card details. Pay there directly, then close that tab, come back here, and refresh
+                your balance (Balance or Portfolio tab) - the USDC shows up as a normal incoming transfer
+                once it settles on-chain, usually within a minute or two.
+                <br><br>
+                Available payment methods depend on your region (Coinbase currently supports the EU, UK
+                and US at launch).
               </div>
               <div class="field-grid">
                 <div class="field"><label class="field-label" for="onrampWallet">Deposit to wallet</label><select class="settings-input" id="onrampWallet"></select></div>
@@ -1991,10 +1998,16 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
               Lets you buy USDC with a card or bank transfer, straight into a Sara wallet, via
               Coinbase's own hosted checkout page - Sara never touches the payment or your card details.
-              Get a free key from the <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">CDP Portal &rarr; API Keys</a>
-              (choose the <strong>Ed25519</strong> key type). This isn't Circle's own "Onramp Kit" -
-              that one isn't publicly documented yet, so Coinbase's separately-built, publicly available
-              equivalent is used instead; the end result (USDC lands in your wallet) is the same.
+              This isn't Circle's own "Onramp Kit" - that one isn't publicly documented yet, so
+              Coinbase's separately-built, publicly available equivalent is used instead; the end
+              result (USDC lands in your wallet) is the same.
+              <br><br>
+              <strong>Setup, one time only:</strong>
+              1) Get a free key from the <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">CDP Portal &rarr; API Keys</a>
+              - when it asks for the key type, choose <strong>Ed25519</strong> (not EC/ES256).
+              2) Paste the Key ID and Key Secret below and Save (Sara must be unlocked).
+              That's it - this one key works for buying into any of your wallets, so you only set it
+              up once. To actually buy USDC, go to <strong>Treasury &rarr; Add funds</strong>.
             </div>
             <div class="settings-row" id="srow-onrampCdpKeyId">
               <div class="settings-label">CDP API Key ID</div>
