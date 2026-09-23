@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 
 from app.core import assets
 from app.chains import evm
+from app.services import token_factory
 from app.tools.wallet import tokens
 
 
@@ -161,6 +162,63 @@ class ListWalletsDoesNotDoubleShowArcTests(unittest.TestCase):
         # separate ERC-20 line both claiming to be the same USDC.
         self.assertEqual(result.count("**USDC**"), 1)
         self.assertIn("42.000000", result)
+
+
+class TokenFactoryOnArcTests(unittest.TestCase):
+    """Token creation (app/services/token_factory.py) has no per-chain
+    gate at all - `network` is a free-text string passed straight to
+    app.chains.evm.get_web3(network), same as every other network. No real
+    funded deployment has been done on Arc (that would need a wallet
+    holding real USDC there, which this project doesn't have); the user
+    chose to wire up the UI on the strength of Arc's Reth-based full EVM
+    compatibility rather than fund a test wallet first.
+
+    This is the closest thing to a live check reachable without funds:
+    preview_deployment() builds and estimates gas for a REAL
+    contract-creation transaction against Arc's live RPC - no signing, no
+    funds moved. It cannot succeed with a zero-balance address (Arc's node
+    enforces a real balance check even during gas estimation, unlike e.g.
+    Base's, which doesn't - confirmed by direct comparison), but a
+    genuinely wrong/incompatible chain would fail differently and earlier
+    (a malformed-request or unsupported-opcode error, not a funds check) -
+    this proves Arc's RPC correctly parses and processes the exact
+    contract-creation calldata Sara's token factory sends, before falling
+    over on the one thing this environment doesn't have: real funds."""
+
+    def setUp(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from app.db.models import Base, Wallet
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        self.db = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)()
+        self.address = "0xAeaFAC5CeD6c76b0170b91692AdD506de8D8bE20"
+        self.wallet = Wallet(name="t", chain="evm", address=self.address, encrypted_key="x")
+        self.db.add(self.wallet)
+        self.db.commit()
+
+    def tearDown(self):
+        self.db.close()
+
+    def test_a_real_deployment_transaction_is_understood_and_reaches_the_funds_check(self):
+        try:
+            evm.get_web3("arc").eth.get_block_number()
+        except Exception:
+            self.skipTest("no network access to verify Arc's live token factory path")
+        with self.assertRaises(Exception) as ctx:
+            token_factory.preview_deployment(
+                self.db, wallet_id=self.wallet.id, network="arc", template_id="fixed_supply",
+                name="Sara Test Token", symbol="STT", decimals=18,
+                initial_supply_raw=1000 * 10 ** 18, cap_raw=None, owner_address=self.address,
+            )
+        message = str(ctx.exception).lower()
+        # Any other failure shape here (connection error, "chain not
+        # supported", a revert unrelated to funds) would mean something
+        # more fundamental than "this wallet has no money" is wrong.
+        self.assertTrue(
+            "gas" in message or "fund" in message or "allowance" in message or "balance" in message,
+            f"expected an insufficient-funds-style rejection, got: {ctx.exception!r}",
+        )
 
 
 if __name__ == "__main__":

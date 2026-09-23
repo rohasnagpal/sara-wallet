@@ -1469,7 +1469,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 </div>
                 <div class="field">
                   <label class="field-label" for="tokNetwork">Network</label>
-                  <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select>
+                  <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option><option value="arc">Arc</option></select>
                   <div class="field-hint">Polygon usually has the lowest gas fees - good for a first try.</div>
                 </div>
                 <div class="field">
@@ -4279,15 +4279,18 @@ const _EXPLORERS = {
   ethereum: 'https://etherscan.io/address/', polygon: 'https://polygonscan.com/address/',
   arbitrum: 'https://arbiscan.io/address/', base: 'https://basescan.org/address/',
   optimism: 'https://optimistic.etherscan.io/address/',
+  arc: 'https://arc.etherscan.io/address/',
 };
 const _TX_EXPLORERS = {
   ethereum: 'https://etherscan.io/tx/', polygon: 'https://polygonscan.com/tx/',
   arbitrum: 'https://arbiscan.io/tx/', base: 'https://basescan.org/tx/',
   optimism: 'https://optimistic.etherscan.io/tx/',
+  arc: 'https://arc.etherscan.io/tx/',
 };
 
 const _NETWORK_NAMES = {
   ethereum: 'Ethereum', polygon: 'Polygon', arbitrum: 'Arbitrum', base: 'Base', optimism: 'OP Mainnet',
+  arc: 'Arc',
 };
 
 // Shortened value that links to the block explorer when the network is known;

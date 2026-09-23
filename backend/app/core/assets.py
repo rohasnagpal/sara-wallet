@@ -40,8 +40,16 @@ NETWORKS = {
         # bridge (LI.FI), CCTP, Aave or the x402 facilitators - none of
         # those have a confirmed Arc integration as of this network's
         # addition, so claiming otherwise here would be a guess, not a
-        # verified fact. Wallet creation, balance display and plain sends
-        # are the only things Sara currently supports on Arc.
+        # verified fact. Wallet creation, balance display, plain sends and
+        # EURC (see EURC_ADDRESSES below) are what Sara currently supports
+        # on Arc, plus token creation (app/services/token_factory.py) -
+        # that one relies on Arc's Reth-based full EVM compatibility
+        # rather than a live test deployment (none has been done; the
+        # user chose to ship on that basis rather than fund a test wallet
+        # first). Source verification for tokens deployed there is
+        # best-effort only - it still uses POLYGONSCAN_API_KEY, which
+        # won't authenticate against ArcScan, but that failure is already
+        # designed to never block the deployment itself.
         "label": "Arc", "chain_id": 5042, "native": "USDC",
         "usdc": "0x3600000000000000000000000000000000000000",
     },
