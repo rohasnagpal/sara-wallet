@@ -649,3 +649,28 @@ class X402FetchedContent(Base):
     tx_hash        = Column(String, nullable=True)
     transaction_id = Column(Integer, nullable=True)  # set only when also recorded to the ledger (mainnet, non-testnet)
     fetched_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CctpTransfer(Base):
+    """A native USDC burn-and-mint transfer via Circle's CCTP v2 (see
+    app.tools.trading.cctp) — two separate transactions on two separate
+    chains, unlike a single LI.FI bridge transaction. status="burned"
+    means the source-chain burn succeeded but Circle's attestation wasn't
+    ready in time (or the destination mint hasn't been attempted yet) -
+    that's a normal, recoverable state, not a failure: the burn is
+    final and the funds are provably recoverable the moment the
+    attestation is ready, via the same burn_tx_hash. status="complete"
+    means the destination mint also succeeded."""
+    __tablename__ = "cctp_transfers"
+    id                   = Column(Integer, primary_key=True, index=True)
+    wallet_id            = Column(Integer, nullable=False, index=True)
+    source_network       = Column(String, nullable=False)
+    destination_network  = Column(String, nullable=False)
+    amount_raw           = Column(String, nullable=False)
+    recipient_address    = Column(String, nullable=False)
+    fast                 = Column(Boolean, nullable=False, default=True)
+    burn_tx_hash         = Column(String, nullable=False)
+    mint_tx_hash         = Column(String, nullable=True)
+    status               = Column(String, nullable=False, default="burned")  # "burned" | "complete"
+    created_at           = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at         = Column(DateTime, nullable=True)

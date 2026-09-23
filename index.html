@@ -1563,6 +1563,52 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               </div>
               <div id="aaveActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
             </div>
+
+            <div class="card" style="margin-top:10px">
+              <div style="font-size:15px;font-weight:600">Native USDC bridge (CCTP)</div>
+              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
+                Moves USDC between networks via Circle's own Cross-Chain Transfer Protocol: real USDC is
+                burned on the source network and newly minted on the destination - no wrapped token, no
+                liquidity pool, no slippage. This needs two signed transactions (one per network), so your
+                wallet needs a small amount of the destination network's native gas token too, not just the
+                source one. For anything CCTP doesn't cover (other tokens, or a swap as part of the route),
+                use <strong>Compare stablecoin routes</strong> above instead.
+              </div>
+              <div class="field-grid">
+                <div class="field"><label class="field-label" for="cctpWallet">Wallet</label><select class="settings-input" id="cctpWallet"></select></div>
+                <div class="field"><label class="field-label" for="cctpFrom">From network</label>
+                  <select class="settings-input" id="cctpFrom">
+                    <option value="base">Base</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="optimism">Optimism</option>
+                    <option value="ethereum">Ethereum</option>
+                  </select>
+                </div>
+                <div class="field"><label class="field-label" for="cctpTo">To network</label>
+                  <select class="settings-input" id="cctpTo">
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="base">Base</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="optimism">Optimism</option>
+                    <option value="ethereum">Ethereum</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:7px">
+                <div class="field"><label class="field-label" for="cctpAmount">Amount (USDC)</label><input class="settings-input" id="cctpAmount" placeholder="100"></div>
+                <div class="field"><label class="field-label" for="cctpSpeed">Speed</label>
+                  <select class="settings-input" id="cctpSpeed">
+                    <option value="fast">Fast (~8-20 seconds)</option>
+                    <option value="standard">Standard (waits for hard finality, ~13-19 min)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="settings-save-btn" style="margin-top:8px" onclick="cctpTransfer()">Transfer</button>
+              <div id="cctpActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong style="font-size:12px">Transfers</strong><button class="settings-save-btn" onclick="loadCctpTransfers()">Refresh</button></div>
+              <div id="cctpTransfersList" style="font-size:11px;margin-top:6px">Loading…</div>
+            </div>
           </div>
 
           <div id="toolsIntelPane" style="display:none">
@@ -4098,7 +4144,7 @@ function showToolsTab(tab) {
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
-  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet']); loadAavePosition(); }
+  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet', 'cctpWallet']); loadAavePosition(); loadCctpTransfers(); }
   if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
 }
 
@@ -4398,6 +4444,63 @@ async function aaveWithdraw() {
   const data = await r.json().catch(() => ({}));
   status.textContent = r.ok ? `Withdrawn - tx ${data.tx_hash}` : _apiErrorText(data, 'Withdraw failed.');
   if (r.ok) { document.getElementById('aaveWithdrawAmount').value = ''; await loadAavePosition(); }
+}
+
+// ---- Native USDC bridging via Circle's CCTP (alongside LI.FI, not instead of it) ----
+async function cctpTransfer() {
+  const status = document.getElementById('cctpActionStatus');
+  const walletId = Number(document.getElementById('cctpWallet').value);
+  const source_network = document.getElementById('cctpFrom').value;
+  const destination_network = document.getElementById('cctpTo').value;
+  const amount = document.getElementById('cctpAmount').value.trim();
+  const fast = document.getElementById('cctpSpeed').value === 'fast';
+  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
+  if (source_network === destination_network) { status.textContent = 'Pick two different networks.'; return; }
+  if (!amount) { status.textContent = 'Enter an amount.'; return; }
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  status.textContent = 'Burning on ' + source_network + '…';
+  const r = await fetch('/api/cctp/transfer', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({wallet_id: walletId, source_network, destination_network, amount, fast, passphrase}),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { status.textContent = _apiErrorText(data, 'Transfer failed.'); return; }
+  status.textContent = data.status === 'complete'
+    ? `Done - burned ${data.burn_tx_hash.slice(0, 10)}…, minted ${data.mint_tx_hash.slice(0, 10)}…`
+    : `Burned (tx ${data.burn_tx_hash.slice(0, 10)}…) - Circle's attestation wasn't ready yet. Your funds are safe; click Complete below once it is.`;
+  document.getElementById('cctpAmount').value = '';
+  await loadCctpTransfers();
+}
+
+async function loadCctpTransfers() {
+  const box = document.getElementById('cctpTransfersList');
+  try {
+    const data = await fetch('/api/cctp/transfers').then(r => r.json());
+    const rows = data.transfers || [];
+    box.innerHTML = rows.length ? rows.map(t => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
+        <div style="display:flex;justify-content:space-between">
+          <span>${_escapeHtml(_fmtBal(t.amount))} USDC: ${_escapeHtml(t.source_network)} → ${_escapeHtml(t.destination_network)}</span>
+          <span class="tx-card-status ${t.status === 'complete' ? 'confirmed' : 'pending'}">${_escapeHtml(t.status)}</span>
+        </div>
+        <div style="color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+          <span title="${_escapeHtml(t.burn_tx_hash)}">Burn: ${_escapeHtml(_truncMid(t.burn_tx_hash))}${t.mint_tx_hash ? ' · Mint: ' + _escapeHtml(_truncMid(t.mint_tx_hash)) : ''}</span>
+          ${t.status !== 'complete' ? `<button class="settings-save-btn" onclick="cctpCompleteTransfer(${t.id})">Complete</button>` : ''}
+        </div>
+      </div>`).join('') : '<div style="color:var(--text-muted)">No CCTP transfers yet.</div>';
+  } catch (e) { box.textContent = 'Could not load transfers.'; }
+}
+
+async function cctpCompleteTransfer(id) {
+  const status = document.getElementById('cctpActionStatus');
+  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
+  status.textContent = 'Checking for Circle\'s attestation…';
+  const r = await fetch(`/api/cctp/transfers/${id}/complete`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase}),
+  });
+  const data = await r.json().catch(() => ({}));
+  status.textContent = r.ok ? `Completed - mint tx ${data.mint_tx_hash}` : _apiErrorText(data, "Not ready yet - Circle's attestation may still be pending. Try again shortly.");
+  await loadCctpTransfers();
 }
 
 // Sara supports each network's own gas token plus USDC (POL on Polygon, ETH
