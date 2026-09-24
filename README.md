@@ -98,6 +98,8 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8888
 
 Then open `http://127.0.0.1:8888`.
 
+**After every `git pull`, re-run** `python -m pip install -r requirements-lock.txt` inside the same virtualenv. Releases sometimes add a dependency (recovery phrases added `mnemonic`), and skipping this shows up as `ModuleNotFoundError` when Sara starts.
+
 ### First run
 
 You'll be asked to **create a passphrase**, which protects your wallets' private keys. Remember it: there is no recovery, and if you lose it your existing wallets become permanently undecryptable. Afterwards you unlock with the same passphrase, and Sara auto-locks after 1 hour of inactivity.
