@@ -74,7 +74,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern install.sh --dir "$RUNNER_TEMP"
+          for n in 1 2 3; do gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern install.sh --dir "$RUNNER_TEMP" && break; sleep 10; done
           sh "$RUNNER_TEMP/install.sh"
           echo "SARA_BIN=$HOME/.sara-wallet/sara" >> "$GITHUB_ENV"
 
@@ -82,7 +82,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern Install-Sara-Mac.zip --dir "$RUNNER_TEMP"
+          for n in 1 2 3; do gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern Install-Sara-Mac.zip --dir "$RUNNER_TEMP" && break; sleep 10; done
           unzip -o "$RUNNER_TEMP/Install-Sara-Mac.zip" -d "$RUNNER_TEMP/mac"
           test -x "$RUNNER_TEMP/mac/Install-Sara.command"   # must be executable to double-click
           "$RUNNER_TEMP/mac/Install-Sara.command" < /dev/null
@@ -127,7 +127,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          gh release download $env:TAG --repo $env:GITHUB_REPOSITORY --pattern Install-Sara-Windows.zip --dir $env:RUNNER_TEMP
+          for ($n = 1; $n -le 3; $n++) { gh release download $env:TAG --repo $env:GITHUB_REPOSITORY --pattern Install-Sara-Windows.zip --dir $env:RUNNER_TEMP --clobber; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep -Seconds 10 }
+          if ($LASTEXITCODE -ne 0) { throw 'could not download the Windows installer' }
           Expand-Archive -LiteralPath "$env:RUNNER_TEMP\Install-Sara-Windows.zip" -DestinationPath "$env:RUNNER_TEMP\win"
           cmd /c "`"$env:RUNNER_TEMP\win\Install-Sara.bat`" < NUL"
           if ($LASTEXITCODE -ne 0) { throw "installer exited with $LASTEXITCODE" }
