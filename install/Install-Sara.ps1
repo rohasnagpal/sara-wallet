@@ -45,13 +45,23 @@ function Fail($msg) {
     exit 1
 }
 
+# Plain .NET, not Get-FileHash: when this runs under a polluted PSModulePath
+# (e.g. started from a PowerShell 7 window) Windows PowerShell 5.1 can fail to
+# load its own utility module, and a checksum step must never depend on that.
+function Get-Sha256($path) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($path)
+    try { $bytes = $sha.ComputeHash($stream) } finally { $stream.Dispose(); $sha.Dispose() }
+    return ([System.BitConverter]::ToString($bytes) -replace '-', '').ToLower()
+}
+
 function Get-Verified($url, $dest, $expected, $label) {
     try {
         Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $dest
     } catch {
         Fail "Couldn't download $label from $url ($($_.Exception.Message))"
     }
-    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $dest).Hash.ToLower()
+    $actual = Get-Sha256 $dest
     if ($actual -ne $expected.ToLower()) {
         Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
         Fail ("Checksum mismatch for $label.`n  expected: $expected`n  got:      $actual`n" +

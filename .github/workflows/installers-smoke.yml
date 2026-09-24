@@ -1,0 +1,120 @@
+name: Installer smoke test
+
+# Runs the real installers (fresh install, start Sara, serve the UI, uninstall
+# keeps wallet data) on Linux, macOS and Windows against the CURRENT commit,
+# without needing a release. release-installers.yml repeats this against the
+# published release assets; this catches breakage before one is cut.
+on:
+  push:
+    paths:
+      - "install/**"
+      - ".github/workflows/installers-smoke.yml"
+      - "backend/requirements-lock.txt"
+      - "backend/desktop_launcher.py"
+  pull_request:
+    paths:
+      - "install/**"
+      - ".github/workflows/installers-smoke.yml"
+      - "backend/requirements-lock.txt"
+      - "backend/desktop_launcher.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      BROWSER: "true"
+      SARA_NO_LAUNCH: "1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Build archives and installers
+        shell: bash
+        run: |
+          mkdir -p dist/site
+          git archive --format=tar.gz --prefix=sara-wallet-smoke/ -o dist/site/sara.tar.gz HEAD
+          git archive --format=zip    --prefix=sara-wallet-smoke/ -o dist/site/sara.zip    HEAD
+          python install/build_installers.py --version smoke \
+            --tar dist/site/sara.tar.gz --tar-url http://127.0.0.1:8765/sara.tar.gz \
+            --zip dist/site/sara.zip    --zip-url http://127.0.0.1:8765/sara.zip \
+            --out dist/installers
+          # Test only: shipped installers are https-only; here the source is
+          # served from a local web server on this runner.
+          sed -i.bak 's/^CURL_PROTO="=https"/CURL_PROTO="=https,http"/' dist/installers/install.sh
+
+      - name: Install, run and uninstall (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 --directory dist/site >/dev/null 2>&1 &
+          sleep 2
+          sh dist/installers/install.sh
+          test -x "$HOME/.sara-wallet/sara"
+          if [ "$RUNNER_OS" = "macOS" ]; then test -d "$HOME/Applications/Sara.app"; fi
+
+          "$HOME/.sara-wallet/sara" > "$RUNNER_TEMP/sara.log" 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS --max-time 2 http://127.0.0.1:8888/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8888/health; echo
+          curl -fsS -o /dev/null -w "index.html: HTTP %{http_code}\n" http://127.0.0.1:8888/
+          pkill -f desktop_launcher.py || true
+          for i in $(seq 1 30); do
+            curl -fsS --max-time 1 http://127.0.0.1:8888/health >/dev/null 2>&1 || break
+            sleep 1
+          done
+
+          sh dist/installers/install.sh --uninstall
+          test ! -e "$HOME/.sara-wallet"
+          if [ "$RUNNER_OS" = "macOS" ]; then DATA="$HOME/Library/Application Support/Sara/backend/sara.db"
+          else DATA="$HOME/.local/share/Sara/backend/sara.db"; fi
+          test -f "$DATA"   # wallet data must survive an uninstall
+
+      - name: Install, run and uninstall (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $srv = Start-Process python -ArgumentList '-m','http.server','8765','--bind','127.0.0.1','--directory','dist/site' -PassThru -WindowStyle Hidden
+          Start-Sleep -Seconds 2
+          Expand-Archive -LiteralPath dist/installers/Install-Sara-Windows.zip -DestinationPath win
+
+          # Exactly as a double-click would: through the .bat, no stdin.
+          cmd /c "`"$PWD\win\Install-Sara.bat`" < NUL"
+          if ($LASTEXITCODE -ne 0) { throw "installer exited with $LASTEXITCODE" }
+          $app = "$env:LOCALAPPDATA\SaraWalletApp"
+          if (-not (Test-Path "$app\Sara.cmd")) { throw 'launcher missing' }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Sara.lnk")) { throw 'Start Menu shortcut missing' }
+
+          $p = Start-Process -FilePath "$app\Sara.cmd" -PassThru -WindowStyle Hidden
+          $ok = $false
+          for ($i = 0; $i -lt 120 -and -not $ok; $i++) {
+            try { $ok = ((Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/health' -TimeoutSec 2).StatusCode -eq 200) }
+            catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $ok) { throw 'Sara did not start' }
+          $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/'
+          Write-Host "index.html: HTTP $($r.StatusCode), $($r.Content.Length) bytes"
+          taskkill /PID $p.Id /T /F | Out-Null
+          for ($i = 0; $i -lt 30; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/health' -TimeoutSec 1 | Out-Null; Start-Sleep -Seconds 1 }
+            catch { break }
+          }
+
+          cmd /c "`"$PWD\win\Install-Sara.bat`" -Uninstall < NUL"
+          if ($LASTEXITCODE -ne 0) { throw "uninstall exited with $LASTEXITCODE" }
+          if (Test-Path "$app\bin") { throw 'program files were not removed' }
+          if (-not (Test-Path "$env:LOCALAPPDATA\SaraWallet\Sara\backend\sara.db")) { throw 'wallet data was removed' }
+          Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue

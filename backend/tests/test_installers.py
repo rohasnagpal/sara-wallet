@@ -90,6 +90,13 @@ class TemplateTests(unittest.TestCase):
         for pattern in ("Invoke-Expression", "iex ", "DownloadString", "-EncodedCommand"):
             self.assertNotIn(pattern, text)
 
+    def test_windows_hashing_does_not_depend_on_powershell_modules(self):
+        # Get-FileHash was "not recognized" on CI when Windows PowerShell 5.1
+        # was launched from PowerShell 7 (inherited PSModulePath).
+        self.assertNotIn("Get-FileHash", PS1.read_text())
+        self.assertIn("SHA256]::Create()", PS1.read_text())
+        self.assertIn('set "PSModulePath="', BAT.read_text())
+
     def test_unix_script_downloads_only_over_https(self):
         text = SH.read_text()
         self.assertIn('CURL_PROTO="=https"', text)

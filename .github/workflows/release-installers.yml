@@ -102,6 +102,10 @@ jobs:
           curl -fsS http://127.0.0.1:8888/health
           curl -fsS -o /dev/null -w "index.html: HTTP %{http_code}\n" http://127.0.0.1:8888/
           pkill -f desktop_launcher.py || true
+          for i in $(seq 1 30); do   # uninstall refuses while Sara is still up
+            curl -fsS --max-time 1 http://127.0.0.1:8888/health >/dev/null 2>&1 || break
+            sleep 1
+          done
 
       - name: Uninstall keeps wallet data (Linux/macOS)
         if: runner.os != 'Windows'
@@ -144,6 +148,10 @@ jobs:
           $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/'
           Write-Host "index.html: HTTP $($r.StatusCode), $($r.Content.Length) bytes"
           taskkill /PID $p.Id /T /F | Out-Null
+          for ($i = 0; $i -lt 30; $i++) {   # uninstall refuses while Sara is still up
+            try { Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/health' -TimeoutSec 1 | Out-Null; Start-Sleep -Seconds 1 }
+            catch { break }
+          }
 
       - name: Uninstall keeps wallet data (Windows)
         if: runner.os == 'Windows'
