@@ -1,0 +1,156 @@
+name: Release installers
+
+# When a release is published, build the one-click installers for it, attach
+# them to the release, then actually run them on Linux, macOS and Windows
+# runners and check Sara starts. Re-run for an existing tag (one that already
+# contains install/) from the Actions tab via "Run workflow".
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to (re)build installers for
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Passed through the environment and validated below, never expanded
+      # directly into a shell command: a tag name is attacker-controlled input.
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Validate tag name
+        run: |
+          case "$TAG" in
+            ""|*[!A-Za-z0-9._-]*) echo "unsafe tag name" >&2; exit 1 ;;
+          esac
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - name: Build source archives
+        run: |
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="sara-wallet-$TAG/" -o "dist/sara-wallet-$TAG.tar.gz" HEAD
+          git archive --format=zip    --prefix="sara-wallet-$TAG/" -o "dist/sara-wallet-$TAG.zip"    HEAD
+      - name: Build installers
+        run: |
+          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          python3 install/build_installers.py \
+            --version "$TAG" \
+            --tar "dist/sara-wallet-$TAG.tar.gz" --tar-url "$BASE/sara-wallet-$TAG.tar.gz" \
+            --zip "dist/sara-wallet-$TAG.zip"    --zip-url "$BASE/sara-wallet-$TAG.zip" \
+            --out dist/installers
+          sh -n dist/installers/install.sh
+      - name: Attach to the release
+        run: |
+          gh release upload "$TAG" \
+            "dist/sara-wallet-$TAG.tar.gz" "dist/sara-wallet-$TAG.zip" \
+            dist/installers/install.sh dist/installers/Install-Sara-Mac.zip \
+            dist/installers/Install-Sara-Windows.zip dist/installers/SHA256SUMS \
+            --clobber
+
+  verify:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      BROWSER: "true"
+      SARA_NO_LAUNCH: "1"
+    steps:
+      - name: Install from the published release (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern install.sh --dir "$RUNNER_TEMP"
+          sh "$RUNNER_TEMP/install.sh"
+          echo "SARA_BIN=$HOME/.sara-wallet/sara" >> "$GITHUB_ENV"
+
+      - name: Install from the published release (macOS, as a double-click would)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern Install-Sara-Mac.zip --dir "$RUNNER_TEMP"
+          unzip -o "$RUNNER_TEMP/Install-Sara-Mac.zip" -d "$RUNNER_TEMP/mac"
+          test -x "$RUNNER_TEMP/mac/Install-Sara.command"   # must be executable to double-click
+          "$RUNNER_TEMP/mac/Install-Sara.command" < /dev/null
+          test -d "$HOME/Applications/Sara.app"
+          echo "SARA_BIN=$HOME/.sara-wallet/sara" >> "$GITHUB_ENV"
+
+      - name: Sara starts and serves its UI (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          "$SARA_BIN" > "$RUNNER_TEMP/sara.log" 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS --max-time 2 http://127.0.0.1:8888/health && break
+            sleep 1
+          done
+          echo
+          curl -fsS http://127.0.0.1:8888/health
+          curl -fsS -o /dev/null -w "index.html: HTTP %{http_code}\n" http://127.0.0.1:8888/
+          pkill -f desktop_launcher.py || true
+
+      - name: Uninstall keeps wallet data (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            "$RUNNER_TEMP/mac/Install-Sara.command" --uninstall < /dev/null
+            test ! -e "$HOME/Applications/Sara.app"
+            DATA="$HOME/Library/Application Support/Sara/backend/sara.db"
+          else
+            sh "$RUNNER_TEMP/install.sh" --uninstall
+            DATA="$HOME/.local/share/Sara/backend/sara.db"
+          fi
+          test ! -e "$HOME/.sara-wallet"
+          test -f "$DATA"   # wallet data must survive an uninstall
+
+      - name: Install from the published release (Windows, via the .bat)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download $env:TAG --repo $env:GITHUB_REPOSITORY --pattern Install-Sara-Windows.zip --dir $env:RUNNER_TEMP
+          Expand-Archive -LiteralPath "$env:RUNNER_TEMP\Install-Sara-Windows.zip" -DestinationPath "$env:RUNNER_TEMP\win"
+          cmd /c "`"$env:RUNNER_TEMP\win\Install-Sara.bat`" < NUL"
+          if ($LASTEXITCODE -ne 0) { throw "installer exited with $LASTEXITCODE" }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Sara.lnk")) { throw 'Start Menu shortcut missing' }
+
+      - name: Sara starts and serves its UI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = Start-Process -FilePath "$env:LOCALAPPDATA\SaraWalletApp\Sara.cmd" -PassThru -WindowStyle Hidden
+          $ok = $false
+          for ($i = 0; $i -lt 120 -and -not $ok; $i++) {
+            try { $ok = ((Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/health' -TimeoutSec 2).StatusCode -eq 200) }
+            catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $ok) { throw 'Sara did not start' }
+          $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8888/'
+          Write-Host "index.html: HTTP $($r.StatusCode), $($r.Content.Length) bytes"
+          taskkill /PID $p.Id /T /F | Out-Null
+
+      - name: Uninstall keeps wallet data (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmd /c "`"$env:RUNNER_TEMP\win\Install-Sara.bat`" -Uninstall < NUL"
+          if ($LASTEXITCODE -ne 0) { throw "uninstall exited with $LASTEXITCODE" }
+          if (Test-Path "$env:LOCALAPPDATA\SaraWalletApp\bin") { throw 'program files were not removed' }
+          if (-not (Test-Path "$env:LOCALAPPDATA\SaraWallet\Sara\backend\sara.db")) { throw 'wallet data was removed' }

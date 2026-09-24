@@ -61,6 +61,16 @@ More in [docs/security-model.md](docs/security-model.md), including the threat m
 
 ## Quick start
 
+### One-click installer (no terminal, no Python needed)
+
+Download the installer for your system from the latest [release](https://github.com/rohasnagpal/sara-wallet/releases), then double-click it:
+
+- **Mac (Apple Silicon):** `Install-Sara-Mac.zip`, then right-click `Install-Sara.command` → Open
+- **Windows 10/11 (64-bit):** `Install-Sara-Windows.zip`, extract it, then run `Install-Sara.bat`
+- **Linux:** `install.sh`, run with `sh install.sh`
+
+The installers are plain, readable scripts that check every download against a hash before using it, never need admin rights, and never touch your wallet data. They're unsigned for now, so macOS and Windows will show a one-time warning. Details, what to expect and how to uninstall are in [docs/install.md](docs/install.md). Intel Macs and Windows on ARM aren't supported by the installer yet; use Docker or run from source.
+
 ### Docker (the fastest way to try it)
 
 ```bash
