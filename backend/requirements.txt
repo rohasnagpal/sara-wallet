@@ -1,6 +1,6 @@
 # Development input requirements. Production/CI installs the reviewed,
 # fully-resolved Python 3.12 requirements-lock.txt.
-fastapi>=0.139.0
+fastapi>=0.141.1
 uvicorn[standard]>=0.51.0
 sqlalchemy>=2.0.51
 litellm>=1.84.0
