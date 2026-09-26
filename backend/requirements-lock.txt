@@ -34,7 +34,7 @@ eth-keys==0.7.0
 eth-rlp==2.2.0
 eth-typing==6.0.0
 eth-utils==6.0.0
-fastapi==0.139.0
+fastapi==0.141.1
 fastuuid==0.14.0
 filelock==3.30.0
 frozenlist==1.8.0
