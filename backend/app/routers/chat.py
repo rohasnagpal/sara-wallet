@@ -163,7 +163,7 @@ def _native_send_error(token: str, network: Optional[str]) -> Optional[str]:
     if not native:
         return f"I don't support sending **{token.upper()}** on {network.capitalize()} yet."
     if token.upper() != native:
-        return f"I can only send native **{native}** or USDC on {network.capitalize()}."
+        return f"I can only send native **{native}** or a supported stablecoin on {network.capitalize()}."
     return None
 
 
@@ -256,11 +256,16 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             # Only ever resolves to Sara's verified contract list — a typo
             # like "USCD" can correct to USDC, but never to a different asset.
             resolve_network = (net_hint or "ethereum").lower()
-            from app.core.assets import SEND, resolve_stablecoin, stablecoins_on
+            from app.core.assets import (
+                SEND, STABLECOIN_SYMBOLS, resolve_stablecoin, stablecoins_on,
+            )
             from app.tools.wallet.token_trust import fuzzy_correct
             token_result = resolve_stablecoin(token, resolve_network, capability=SEND)
             corrected = None
-            if not token_result:
+            # A known stablecoin on the wrong chain is not a typo. In
+            # particular, never turn USDT into USDC merely because only USDC
+            # is registered on the requested network.
+            if not token_result and token.upper() not in STABLECOIN_SYMBOLS:
                 corrected = fuzzy_correct(
                     token,
                     [asset.symbol for asset in stablecoins_on(
@@ -290,7 +295,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         if not token_enabled(token, network):
             return ("send_rejected", {
                 "message": f"**{token.upper()}** is disabled or unsupported on {network.capitalize()}. "
-                           "Enable the network and USDC under Settings → Manage Networks & Tokens."
+                           f"Enable the network and {token.upper()} under Settings → Manage Networks & Tokens."
             })
         native_error = None if token_address else _native_send_error(token, network)
         if native_error:
@@ -745,7 +750,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "**Security**\n"
             "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
             "• Only money-moving actions (send, swap, bridge) require unlocking — price checks and general chat work while locked\n"
-            "• 🛡️ Trusted Tokens — Sara only uses Circle's verified USDC contract and each network's native gas asset. See the pill for the full list\n\n"
+            "• 🛡️ Trusted Tokens — Sara only uses verified contracts from its stablecoin registry and each network's native gas asset. See the pill for the full list\n\n"
             "---\n"
             "**Your current setup**\n"
             f"• Wallet lock: {lock_status}\n"
@@ -820,7 +825,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         import os
         has_evm = any(w.chain == "evm" for w in wallets)
         if has_evm and not os.getenv("ALCHEMY_API_KEY", "").strip():
-            result += "\n\n_Note: USDC balances won't show until you add an Alchemy API key in Settings; native gas balances still work without it._"
+            result += "\n\n_Note: Stablecoin balances won't show until you add an Alchemy API key in Settings; native gas balances still work without it._"
         return result
 
     if tool_name == "get_balance":

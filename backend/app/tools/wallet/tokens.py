@@ -12,10 +12,9 @@ _ALCHEMY_SLUGS = {
 
 def _trusted_contracts(network: str) -> list[dict]:
     """Every ERC-20 contract this function will ever check a balance for on
-    this network - USDC always, plus EURC on the (Ethereum/Base/Arc-only)
-    networks it's actually live on and enabled. Nothing outside this list
-    is ever queried, same discipline as app.tools.market.paraswap's own
-    trusted-contract table."""
+    this network - exactly the stablecoins registered for balance support and
+    enabled by the user. Nothing outside this list is ever queried, same
+    discipline as app.tools.market.paraswap's own trusted-contract table."""
     return [
         {"symbol": asset.symbol, "name": asset.name, "address": asset.address, "decimals": asset.decimals}
         for asset in stablecoins_on(network, capability=BALANCE, enabled_only=True)

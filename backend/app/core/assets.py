@@ -65,8 +65,10 @@ def _coin(symbol: str, name: str, issuer: str, network: str, address: str,
 
 
 # Contract addresses are issuer-published mainnet addresses. EURC exists only
-# on Ethereum, Base and Arc among Sara's current networks. Arc's USDC address
-# is its enshrined ERC-20 precompile, not a conventional deployed contract.
+# on Ethereum, Base and Arc among Sara's current networks. USDT is native on
+# Ethereum, participates in USDT0's legacy mesh on Arbitrum, and is deployed
+# through USDT0 on Optimism and Polygon. Arc's USDC address is its enshrined
+# ERC-20 precompile, not a conventional deployed contract.
 STABLECOINS: dict[tuple[str, str], Stablecoin] = {
     ("ethereum", "USDC"): _coin("USDC", "USD Coin", "Circle", "ethereum", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", _USDC_X402),
     ("arbitrum", "USDC"): _coin("USDC", "USD Coin", "Circle", "arbitrum", "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", _USDC_X402),
@@ -77,6 +79,10 @@ STABLECOINS: dict[tuple[str, str], Stablecoin] = {
     ("ethereum", "EURC"): _coin("EURC", "EURC", "Circle", "ethereum", "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c", _BALANCE_SEND_ACTIVITY),
     ("base", "EURC"): _coin("EURC", "EURC", "Circle", "base", "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", _BALANCE_SEND_ACTIVITY),
     ("arc", "EURC"): _coin("EURC", "EURC", "Circle", "arc", "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1", _BALANCE_AND_SEND),
+    ("ethereum", "USDT"): _coin("USDT", "Tether USD", "Tether", "ethereum", "0xdAC17F958D2ee523a2206206994597C13D831ec7", _BALANCE_SEND_ACTIVITY),
+    ("arbitrum", "USDT"): _coin("USDT", "Tether USD", "Tether / USDT0", "arbitrum", "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", _BALANCE_SEND_ACTIVITY),
+    ("optimism", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "optimism", "0x01bFF41798a0BcF287b996046Ca68b395DbC1071", _BALANCE_SEND_ACTIVITY),
+    ("polygon", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "polygon", "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", _BALANCE_SEND_ACTIVITY),
 }
 
 STABLECOIN_SYMBOLS = tuple(dict.fromkeys(symbol for _, symbol in STABLECOINS))
