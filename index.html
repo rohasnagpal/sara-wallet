@@ -228,6 +228,43 @@
 .theme-lime .msg.user .msg-bubble { color: var(--accent-text); font-weight: 500; }
 
 /* ══════════════════════════════════════
+   SARA GREEN (default)
+══════════════════════════════════════ */
+.theme-sara {
+  --bg-app-start: #deffe9;
+  --bg-app-end: #ccff9f;
+  --bg-sidebar1: rgba(248,255,249,0.76);
+  --bg-sidebar2: rgba(248,255,249,0.64);
+  --bg-card: rgba(250,255,251,0.82);
+  --bg-card2: rgba(255,255,255,0.62);
+  --bg-chat: rgba(248,255,249,0.48);
+  --bg-input: rgba(255,255,255,0.86);
+  --bg-msg-user: #10251b;
+  --bg-msg-bot: rgba(250,255,251,0.9);
+  --text-primary: #10251b;
+  --text-secondary: #486356;
+  --text-muted: rgba(72,99,86,0.68);
+  --accent: #08763a;
+  --accent2: #23df75;
+  --green: #08763a;
+  --red: #911717;
+  --border: rgba(16,37,27,0.17);
+  --border-dark: rgba(16,37,27,0.14);
+  --card-shadow: 0 24px 75px rgba(20,91,51,0.13), inset 0 1px 0 rgba(255,255,255,0.78);
+  --sidebar-nav-active: rgba(35,223,117,0.18);
+  --sidebar-nav-hover: rgba(255,255,255,0.58);
+  --pill-bg: rgba(35,223,117,0.14);
+  --chart-line: #08763a;
+  --chart-bg1: rgba(35,223,117,0.25);
+  --chart-bg2: rgba(35,223,117,0);
+  --upgrade-bg: linear-gradient(135deg, rgba(189,255,215,0.72), rgba(204,255,159,0.52));
+  --scrollbar: rgba(16,37,27,0.12);
+  --is-light: 1;
+  --accent-text: #ffffff;
+  --topbar-bg: rgba(222,255,233,0.72);
+}
+
+/* ══════════════════════════════════════
    BASE STYLES
 ══════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -258,6 +295,23 @@ body {
 .app-bg.theme-sunset { background: linear-gradient(135deg, #1a0a00, #2d1200); }
 .app-bg.theme-forest { background: linear-gradient(135deg, #071410, #0a1f18); }
 .app-bg.theme-lime { background: linear-gradient(135deg, #060606, #0a0a0a); }
+.app-bg.theme-sara {
+  background:
+    radial-gradient(circle at 8% 3%, rgba(255,255,255,0.98), transparent 24%),
+    radial-gradient(circle at 92% 10%, rgba(35,223,117,0.52), transparent 30%),
+    linear-gradient(135deg, #deffe9, #9dffc1 48%, #ccff9f);
+}
+.app-bg.theme-sara::after {
+  content: "";
+  position: absolute; inset: 0;
+  opacity: 0.17;
+  background-image:
+    linear-gradient(rgba(16,37,27,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,37,27,0.14) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: linear-gradient(#000, transparent 92%);
+  mask-image: linear-gradient(#000, transparent 92%);
+}
 .app-shell {
   position: relative; z-index: 1;
   display: flex; height: 100vh; overflow: hidden;
@@ -522,6 +576,7 @@ select.settings-input { text-overflow: ellipsis; }
 .theme-dot[data-theme="sunset"] { background: linear-gradient(135deg, #f59e0b, #ef4444); }
 .theme-dot[data-theme="forest"] { background: linear-gradient(135deg, #10b981, #34d399); }
 .theme-dot[data-theme="lime"] { background: linear-gradient(135deg, #0a0a0a, #d7ff3f); }
+.theme-dot[data-theme="sara"] { background: linear-gradient(135deg, #10251b 0 46%, #23df75 46% 72%, #ccff9f 72%); }
 .theme-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-body); }
 
 /* Reusable status pill + result/list-row cards (token deployments, previews, etc) */
@@ -1019,7 +1074,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 </head>
 <body>
 
-<div class="lock-overlay open" id="lockOverlay">
+<div class="lock-overlay theme-sara open" id="lockOverlay">
   <div class="lock-card">
     <div class="lock-icon">🔒</div>
     <div class="lock-title" id="lockTitle">Unlock Sara</div>
@@ -1032,9 +1087,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   </div>
 </div>
 
-<div class="app-bg" id="appBg"></div>
+<div class="app-bg theme-sara" id="appBg"></div>
 
-<div class="app-shell" id="appShell">
+<div class="app-shell theme-sara" id="appShell">
 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
@@ -1069,8 +1124,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <button class="focus-btn" id="focusBtn" onclick="toggleFocus()">Focus</button>
         <span class="theme-label">Theme</span>
         <div class="theme-switcher">
+          <div class="theme-dot active" data-theme="sara" title="Sara Green (Default)"></div>
           <div class="theme-dot" data-theme="lime" title="Lime"></div>
-          <div class="theme-dot active" data-theme="default" title="Pearl (Default)"></div>
+          <div class="theme-dot" data-theme="default" title="Pearl"></div>
           <div class="theme-dot" data-theme="glassy" title="Glassy"></div>
           <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
           <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
@@ -2433,9 +2489,10 @@ async function lockWalletNow() {
 // ══════════════════════════════════════
 // THEME SWITCHER
 // ══════════════════════════════════════
-const themes = ['default','glassy','darkpro','sunset','forest','lime'];
+const themes = ['sara','default','glassy','darkpro','sunset','forest','lime'];
 const shell = document.getElementById('appShell');
 const appBg = document.getElementById('appBg');
+const lockOverlay = document.getElementById('lockOverlay');
 
 document.querySelectorAll('.theme-dot').forEach(dot => {
   dot.setAttribute('role', 'button');
@@ -2447,8 +2504,16 @@ document.querySelectorAll('.theme-dot').forEach(dot => {
     document.querySelectorAll('.theme-dot').forEach(d => { d.classList.remove('active'); d.setAttribute('aria-pressed', 'false'); });
     dot.classList.add('active');
     dot.setAttribute('aria-pressed', 'true');
-    themes.forEach(t => { shell.classList.remove('theme-'+t); appBg.classList.remove('theme-'+t); });
-    if (theme !== 'default') { shell.classList.add('theme-'+theme); appBg.classList.add('theme-'+theme); }
+    themes.forEach(t => {
+      shell.classList.remove('theme-'+t);
+      appBg.classList.remove('theme-'+t);
+      lockOverlay.classList.remove('theme-'+t);
+    });
+    if (theme !== 'default') {
+      shell.classList.add('theme-'+theme);
+      appBg.classList.add('theme-'+theme);
+      lockOverlay.classList.add('theme-'+theme);
+    }
     _renderAllocDonut();
   });
 });
