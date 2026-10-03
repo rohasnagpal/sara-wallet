@@ -223,6 +223,23 @@ def _migration_016_remove_onchain_sara_names(engine: Engine) -> None:
         conn.execute(text("DELETE FROM audit_log WHERE action LIKE 'sara_name.%'"))
 
 
+def _migration_017_single_recovery_seed(engine: Engine) -> None:
+    """Collapse the short-lived multi-seed model to one recovery phrase."""
+    tables = set(inspect(engine).get_table_names())
+    if "wallet_seeds" in tables:
+        with engine.begin() as conn:
+            # Base.create_all creates recovery_seed before migrations run.
+            # Keep the first phrase as the installation recovery phrase and
+            # discard additional alpha-era phrases.
+            conn.execute(text(
+                "INSERT OR IGNORE INTO recovery_seed (id, encrypted_seed, next_index, created_at) "
+                "SELECT 1, encrypted_seed, next_index, created_at "
+                "FROM wallet_seeds ORDER BY id LIMIT 1"
+            ))
+            conn.execute(text("DROP TABLE wallet_seeds"))
+    _drop_column(engine, "wallets", "seed_id")
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -240,6 +257,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("014_remove_sara_proof", _migration_014_remove_sara_proof),
     ("015_remove_non_evm_data", _migration_015_remove_non_evm_data),
     ("016_remove_onchain_sara_names", _migration_016_remove_onchain_sara_names),
+    ("017_single_recovery_seed", _migration_017_single_recovery_seed),
 )
 
 

@@ -30,7 +30,7 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Business and accounting** | Batch payments from a CSV, recurring payments, payroll, spending policies, cost basis and profit and loss, income and expense reports, CSV and Excel exports. | [business-payments.md](docs/business-payments.md) |
 | **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. Paid content is saved so you never lose it or pay twice. A paywall generator turns any PHP page on your own site into a paid page, settled through Circle Gateway Nanopayments (no API key) or Coinbase's CDP facilitator. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
 | **Tokens and treasury** | Deploy your own ERC-20 token (including on Arc), review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
-| **Recovery phrases** | One 24-word BIP-39 recovery phrase backs every wallet you create, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. Additional phrases, generated or imported, are an advanced option under **Settings → Recovery Phrases**. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
+| **Recovery phrase** | One 24-word BIP-39 recovery phrase backs every wallet Sara creates, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. An existing phrase can be restored before creating a wallet. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Local aliases** | Save any EVM address under a free local `.sara` alias, such as `supplier.sara`, and use it wherever Sara accepts a recipient. Aliases stay on your device and are not registered on-chain. | |
 
@@ -148,7 +148,7 @@ We're looking for contributors interested in wallets, stablecoins, x402, AI agen
 - [docs/privacy.md](docs/privacy.md): what stays on your machine, who can see what, and how to reduce exposure
 - [docs/security-model.md](docs/security-model.md): trust questions, threat model and security philosophy
 - [docs/third-party-services.md](docs/third-party-services.md): every external service Sara connects to, which need API keys, and Sara's no-markup policy
-- [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md), [docs/x402.md](docs/x402.md), [docs/token-creator.md](docs/token-creator.md), [docs/sara-names.md](docs/sara-names.md): feature guides
+- [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md), [docs/x402.md](docs/x402.md), [docs/token-creator.md](docs/token-creator.md): feature guides
 - [ROADMAP.md](ROADMAP.md): what's Now, Next and Exploring
 - [SECURITY.md](SECURITY.md): supported versions, vulnerability reporting, audit status
 

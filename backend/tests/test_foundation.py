@@ -79,6 +79,7 @@ class MigrationTests(unittest.TestCase):
                 "009_drop_dual_control", "010_paywall_preview_message",
                 "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
                 "014_remove_sara_proof", "015_remove_non_evm_data", "016_remove_onchain_sara_names",
+                "017_single_recovery_seed",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

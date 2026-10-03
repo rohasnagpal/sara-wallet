@@ -145,12 +145,15 @@ def _recover_pending_migration(passphrase: str) -> bytes | None:
         return None
 
     from app.db.session import SessionLocal
-    from app.db.models import Wallet
+    from app.db.models import RecoverySeed, Wallet
     db = SessionLocal()
     try:
         try:
             for wallet in db.query(Wallet).all():
                 encrypt.decrypt_with_key(wallet.encrypted_key, key)
+            seed = db.query(RecoverySeed).first()
+            if seed:
+                encrypt.decrypt_with_key(seed.encrypted_seed, key)
         except Exception:
             # The DB never committed; current .env.local remains authoritative.
             encrypt.discard_pending_migration()
@@ -214,7 +217,7 @@ def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> Non
     import logging
     from app.tools.wallet import encrypt
     from app.db.session import SessionLocal
-    from app.db.models import Wallet
+    from app.db.models import RecoverySeed, Wallet
 
     encrypt.stage_migration_update({
         "SARA_MASTER_KEY": None,
@@ -228,6 +231,10 @@ def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> Non
             for w in db.query(Wallet).all():
                 plaintext = encrypt.decrypt_with_key(w.encrypted_key, old_key)
                 w.encrypted_key = encrypt.encrypt_with_key(plaintext, new_key)
+            seed = db.query(RecoverySeed).first()
+            if seed:
+                plaintext = encrypt.decrypt_with_key(seed.encrypted_seed, old_key)
+                seed.encrypted_seed = encrypt.encrypt_with_key(plaintext, new_key)
             db.commit()
         finally:
             db.close()

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.db.session import SessionLocal
-from app.db.models import Wallet, WalletSeed
+from app.db.models import RecoverySeed, Wallet
 from app.tools.wallet.encrypt import encrypt_key, decrypt_key
 from app.tools.wallet.lock import WalletLockedError, unlock as verify_passphrase
 from app.tools.wallet.balance import get_wallet_balance
@@ -22,11 +22,6 @@ def get_db():
 
 class CreateWalletRequest(BaseModel):
     name: str
-    # Which seed to derive this wallet from - omit to use the default (the
-    # first one ever created, auto-creating it if none exists yet).
-    # "Add another seed" (POST /wallets/seeds) is the advanced path for
-    # anyone who wants a second, separate one instead.
-    seed_id: Optional[int] = None
 
 class ImportWalletRequest(BaseModel):
     name: str
@@ -38,29 +33,20 @@ class RenameWalletRequest(BaseModel):
 class ExportWalletRequest(BaseModel):
     passphrase: str
 
-class AddSeedRequest(BaseModel):
-    label: str = "Default"
-    # Omit to generate a brand-new phrase; provide an existing one (e.g.
-    # recovering onto a fresh Sara install, or bringing in a phrase you
-    # already use elsewhere) to import it instead.
-    seed_phrase: Optional[str] = None
+class RestoreSeedRequest(BaseModel):
+    seed_phrase: str
 
 class RevealSeedRequest(BaseModel):
     passphrase: str
 
 
-def _default_seed(db: Session) -> tuple[WalletSeed, Optional[str]]:
-    """The first seed ever created - auto-created here the first time it's
-    needed, so a brand-new Sara install needs no separate onboarding step.
-    Returns (seed, phrase) where phrase is only non-None on the one call
-    that actually created it - every wallet derived from it after that
-    shares the one phrase shown at that moment; no phrase is ever re-shown
-    by this path."""
-    seed = db.query(WalletSeed).order_by(WalletSeed.id).first()
+def _recovery_seed(db: Session) -> tuple[RecoverySeed, str | None]:
+    """Return the one recovery seed, generating it on first wallet use."""
+    seed = db.query(RecoverySeed).first()
     if seed is not None:
         return seed, None
     phrase = generate_seed_phrase()
-    seed = WalletSeed(label="Default", encrypted_seed=encrypt_key(phrase), next_index=0)
+    seed = RecoverySeed(id=1, encrypted_seed=encrypt_key(phrase), next_index=0)
     db.add(seed)
     db.flush()  # assigns seed.id without ending the caller's transaction
     return seed, phrase
@@ -73,14 +59,7 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
     chain = "evm"
 
     try:
-        if req.seed_id is not None:
-            seed = db.query(WalletSeed).filter(WalletSeed.id == req.seed_id).first()
-            if seed is None:
-                raise HTTPException(404, "Seed not found")
-            shown_phrase = None
-        else:
-            seed, shown_phrase = _default_seed(db)
-
+        seed, shown_phrase = _recovery_seed(db)
         seed_phrase = decrypt_key(seed.encrypted_seed)
         index = seed.next_index
         derived = derive_wallet(seed_phrase, index)
@@ -91,80 +70,55 @@ def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
 
     wallet = Wallet(
         name=req.name, chain=chain, address=derived["address"], encrypted_key=encrypted,
-        seed_id=seed.id, derivation_index=index,
+        derivation_index=index,
     )
     db.add(wallet)
     db.commit()
     db.refresh(wallet)
     result = {
         "id": wallet.id, "name": wallet.name, "chain": wallet.chain, "address": wallet.address,
-        "seed_id": seed.id, "derivation_index": index,
+        "derivation_index": index,
     }
     if shown_phrase:
         # Shown exactly once, at the moment the very first seed is created -
-        # every wallet after this (from this seed or a deliberately-added
-        # other one) never returns a phrase from this endpoint again; use
-        # POST /wallets/seeds/{id}/reveal (passphrase-gated) to see it again.
+        # every wallet after this never returns it from this endpoint; use
+        # POST /wallets/seed/reveal (passphrase-gated) to see it again.
         result["seed_phrase"] = shown_phrase
-        result["seed_label"] = seed.label
     return result
 
 
-@router.get("/seeds", dependencies=[Depends(require_session)])
-def list_seeds(db: Session = Depends(get_db)):
-    """Labels and wallet counts only - never the phrase itself. Use
-    POST /wallets/seeds/{id}/reveal (passphrase-gated) to see the words."""
-    from collections import Counter
-    seeds = db.query(WalletSeed).order_by(WalletSeed.id).all()
-    seed_ids_in_use = [w.seed_id for w in db.query(Wallet).filter(Wallet.seed_id.isnot(None)).all()]
-    counts = Counter(seed_ids_in_use)
-    return [
-        {"id": s.id, "label": s.label, "created_at": s.created_at.isoformat() if s.created_at else None,
-         "wallet_count": counts.get(s.id, 0), "next_index": s.next_index}
-        for s in seeds
-    ]
+@router.get("/seed", dependencies=[Depends(require_session)])
+def get_recovery_seed_status(db: Session = Depends(get_db)):
+    seed = db.query(RecoverySeed).first()
+    return {
+        "configured": seed is not None,
+        "wallet_count": db.query(Wallet).filter(Wallet.derivation_index.isnot(None)).count(),
+        "next_index": seed.next_index if seed else 0,
+        "created_at": seed.created_at.isoformat() if seed and seed.created_at else None,
+    }
 
 
-@router.post("/seeds", dependencies=[Depends(require_session)])
-def add_seed(req: AddSeedRequest, db: Session = Depends(get_db)):
-    """"Add another seed" - the advanced option. With no seed_phrase, mints
-    a brand-new one (returned exactly once, same as the first wallet's
-    auto-created default). With one, imports it - e.g. recovering onto a
-    fresh Sara install."""
-    label = (req.label or "").strip() or "Default"
-    if req.seed_phrase:
-        try:
-            phrase = validate_seed_phrase(req.seed_phrase)
-        except SeedError as e:
-            raise HTTPException(400, str(e))
-        existing = db.query(WalletSeed).all()
-        try:
-            for row in existing:
-                if decrypt_key(row.encrypted_seed) == phrase:
-                    raise HTTPException(400, f'This phrase is already added, as "{row.label}".')
-        except WalletLockedError as e:
-            raise HTTPException(423, str(e))
-        is_new = False
-    else:
-        phrase = generate_seed_phrase()
-        is_new = True
-
+@router.post("/seed/restore", dependencies=[Depends(require_session)])
+def restore_recovery_seed(req: RestoreSeedRequest, db: Session = Depends(get_db)):
+    """Restore the one recovery phrase before creating derived wallets."""
+    if db.query(RecoverySeed).first() is not None:
+        raise HTTPException(409, "A recovery phrase is already configured")
     try:
-        seed = WalletSeed(label=label, encrypted_seed=encrypt_key(phrase), next_index=0)
+        phrase = validate_seed_phrase(req.seed_phrase)
+    except SeedError as e:
+        raise HTTPException(400, str(e))
+    try:
+        seed = RecoverySeed(id=1, encrypted_seed=encrypt_key(phrase), next_index=0)
     except WalletLockedError as e:
         raise HTTPException(423, str(e))
     db.add(seed)
     db.commit()
-    db.refresh(seed)
-    result = {"id": seed.id, "label": seed.label}
-    if is_new:
-        result["seed_phrase"] = phrase  # shown exactly once, same rule as the default seed
-    return result
+    return {"status": "restored"}
 
 
-@router.post("/seeds/{seed_id}/reveal", dependencies=[Depends(require_session)])
-def reveal_seed(seed_id: int, req: RevealSeedRequest, db: Session = Depends(get_db)):
-    seed = db.query(WalletSeed).filter(WalletSeed.id == seed_id).first()
+@router.post("/seed/reveal", dependencies=[Depends(require_session)])
+def reveal_seed(req: RevealSeedRequest, db: Session = Depends(get_db)):
+    seed = db.query(RecoverySeed).first()
     if not seed:
         raise HTTPException(404, "Seed not found")
     if not req.passphrase or not req.passphrase.strip():
@@ -175,7 +129,7 @@ def reveal_seed(seed_id: int, req: RevealSeedRequest, db: Session = Depends(get_
     try:
         phrase = decrypt_key(seed.encrypted_seed)
         return JSONResponse(
-            content={"id": seed.id, "label": seed.label, "seed_phrase": phrase},
+            content={"seed_phrase": phrase},
             headers={"Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"},
         )
     except ValueError as e:

@@ -84,3 +84,8 @@ above is what protects you, plus the fact that you can read every line.
 The first time you create a wallet, Sara shows a 24-word recovery phrase.
 Write it down and keep it offline. It is the only way to recover your wallets
 if this computer is lost. See [security-model.md](security-model.md).
+
+Sara uses one recovery phrase for every wallet it creates. To restore an
+existing phrase on a fresh installation, open **Settings → Recovery Phrase**
+before creating the first wallet and paste the phrase there. Wallets imported
+from individual private keys are separate and are not covered by the phrase.

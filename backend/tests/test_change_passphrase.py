@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db import session as db_session
-from app.db.models import Base, Wallet
+from app.db.models import Base, RecoverySeed, Wallet
 from app.tools.wallet import encrypt
 from app.tools.wallet import lock as lock_state
 
@@ -72,6 +72,22 @@ class ChangePassphraseTests(unittest.TestCase):
         db = self.Session()
         wallet = db.query(Wallet).first()
         self.assertEqual(encrypt.decrypt_key(wallet.encrypted_key), "super-secret-private-key")
+        db.close()
+
+    def test_change_passphrase_reencrypts_recovery_seed(self):
+        lock_state.setup_passphrase("original-passphrase")
+        db = self.Session()
+        db.add(RecoverySeed(id=1, encrypted_seed=encrypt.encrypt_key("word " * 23 + "word"), next_index=2))
+        db.commit()
+        db.close()
+
+        self.assertTrue(lock_state.change_passphrase("original-passphrase", "brand-new-passphrase"))
+
+        lock_state.lock()
+        self.assertTrue(lock_state.unlock("brand-new-passphrase"))
+        db = self.Session()
+        seed = db.query(RecoverySeed).one()
+        self.assertEqual(encrypt.decrypt_key(seed.encrypted_seed), "word " * 23 + "word")
         db.close()
 
     def test_change_passphrase_keeps_session_unlocked_under_new_key(self):
