@@ -23,11 +23,6 @@ def resolve_name(body: ResolveBody):
         from app.tools.names.ens import resolve
         addr = resolve(name)
         return {"name": name, "address": addr, "chain": "evm", "resolved": bool(addr)}
-    from app.tools.names import sara_names
-    if sara_names.is_configured() and sara_names.is_valid_label(name.split(".")[0]):
-        result = sara_names.resolve(name)
-        if result:
-            return {"name": name, "address": result["owner"], "chain": "evm", "resolved": True, "source": "sara_names"}
     return {"name": name, "address": None, "chain": None, "resolved": False}
 
 

@@ -207,6 +207,22 @@ def _migration_015_remove_non_evm_data(engine: Engine) -> None:
         conn.execute(text("DELETE FROM wallets WHERE lower(chain) != 'evm'"))
 
 
+def _migration_016_remove_onchain_sara_names(engine: Engine) -> None:
+    """Remove the undeployed on-chain Sara Names subsystem and its data."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS sara_name_record_cache"))
+        conn.execute(text("DROP TABLE IF EXISTS sara_names"))
+        conn.execute(text("DROP TABLE IF EXISTS indexer_cursors"))
+        conn.execute(text(
+            "DELETE FROM config WHERE key IN ("
+            "'SARA_NAME_REGISTRAR_ADDRESS', 'SARA_NAME_AMOY_RPC_URL', "
+            "'SARA_NAME_AMOY_USDC_ADDRESS', 'SARA_NAME_AMOY_CONFIRMATIONS', "
+            "'SARA_NAME_SERVICE_URL')"
+        ))
+        conn.execute(text("DELETE FROM domain_events WHERE event_type LIKE 'sara_name.%'"))
+        conn.execute(text("DELETE FROM audit_log WHERE action LIKE 'sara_name.%'"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -223,6 +239,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("013_wallet_seeds", _migration_013_wallet_seeds),
     ("014_remove_sara_proof", _migration_014_remove_sara_proof),
     ("015_remove_non_evm_data", _migration_015_remove_non_evm_data),
+    ("016_remove_onchain_sara_names", _migration_016_remove_onchain_sara_names),
 )
 
 

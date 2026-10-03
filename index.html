@@ -1149,7 +1149,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Insights</button>
           <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
-          <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')" disabled title="Temporarily unavailable">Names</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
           <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
@@ -1647,57 +1646,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="screenAddress()">Screen</button>
               </div>
               <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-          </div>
-
-          <div id="toolsNamesPane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Sara Names</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Polygon Amoy testnet. Registration is a two-step commit → wait ~60s → reveal process, priced in USDC by name length.</div>
-              <div class="field-row">
-                <div class="field"><label class="field-label" for="nameSearch">Name</label><input class="settings-input" id="nameSearch" placeholder="Search a name (e.g. rohas)"></div>
-                <button class="settings-save-btn" onclick="checkNameAvailability()">Check</button>
-              </div>
-              <div id="nameAvailabilityResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-
-            <div class="card" id="nameRegisterCard" style="margin-bottom:10px;display:none">
-              <div style="font-size:13px;font-weight:600">Register</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Commit now, then complete the registration once the ~60s reveal delay has passed.</div>
-              <div class="field-row" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="nameWallet">Wallet</label><select class="settings-input" id="nameWallet"></select></div>
-                <button class="settings-save-btn" onclick="commitName()">1. Commit</button>
-                <button class="settings-save-btn" onclick="revealName()" id="nameRevealBtn" disabled>2. Complete (after ~60s)</button>
-              </div>
-              <div id="nameRegisterStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-            </div>
-
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:13px;font-weight:600">Manage a name</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Load a name you own to renew it before expiry or transfer it to another address.</div>
-              <div class="field-row" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="nameManage">Name you own</label><input class="settings-input" id="nameManage" placeholder="Name you own (e.g. rohas)"></div>
-                <div class="field"><label class="field-label" for="nameManageWallet">Wallet</label><select class="settings-input" id="nameManageWallet"></select></div>
-                <button class="settings-save-btn" onclick="loadNameDetail()">Load</button>
-              </div>
-              <div id="nameDetailResult" style="font-size:11px;margin-top:8px"></div>
-              <div class="field-row" style="margin-top:8px">
-                <button class="settings-save-btn" onclick="renewName()">Renew 1yr</button>
-                <div class="field"><label class="field-label" for="nameTransferTo">Transfer to address</label><input class="settings-input" id="nameTransferTo" placeholder="Transfer to address" style="max-width:220px"></div>
-                <button class="settings-save-btn" onclick="transferName()">Transfer</button>
-              </div>
-            </div>
-
-            <div class="card">
-              <div style="font-size:13px;font-weight:600">Publish a signed record</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Off-chain, EIP-712 signed. Only the current on-chain owner can publish.</div>
-              <div class="field"><label class="field-label" for="recordAddresses">Addresses (JSON)</label><input class="settings-input" id="recordAddresses" placeholder='Addresses JSON, e.g. [{"network":"eip155:137","addr":"0x..."}]'></div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="recordPreferredNetwork">Preferred network (CAIP-2)</label><input class="settings-input" id="recordPreferredNetwork" placeholder="Preferred network (CAIP-2)"></div>
-                <div class="field"><label class="field-label" for="recordPreferredToken">Preferred token</label><input class="settings-input" id="recordPreferredToken" placeholder="Preferred token"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="publishRecord()">Publish record</button>
-              <div id="recordPublishStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
             </div>
           </div>
 
@@ -3610,7 +3558,7 @@ async function downloadInvoicePng(reference) {
     }
 
     ctx.font = '400 13px "Space Mono", monospace';
-    steps.push({type: 'text', text: inv.sara_name || inv.payment_address || '', font: ctx.font, color: col('--text-muted', '#888'), y});
+    steps.push({type: 'text', text: inv.payment_address || '', font: ctx.font, color: col('--text-muted', '#888'), y});
     y += 28;
 
     if (inv.due_date) {
@@ -4205,13 +4153,13 @@ let _toolsTab = 'tokens';
 
 async function loadToolsView() {
   syncRouteTokens();
-  _fillWalletSelects(['tokWallet', 'nameWallet', 'nameManageWallet', 'x402Wallet', 'paywallWallet']);
+  _fillWalletSelects(['tokWallet', 'x402Wallet', 'paywallWallet']);
   return showToolsTab(_toolsTab);
 }
 
 // The Tools pages (Token Creator, Treasury, ...) each have their own button
 // in the top nav; they share one view container whose visible pane is chosen here.
-const _TOOL_NAV = {tokens: 'col2BtnTok', treasury: 'col2BtnTreasury', intel: 'col2BtnIntel', risk: 'col2BtnRisk', names: 'col2BtnNames', x402: 'col2BtnX402'};
+const _TOOL_NAV = {tokens: 'col2BtnTok', treasury: 'col2BtnTreasury', intel: 'col2BtnIntel', risk: 'col2BtnRisk', x402: 'col2BtnX402'};
 
 function showTool(tab) {
   _toolsTab = tab;
@@ -4220,7 +4168,7 @@ function showTool(tab) {
 
 function showToolsTab(tab) {
   _toolsTab = tab;
-  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', names: 'toolsNamesPane', x402: 'toolsX402Pane'};
+  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
   if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
@@ -4361,10 +4309,6 @@ function _ledgerDetails(t) {
     case 'x402_payment':
       add('Paid to', addr(t.to));
       add('Resource', t.reference ? _escapeHtml(t.reference) : '');
-      break;
-    case 'name_registration': case 'name_renewal': case 'name_registry_revenue':
-      add('Name', t.reference ? _escapeHtml(t.reference) : '');
-      add('Registry', addr(t.to));
       break;
     case 'swap': case 'bridge':
       add('Wallet address', addr(t.from));
@@ -4689,115 +4633,6 @@ async function screenAddress() {
   `;
 }
 
-// ---- Sara Names ----
-let _nameCommitState = null;
-
-async function checkNameAvailability() {
-  const name = document.getElementById('nameSearch').value.trim().toLowerCase();
-  const box = document.getElementById('nameAvailabilityResult');
-  const registerCard = document.getElementById('nameRegisterCard');
-  if (!name) { box.textContent = 'Enter a name to check.'; return; }
-  const r = await fetch('/api/names/availability?name=' + encodeURIComponent(name));
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not check availability.'); registerCard.style.display = 'none'; return; }
-  if (data.available) {
-    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is available - ${_escapeHtml(data.price_1yr)} USDC/year.`;
-    registerCard.style.display = '';
-    registerCard.dataset.name = name;
-  } else {
-    box.innerHTML = `<strong>${_escapeHtml(name)}</strong> is already registered.`;
-    registerCard.style.display = 'none';
-  }
-}
-
-async function commitName() {
-  const name = document.getElementById('nameRegisterCard').dataset.name;
-  const walletId = Number(document.getElementById('nameWallet').value);
-  const status = document.getElementById('nameRegisterStatus');
-  const r = await fetch('/api/names/commit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name})});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Commit failed.'); return; }
-  _nameCommitState = {name, walletId, secret: data.secret, committedAt: Date.now()};
-  status.textContent = `Committed (tx ${data.tx_hash}). Wait ~60s, then click "Complete".`;
-  document.getElementById('nameRevealBtn').disabled = true;
-  setTimeout(() => { document.getElementById('nameRevealBtn').disabled = false; }, 61000);
-}
-
-async function revealName() {
-  if (!_nameCommitState) { alert('Commit first.'); return; }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const status = document.getElementById('nameRegisterStatus');
-  const body = {
-    wallet_id: _nameCommitState.walletId, label: _nameCommitState.name, duration_seconds: 365 * 86400,
-    secret: _nameCommitState.secret, passphrase,
-  };
-  const r = await fetch('/api/names/register', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok ? `Registered! Tx: ${data.tx_hash}` : (_apiErrorText(data, 'Registration failed.'));
-  if (r.ok) _nameCommitState = null;
-}
-
-async function loadNameDetail() {
-  const name = document.getElementById('nameManage').value.trim().toLowerCase();
-  const box = document.getElementById('nameDetailResult');
-  if (!name) { box.textContent = 'Enter a name.'; return; }
-  const r = await fetch('/api/names/' + encodeURIComponent(name));
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load.'); return; }
-  if (!data.on_chain) { box.innerHTML = 'Not registered on-chain.'; return; }
-  const expiryDate = new Date(data.on_chain.expiry * 1000);
-  const daysLeft = Math.round((expiryDate - Date.now()) / 86400000);
-  box.innerHTML = `
-    Owner: <code>${_escapeHtml(data.on_chain.owner)}</code><br>
-    Expires: ${expiryDate.toLocaleDateString()} (${daysLeft} day(s))<br>
-    ${daysLeft < 30 ? '<span style="color:#c0392b">⚠ Expiring soon</span>' : ''}
-  `;
-}
-
-async function renewName() {
-  const name = document.getElementById('nameManage').value.trim().toLowerCase();
-  const walletId = Number(document.getElementById('nameManageWallet').value);
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch('/api/names/renew', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, duration_seconds: 365 * 86400, passphrase})});
-  const data = await r.json().catch(() => ({}));
-  alert(r.ok ? `Renewed - tx ${data.tx_hash}` : (_apiErrorText(data, 'Renewal failed.')));
-  if (r.ok) await loadNameDetail();
-}
-
-async function transferName() {
-  const name = document.getElementById('nameManage').value.trim().toLowerCase();
-  const walletId = Number(document.getElementById('nameManageWallet').value);
-  const newOwner = document.getElementById('nameTransferTo').value.trim();
-  if (!newOwner) { alert('Enter the new owner address'); return; }
-  if (!confirm(`Transfer ${name} to ${newOwner}? This cannot be undone.`)) return;
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const r = await fetch('/api/names/transfer', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet_id: walletId, label: name, new_owner: newOwner, passphrase})});
-  const data = await r.json().catch(() => ({}));
-  alert(r.ok ? `Transferred - tx ${data.tx_hash}` : (_apiErrorText(data, 'Transfer failed.')));
-  if (r.ok) await loadNameDetail();
-}
-
-async function publishRecord() {
-  const name = document.getElementById('nameManage').value.trim().toLowerCase();
-  const walletId = Number(document.getElementById('nameManageWallet').value);
-  const status = document.getElementById('recordPublishStatus');
-  let addresses = [];
-  const raw = document.getElementById('recordAddresses').value.trim();
-  if (raw) {
-    try { addresses = JSON.parse(raw); } catch (e) { status.textContent = 'Addresses must be valid JSON.'; return; }
-  }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const body = {
-    wallet_id: walletId, addresses, preferred_network: document.getElementById('recordPreferredNetwork').value.trim(),
-    preferred_token: document.getElementById('recordPreferredToken').value.trim(), passphrase,
-  };
-  const r = await fetch(`/api/names/${encodeURIComponent(name)}/records`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok
-    ? `Published (sequence ${data.sequence})${data.published_externally ? ', synced to the record service' : ', cached locally only'}.`
-    : (_apiErrorText(data, 'Publish failed.'));
-}
-
 // ---- x402: pay & fetch ----
 async function x402Fetch() {
   const box = document.getElementById('x402Result');
@@ -5048,9 +4883,6 @@ function _txDisplayInfo(t) {
     allowance_revocation: { label: 'Revoked a spending allowance', icon: '🛡️', color: 'tx-token' },
     contract_interaction: { label: t.reference ? `Contract call: ${_escapeHtml(t.reference)}` : 'Contract call', icon: '📄', color: 'tx-token' },
     invoice_payment: { label: 'Invoice paid', icon: '↓', color: 'tx-in' },
-    name_registration: { label: 'Registered a Sara Name', icon: '🪪', color: 'tx-neutral' },
-    name_renewal: { label: 'Renewed a Sara Name', icon: '🪪', color: 'tx-neutral' },
-    name_registry_revenue: { label: 'Sara Names registry fee', icon: '🪪', color: 'tx-in' },
     payroll: { label: 'Payroll payment', icon: '↑', color: 'tx-out' },
     airdrop: { label: 'Airdrop sent', icon: '↑', color: 'tx-out' },
     batch_payment: { label: 'Batch payment', icon: '↑', color: 'tx-out' },

@@ -87,7 +87,7 @@ def create_schedule(body: ScheduleBody, db: Session = Depends(get_db)):
         from app.tools.names.resolver import resolve_recipient_input
         resolved = resolve_recipient_input(db, body.recipient_address, body.network)
         if not resolved:
-            raise HTTPException(400, "Invalid recipient address, and no matching address book entry or Sara Name found")
+            raise HTTPException(400, "Invalid recipient address, and no matching local alias found")
         body.recipient_address = resolved.address
     _validate(body, db)
     amount_raw = None

@@ -12,10 +12,6 @@ relying on anything here for mainnet use.
 
 Actively being worked on, or explicitly blocking the next release.
 
-- **Deploy Sara Names registry to Polygon Amoy** — the client, signed
-  records and indexer are implemented and tested, but the registry
-  contract itself hasn't been broadcast yet, so Sara Names is unavailable
-  in the wallet until then. ([#1](https://github.com/rohasnagpal/sara-wallet/issues/1))
 - **Pre-mainnet hardening** — independent smart-contract audit,
   hardware-controlled multisig, authoritative reconfirmation of
   network/token addresses, and a low-value canary deployment, all required
@@ -24,10 +20,6 @@ Actively being worked on, or explicitly blocking the next release.
   policy-gated auto-pay and demo seller landed recently; broadening seller/
   network coverage and policy-gating scenarios beyond the demo is next.
   ([#3](https://github.com/rohasnagpal/sara-wallet/issues/3))
-- **Finish spending-policy coverage** — policies now govern batches,
-  payroll, schedules, chat sends, swaps, bridges, token transfers
-  and x402. Still uncovered: Sara Names registration and
-  renewal fees. ([#4](https://github.com/rohasnagpal/sara-wallet/issues/4))
 
 ## Next
 

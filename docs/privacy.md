@@ -36,7 +36,8 @@ how keys are protected, see [security-model.md](security-model.md).
 | **News and sentiment sources** (CoinTelegraph and CoinDesk feeds, Alternative.me) | Your IP address only. | Market news and sentiment. |
 | **The sanctions list** (Chainalysis oracle, read through a public node) | The address you screen. | Only when you screen an address. |
 
-**Sara Names** is coming soon and will be described here when it returns.
+Local `.sara` aliases are stored only in Sara's local database and are not
+published or registered on-chain.
 
 ## What Sara does not do
 

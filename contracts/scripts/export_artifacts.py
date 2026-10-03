@@ -9,9 +9,6 @@ after `forge build`:
 
     cd contracts && forge build && python3 scripts/export_artifacts.py
 
-(The Sara Names registry contract and its own ABI-export script now live in
-a separate repo - see backend/app/tools/names/sara_names.py's module
-docstring.)
 """
 from __future__ import annotations
 

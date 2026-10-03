@@ -131,10 +131,6 @@ _SEND_LIKE_RE = re.compile(
     re.I,
 )
 
-from app.tools.names.sara_names import _LABEL_RE as _SARA_LABEL_RE
-_SARA_LABEL_PATTERN = _SARA_LABEL_RE.pattern.strip("^$")
-
-
 def _is_valid_recipient(address: str, network: Optional[str]) -> bool:
     return _is_valid_evm_recipient(address)
 
@@ -300,8 +296,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         native_error = None if token_address else _native_send_error(token, network)
         if native_error:
             return ("send_rejected", {"message": native_error})
-        # Resolve to_addr: nickname → real address, or ENS/Sara Names → on-chain address
-        from app.tools.names import sara_names
+        # Resolve to_addr from the local Directory or ENS.
         to_nickname = None
         ab_entry = db.query(AddressBook).filter(AddressBook.nickname == to_addr.lower()).first()
         if ab_entry:
@@ -319,18 +314,6 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             if resolved:
                 to_nickname = to_addr
                 to_addr = resolved
-            else:
-                return ("name_not_found", {"name": to_addr})
-        elif not _is_valid_recipient(to_addr, network) and sara_names.is_valid_label(to_addr.lower()) and sara_names.is_configured():
-            # Not already a valid address, and shaped like a Sara Name
-            # label — address-book nicknames were already tried above, so
-            # this only ever fires as the second-choice resolver, never
-            # ahead of the user's own local directory (collision handling
-            # per CLAUDE_STAGES_3_TO_7.md Stage 6.4).
-            resolved = sara_names.resolve(to_addr.lower())
-            if resolved:
-                to_nickname = to_addr
-                to_addr = resolved["owner"]
             else:
                 return ("name_not_found", {"name": to_addr})
         elif not _is_valid_recipient(to_addr, network):
@@ -471,49 +454,6 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                 return ("bridge_needs_wallet", {**bridge_args, "wallets": [w.name for w in evm_wallets_for_bridge]})
             else:
                 return ("send_no_wallets", {})
-
-    # sara name registration — guided flow, no name given yet. Checked
-    # BEFORE the specific-name regex below: without a suffix requirement,
-    # the generic word "name" in a phrase like "register a name" would
-    # otherwise itself look like an attempted label.
-    if any(p in m for p in ("buy a name", "buy a bname", "buy a .sara", "register a name",
-                             "register a bname", "register a .sara", "get a .sara name",
-                             "get a name", "get a bname")):
-        return ("register_ask_name", {})
-
-    # sara name registration — "register rohas", "buy c4lab from test1"
-    reg_match = re.search(
-        r'(?:register|buy|claim)\s+(?:the\s+name\s+)?(' + _SARA_LABEL_PATTERN + r')(?:\s+from\s+(\w[\w\s]*))?',
-        m
-    )
-    if reg_match:
-        from app.tools.names import sara_names
-        name, from_hint = reg_match.groups()
-        error = sara_names.validate_name(name)
-        if error:
-            return ("register_name_invalid", {"name": name, "message": error})
-        if not sara_names.is_configured():
-            return ("register_name_invalid", {"name": name, "message": "Sara Names is not configured on this instance."})
-        name = sara_names.normalize_name(name)
-        evm_wallets = [w for w in wallets if w.chain == "evm"]
-        try:
-            available = sara_names.is_available(name)
-        except Exception as e:
-            return ("register_name_invalid", {"name": name, "message": f"Could not reach the Sara Names registry: {_exception_message(e)}"})
-        if available:
-            wallet = _match_wallet(from_hint, evm_wallets) if from_hint else None
-            if not wallet:
-                wallet = _match_wallet(msg, evm_wallets)
-            if not wallet and len(evm_wallets) == 1:
-                wallet = evm_wallets[0]
-            if wallet:
-                return ("register_name", {"wallet_name": wallet.name, "name": name})
-            elif evm_wallets:
-                return ("register_needs_wallet", {"name": name, "wallets": [w.name for w in evm_wallets]})
-            else:
-                return ("send_no_wallets", {})
-        else:
-            return ("register_name_taken", {"name": name})
 
     # list wallets
     if any(p in m for p in ("list wallet", "my wallet", "show wallet", "list my wallet")):
@@ -672,29 +612,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         else:
             lines.append("Still in progress — check again in a bit.")
         return "\n".join(lines)
-
-    if tool_name == "register_name":
-        return f"__PENDING_REGISTER__{json.dumps(args)}"
-
-    if tool_name == "register_needs_wallet":
-        from app.tools.names import sara_names
-        names = ", ".join(f"**{n}**" for n in args["wallets"])
-        try:
-            price_text = f"{sara_names.price_decimal(sara_names.price_for(args['name'], 365 * 86400))} USDC"
-        except Exception:
-            price_text = "an on-chain-priced amount of USDC"
-        return (f"**{args['name']}** is available for **{price_text}**. Which wallet should pay?\n"
-                f"Your wallets: {names}\n"
-                f"Reply with e.g. \"register {args['name']} from {args['wallets'][0]}\"")
-
-    if tool_name == "register_name_taken":
-        return f"**{args['name']}** is already registered to someone else. Try a different name."
-
-    if tool_name == "register_name_invalid":
-        return args["message"]
-
-    if tool_name == "register_ask_name":
-        return "Sure — which Sara Name would you like? (e.g. `rohas`)"
 
     if tool_name == "show_help":
         import os as _os
@@ -1059,44 +976,6 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     return _stream_text(text, db, session_id)
 
 
-def _build_register_pending(name: str, wallet: Wallet) -> tuple[Optional[dict], str]:
-    """Shared by the direct intent-match path and the LLM tool-call path
-    (__PENDING_REGISTER__) so on-chain pricing logic lives in exactly one
-    place. Returns (pending_dict_or_None, text) — None means pricing failed
-    and `text` explains why."""
-    from app.tools.names import sara_names
-    duration_seconds = 365 * 86400
-    try:
-        price_raw = sara_names.price_for(name, duration_seconds)
-    except Exception as e:
-        return None, f"Could not reach the Sara Names registry to price this name: {_exception_message(e)}"
-    pending = {
-        "type": "register_name",
-        "name": name,
-        "price_raw": price_raw,
-        "duration_seconds": duration_seconds,
-        "wallet_name": wallet.name,
-        "wallet_id": wallet.id,
-        "wallet_address": wallet.address,
-        "wallet_encrypted_key": wallet.encrypted_key,
-    }
-    text = (
-        f"Registering **{name}** → `{wallet.address}` for 1 year on Polygon Amoy testnet\n"
-        f"Cost: **{sara_names.price_decimal(price_raw)} USDC** from **{wallet.name}**\n\n"
-        f"This is a two-step, front-running-resistant registration: Sara will first *commit* to the "
-        f"name on-chain, then — after a short mandatory wait — *reveal* to actually claim it.\n\n"
-        f"Type **CONFIRM** to commit, or **CANCEL** to abort."
-    )
-    return pending, text
-
-
-def _preview_pending_register(name: str, wallet: Wallet, db: Session, session_id: str):
-    pending, text = _build_register_pending(name, wallet)
-    if pending:
-        _pending[session_id] = pending
-    return _stream_text(text, db, session_id)
-
-
 def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], str]:
     """Resolve wallet + fetch a live swap quote. Returns (pending_dict, text).
     pending_dict is None if resolution/quoting failed — text explains why."""
@@ -1397,90 +1276,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     _pending[req.session_id] = new_pending
                 return _stream_text(text, db, req.session_id)
             return _stream_text("Choose one of the listed wallets, or type CANCEL.", db, req.session_id)
-        if pending.get("type") == "awaiting_name":
-            if msg.upper().startswith("CANCEL"):
-                del _pending[req.session_id]
-                return _stream_text("Cancelled.", db, req.session_id)
-            del _pending[req.session_id]
-            from app.tools.names import sara_names
-            error = sara_names.validate_name(msg)
-            if error:
-                return _stream_text(error, db, req.session_id)
-            name = sara_names.normalize_name(msg)
-            if not sara_names.is_available(name):
-                return _stream_text(f"**{name}** is already registered to someone else. Try a different name.", db, req.session_id)
-            evm_wallets = [w for w in db.query(Wallet).all() if w.chain == "evm"]
-            if not evm_wallets:
-                return _stream_text("You need an EVM wallet (Polygon-compatible) to register a name — add one first.", db, req.session_id)
-            if len(evm_wallets) > 1:
-                names = ", ".join(f"**{w.name}**" for w in evm_wallets)
-                try:
-                    price_raw = sara_names.price_for(name, 365 * 86400)
-                    price_text = f"{sara_names.price_decimal(price_raw)} USDC"
-                except Exception:
-                    price_text = "an on-chain-priced amount of USDC"
-                return _stream_text(
-                    f"**{name}** is available for **{price_text}**. "
-                    f"Which wallet should pay? Your wallets: {names}\n"
-                    f"Reply with e.g. \"register {name} from {evm_wallets[0].name}\"",
-                    db, req.session_id,
-                )
-            return _preview_pending_register(name, evm_wallets[0], db, req.session_id)
-        if pending.get("type") == "awaiting_register_reveal":
-            if msg.upper().startswith("CANCEL"):
-                del _pending[req.session_id]
-                return _stream_text("Cancelled — the commitment will simply expire unused; nothing further happens.", db, req.session_id)
-            from datetime import datetime, timezone
-            from app.tools.names import sara_names
-            from app.tools.wallet.encrypt import decrypt_key
-            from app.core.audit import append_audit
-            from app.core.events import publish
-            from app.db.models import SaraName
-            committed_at = datetime.fromisoformat(pending["committed_at"])
-            elapsed = (datetime.now(timezone.utc) - committed_at).total_seconds()
-            if elapsed < 60:
-                return _stream_text(
-                    f"Not quite yet — wait about {int(60 - elapsed)} more second(s), then send any message to finish "
-                    f"registering **{pending['name']}**, or CANCEL to give up.",
-                    db, req.session_id,
-                )
-            del _pending[req.session_id]
-            plain_key = None
-            try:
-                plain_key = decrypt_key(pending["wallet_encrypted_key"])
-                secret = bytes.fromhex(pending["secret"])
-                price_raw = sara_names.price_for(pending["name"], pending["duration_seconds"])
-                sara_names.ensure_usdc_allowance(plain_key, price_raw)
-                tx_hash = sara_names.register(
-                    plain_key, pending["name"], pending["wallet_address"], pending["duration_seconds"], secret,
-                )
-                node = sara_names.node_hex(pending["name"])
-                row = db.query(SaraName).filter(SaraName.node == node).first()
-                if row:
-                    row.status = "registered"
-                    row.register_tx_hash = tx_hash
-                    try:
-                        info = sara_names.get_node(sara_names.namehash_name(pending["name"]))
-                        if info and info["expiry"]:
-                            row.expiry = datetime.utcfromtimestamp(info["expiry"])
-                    except Exception:
-                        pass
-                _record_submitted_transaction(
-                    db, wallet_id=pending["wallet_id"], network="amoy", tx_hash=tx_hash,
-                    from_address=pending["wallet_address"], to_address=sara_names.registry_address(),
-                    amount=float(price_raw) / 1_000000, amount_raw=price_raw, decimals=6, token="USDC",
-                    category="name_registration", reference=pending["name"],
-                )
-                publish(db, "sara_name.registered", {"label": pending["name"], "node": node, "tx_hash": tx_hash},
-                        aggregate_type="sara_name", aggregate_id=node, event_key=f"sara_name:register:{tx_hash}")
-                append_audit(db, "sara_name.registered", "sara_name", details={"label": pending["name"], "tx_hash": tx_hash})
-                db.commit()
-                text = f"**{pending['name']}** is now registered to your wallet. Tx: `{tx_hash}`"
-            except Exception as e:
-                text = _execution_error("Registration", e, plain_key)
-            finally:
-                plain_key = None
-            return _stream_text(text, db, req.session_id)
         if msg.upper() == "CONFIRM":
             from app.tools.wallet import lock as lock_state
             try:
@@ -1500,8 +1295,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 return _stream_swap(pending, db, req.session_id)
             if ptype == "bridge":
                 return _stream_bridge(pending, db, req.session_id)
-            if ptype == "register_name":
-                return _stream_register_name(pending, db, req.session_id)
             return _stream_send(pending, db, req.session_id)
         elif msg.upper().startswith("CANCEL"):
             del _pending[req.session_id]
@@ -1640,15 +1433,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     if pending:
                         _pending[req.session_id] = pending
 
-                elif result.startswith("__PENDING_REGISTER__"):
-                    reg_args = json.loads(result[len("__PENDING_REGISTER__"):])
-                    w = _resolve_wallet(reg_args["wallet_name"], db)
-                    if not w:
-                        text = f"Wallet '{reg_args['wallet_name']}' not found."
-                    else:
-                        pending, text = _build_register_pending(reg_args["name"], w)
-                        if pending:
-                            _pending[req.session_id] = pending
                 else:
                     if tool_name == "send_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_send_wallet", **args}
@@ -1656,8 +1440,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         _pending[req.session_id] = {"type": "choose_swap_wallet", **args}
                     elif tool_name == "bridge_needs_wallet":
                         _pending[req.session_id] = {"type": "choose_bridge_wallet", **args}
-                    elif tool_name == "register_ask_name":
-                        _pending[req.session_id] = {"type": "awaiting_name"}
                     text = result
                 full_response = text
                 for chunk in _chunk(text):
@@ -2072,60 +1854,3 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-
-def _stream_register_name(pending: dict, db: Session, session_id: str):
-    """Step 1 of commit/reveal: sends the on-chain commitment. The reveal
-    (actual register() call) happens later, once MIN_COMMITMENT_AGE has
-    passed — see the "awaiting_register_reveal" pending-state handler."""
-    async def generate():
-        import secrets as secrets_module
-        from datetime import datetime, timezone
-        from app.tools.wallet.encrypt import decrypt_key
-        from app.tools.names import sara_names
-        from app.core.audit import append_audit
-        from app.db.models import SaraName
-        plain_key = None
-        try:
-            if not sara_names.is_configured():
-                raise ValueError("Sara Names is not configured on this instance (SARA_NAME_REGISTRAR_ADDRESS is not set).")
-            plain_key = decrypt_key(pending["wallet_encrypted_key"])
-            secret = secrets_module.token_bytes(32)
-            commitment = sara_names.compute_commitment(pending["name"], pending["wallet_address"], secret)
-            commit_tx_hash = sara_names.commit(plain_key, commitment)
-
-            node = sara_names.node_hex(pending["name"])
-            row = db.query(SaraName).filter(SaraName.node == node).first()
-            if not row:
-                row = SaraName(node=node, label=pending["name"], wallet_id=pending["wallet_id"], status="committed", commit_tx_hash=commit_tx_hash)
-                db.add(row)
-            else:
-                row.status = "committed"
-                row.commit_tx_hash = commit_tx_hash
-            append_audit(db, "sara_name.committed", "sara_name", details={"label": pending["name"], "tx_hash": commit_tx_hash})
-            db.commit()
-
-            _pending[session_id] = {
-                "type": "awaiting_register_reveal",
-                "name": pending["name"],
-                "wallet_id": pending["wallet_id"],
-                "wallet_address": pending["wallet_address"],
-                "wallet_encrypted_key": pending["wallet_encrypted_key"],
-                "secret": secret.hex(),
-                "duration_seconds": pending["duration_seconds"],
-                "committed_at": datetime.now(timezone.utc).isoformat(),
-            }
-            text = (
-                f"Committed on-chain (`{commit_tx_hash}`). Wait about a minute, then send any message "
-                f"(e.g. \"finish registering {pending['name']}\") and I'll complete it."
-            )
-        except Exception as e:
-            text = _execution_error("Registration", e, plain_key)
-        finally:
-            plain_key = None
-        for chunk in _chunk(text):
-            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
-        db.commit()
-    return StreamingResponse(generate(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

@@ -103,8 +103,6 @@ it falls back to a normal passphrase-confirmed send. See
   signed, and sending one asks for your passphrase
 - Risk screening can be configured to fail closed, and provider evidence is
   stored as bounded identifiers rather than allegation text
-- Sara Names records use EIP-712 signatures, content hashes,
-  sequence/epoch replay protection and live on-chain ownership checks
 - Token symbols only ever resolve to a hardcoded, developer-verified
   contract address list — never an arbitrary on-chain lookup
 - No telemetry, no cloud sync, no external key custody (see [privacy.md](privacy.md))

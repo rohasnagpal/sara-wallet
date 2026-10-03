@@ -72,10 +72,7 @@ duplicate.
 > deployed-token transfers and x402 payments. Chat sends,
 > swaps and bridges are checked twice: when the action is previewed (so a
 > blocked action never asks for CONFIRM) and again right before signing. A
-> swap or bridge counts the token you spend against your caps. Not yet
-> covered: Sara Names registration/renewal fees, tracked in
-> [../ROADMAP.md](../ROADMAP.md) (Now) as
-> [issue #4](https://github.com/rohasnagpal/sara-wallet/issues/4).
+> swap or bridge counts the token you spend against your caps.
 
 ## Portfolio & wallet intelligence
 

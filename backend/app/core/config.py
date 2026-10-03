@@ -18,18 +18,6 @@ class Settings(BaseSettings):
     EVM_CONFIRMATIONS_DEFAULT: int = 12
     EVM_CONFIRMATIONS_POLYGON: int = 64
 
-    # Sara Names (Stage 6) — the deployed SaraNamesRegistry contract on
-    # Polygon Amoy testnet. SARA_NAME_SERVICE_URL, if set, is an *external*
-    # off-chain record-hosting service Sara publishes/fetches signed
-    # records to/from — never treated as authoritative; every fetched
-    # record is re-verified against live on-chain state before use.
-    SARA_NAME_REGISTRAR_ADDRESS: str = ""
-    # Comma-separated list — redundant RPC providers (Stage 7 reliability),
-    # both verified reachable and returning chain_id 80002 before use here.
-    SARA_NAME_AMOY_RPC_URL: str = "https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org"
-    SARA_NAME_AMOY_USDC_ADDRESS: str = "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582"
-    SARA_NAME_AMOY_CONFIRMATIONS: int = 12
-    SARA_NAME_SERVICE_URL: str = ""
     POLYGONSCAN_API_KEY: str = ""
 
     # Address risk screening (Stage 5.6) — provider-neutral. No vendor ships

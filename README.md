@@ -32,7 +32,7 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Tokens and treasury** | Deploy your own ERC-20 token (including on Arc), review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
 | **Recovery phrases** | One 24-word BIP-39 recovery phrase backs every wallet you create, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. Additional phrases, generated or imported, are an advanced option under **Settings → Recovery Phrases**. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
-| **Sara Names** (coming soon) | Human-readable names for wallet addresses, with signed multi-network records. The registry has not yet been broadcast to Polygon Amoy. | [sara-names.md](docs/sara-names.md) |
+| **Local aliases** | Save any EVM address under a free local `.sara` alias, such as `supplier.sara`, and use it wherever Sara accepts a recipient. Aliases stay on your device and are not registered on-chain. | |
 
 ### Supported networks
 
@@ -135,7 +135,6 @@ Set these in **Settings** or in `.env.local`. Only an AI provider is required.
 | `RISK_SCREENING_MANDATORY` | Optional, default `false` | Block sends to flagged addresses, or when screening can't run |
 | `SARA_EURC_NETWORKS` | Optional | Limit which networks show EURC |
 | `POLYGONSCAN_API_KEY` | Optional | Submit a deployed token's source for public verification |
-| `SARA_NAME_REGISTRAR_ADDRESS`, `SARA_NAME_SERVICE_URL` | Coming soon | Sara Names |
 
 Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page. Buying USDC needs a free Coinbase CDP API key, entered in the app and stored encrypted like a wallet key. The same goes for a CDP key used by a live x402 paywall.
 

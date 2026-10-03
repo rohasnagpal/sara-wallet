@@ -3,8 +3,7 @@
 Scope: governs the batch engine (app.services.batch_engine) — manual batch
 payments, airdrops, recurring schedules and payroll runs — and chat sends,
 swaps and bridges (app.routers.chat._spending_policy_denial), deployed-token
-transfers and x402 payments. Sara Names fees are not yet
-covered.
+transfers and x402 payments.
 
 Policies are evaluated twice per item, per CLAUDE_STAGES_3_TO_7.md: once
 during batch preparation (app.services.batch_engine.validate_batch) and
@@ -82,7 +81,7 @@ def _cumulative_raw(db: Session, policy: SpendingPolicy, when: datetime, princip
     """Sums every outgoing, submitted/confirmed payment this policy's window
     covers. Transaction is the single ledger every payment path writes to
     exactly once it's broadcast — chat sends/swaps/bridges, batches
-    (including CSV imports), payroll, token transfers, x402 and Sara Names —
+    (including CSV imports), payroll, token transfers and x402 —
     so summing it here (rather than separately re-deriving the same total
     from PaymentBatchItem for counterparty-scoped policies, as before) is
     both simpler and correctly counts spend regardless of which of those

@@ -60,17 +60,6 @@ def _invoice_dict(row: PaymentRequest, wallet_name: str | None = None, *, public
         "created_at": row.created_at.isoformat(),
     }
     if not public: data["customer_email"] = row.customer_email
-    if db is not None:
-        # Reverse lookup: "Pay to rohas" alongside the raw address, when the
-        # receiving wallet owns a live Sara Name (Stage 7.5's product
-        # completion — a purely local-index read, no on-chain round trip).
-        from app.db.models import SaraName
-        name_row = (
-            db.query(SaraName)
-            .filter(SaraName.wallet_id == row.wallet_id, SaraName.status.in_(("registered", "renewed")))
-            .first()
-        )
-        data["sara_name"] = name_row.label if name_row else None
     return data
 
 

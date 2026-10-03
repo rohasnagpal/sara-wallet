@@ -15,11 +15,7 @@ services — confirmed by reading the integration code itself (no
 referrer/affiliate/fee parameter exists anywhere in the swap, bridge, or
 x402 client). The third-party services themselves may charge their own
 fees or spreads under their own terms, entirely outside Sara's control.
-The one exception is **Sara Names** — a separate, Sara-operated on-chain
-naming registry with its own transparent, on-chain registration/renewal
-pricing (see [sara-names.md](sara-names.md)) — not a markup hidden inside
-another service's quote. See [../DISCLAIMER.md](../DISCLAIMER.md) for the
-full legal disclaimer.
+See [../DISCLAIMER.md](../DISCLAIMER.md) for the full legal disclaimer.
 
 ## Swaps & bridges
 

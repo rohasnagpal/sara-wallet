@@ -44,7 +44,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Accounting, fiat valuation, FIFO cost basis, reporting and exports
 - Token creation/management, allowance controls and transaction simulation
 - Treasury, wallet intelligence, risk screening and alerts
-- Sara Names registration, resolution, signed records and indexing
+- Free local `.sara` aliases and ENS resolution
 - x402 pay-per-call payments, policy-gated for unattended/agent use
 - Market data requests
 - AI provider integration
@@ -57,7 +57,7 @@ migrations preserve existing local databases. In addition to wallets and
 transactions, the schema stores invoices, receipts, counterparties, batches
 and approvals, schedules and payroll, spending policies, accounting
 classifications and cost lots, alert/outbox records, token deployments,
-risk checks and Sara Names state.
+risk checks and local Directory entries.
 
 ## Wallet Encryption & Locking
 
@@ -95,7 +95,7 @@ Sara's tools live in `backend/app/tools/`, organized into:
 
 - Wallet tools
 - Market data tools
-- Sara Names and name-resolution tools
+- Local alias and ENS resolution tools
 - Token creation and management tools
 - Contract simulation, allowance and risk tools
 - Trading integrations (swaps & cross-chain bridging)

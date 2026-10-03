@@ -6,7 +6,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from app.db.session import init_db, SessionLocal, engine
 from app.db.models import Config
-from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, system, ledger, safety, payment_batches, schedules, payroll, spending_policies, accounting, treasury, risk, names, x402, x402_paywall, aave, cctp, onramp
+from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, system, ledger, safety, payment_batches, schedules, payroll, spending_policies, accounting, treasury, risk, x402, x402_paywall, aave, cctp, onramp
 from app.tools.wallet import lock as lock_state
 from app.core.session_auth import LAUNCH_TOKEN
 from app.core.access import ensure_local_owner
@@ -73,7 +73,6 @@ def _run_foundation_cycle() -> None:
     from app.services.activity_indexer import index_wallet_activity
     from app.services.schedules import materialize_due_schedules
     from app.services.token_factory import check_pending_deployments
-    from app.services.names_indexer import sync_events as sync_name_events, check_expiring_names
     from app.tools.payments.reconcile import reconcile_pending_requests
     db = SessionLocal()
     try:
@@ -83,14 +82,6 @@ def _run_foundation_cycle() -> None:
         check_balance_monitors(db)
         materialize_due_schedules(db)
         check_pending_deployments(db)
-        try:
-            sync_name_events(db)
-            check_expiring_names(db)
-        except Exception:
-            # Sara Names being unconfigured or the Amoy RPC being briefly
-            # down must never stop the rest of the foundation cycle
-            # (transaction confirmation, reconciliation, etc.) from running.
-            logging.getLogger("sara.foundation").warning("Sara Names background sync failed this cycle", exc_info=True)
         process_pending(db)
     finally:
         db.close()
@@ -242,7 +233,6 @@ app.include_router(spending_policies.router, prefix="/api")
 app.include_router(accounting.router, prefix="/api")
 app.include_router(treasury.router, prefix="/api")
 app.include_router(risk.router, prefix="/api")
-app.include_router(names.router, prefix="/api")
 app.include_router(x402.router, prefix="/api")
 app.include_router(x402_paywall.router, prefix="/api")
 app.include_router(aave.router, prefix="/api")

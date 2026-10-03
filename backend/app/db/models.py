@@ -534,58 +534,6 @@ class RiskReview(Base):
     created_at  = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-class SaraName(Base):
-    """Local tracking of a Sara Name this Sara instance's wallets have
-    interacted with — powers the portfolio/expiry-warning view. The
-    registry contract remains the actual source of truth for
-    ownership/expiry; this table is a local index over it, not a second
-    authority (Stage 6.5)."""
-    __tablename__ = "sara_names"
-    id                  = Column(Integer, primary_key=True, index=True)
-    node                = Column(String, unique=True, nullable=False, index=True)  # 0x-prefixed namehash
-    label               = Column(String, nullable=False)
-    parent_node         = Column(String, nullable=True)  # null for a root name
-    wallet_id           = Column(Integer, nullable=False, index=True)
-    status              = Column(String, nullable=False, default="pending")
-    # pending | committed | registered | renewed | transferred_away | expired
-    expiry              = Column(DateTime, nullable=True)
-    commit_tx_hash       = Column(String, nullable=True)
-    register_tx_hash     = Column(String, nullable=True)
-    last_renew_tx_hash   = Column(String, nullable=True)
-    last_transfer_tx_hash = Column(String, nullable=True)
-    created_at          = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-
-class IndexerCursor(Base):
-    """Saved block-cursor position for an off-chain event indexer (Stage 7
-    reliability) — lets a resync after downtime pick up exactly where it
-    left off instead of rescanning from genesis, and lets the indexer
-    withhold a block from being treated as final until it has enough
-    confirmations to be reorg-safe."""
-    __tablename__ = "indexer_cursors"
-    id          = Column(Integer, primary_key=True, index=True)
-    contract    = Column(String, unique=True, nullable=False, index=True)
-    last_block  = Column(Integer, nullable=False, default=0)
-    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-
-class SaraNameRecordCache(Base):
-    """Bounded-TTL local cache of a signed off-chain name record. Never
-    authoritative on its own — every read revalidates the cached record's
-    signature against freshly-fetched on-chain owner/recordSigner/epoch
-    before trusting it (app.tools.names.eip712_records.verify_record)."""
-    __tablename__ = "sara_name_record_cache"
-    id              = Column(Integer, primary_key=True, index=True)
-    node            = Column(String, unique=True, nullable=False, index=True)
-    sequence        = Column(Integer, nullable=False)
-    record_epoch    = Column(Integer, nullable=False)
-    signed_payload  = Column(Text, nullable=False)  # JSON: the NameRecord fields as signed
-    signature       = Column(String, nullable=False)
-    cached_at       = Column(DateTime, default=datetime.utcnow, nullable=False)
-    revalidated_at  = Column(DateTime, nullable=True)
-
-
 class X402PaywallPage(Base):
     """One "paste this into your site" x402 paywall config: a label, the
     Sara wallet that gets paid, a price, and a mode. Sara only ever

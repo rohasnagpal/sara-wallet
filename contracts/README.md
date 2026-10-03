@@ -3,12 +3,6 @@
 Foundry project for Sara's on-chain ERC-20 templates behind the wallet's
 token creator (`CLAUDE_STAGES_3_TO_7.md` Stage 5.1).
 
-(The Sara Names registry contract - `SaraNamesRegistry.sol` and its
-tests/deploy script/security docs - now lives in a separate `bname` repo.
-The wallet backend still talks to it as a client only:
-`backend/app/tools/names/sara_names.py`, `backend/app/routers/names.py`,
-and the already-exported `backend/app/tools/names/registry_abi.json`.)
-
 ## Toolchain
 
 - Foundry (`forge`/`cast`/`anvil`), installed via `foundryup`.

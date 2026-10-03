@@ -53,11 +53,8 @@ def add_entry(body: DirectoryEntry, db: Session = Depends(get_db)):
     nick = body.nickname.strip().lower()
     if not nick:
         raise HTTPException(400, "Nickname required")
-    # Directory nicknames are free, local, unverified aliases - they must
-    # never shadow a bare name a "send to X" could also resolve as a paid,
-    # on-chain Sara Name (app.tools.names.sara_names), or nobody would ever
-    # buy one. Namespacing every directory entry under ".sara" reserves the
-    # bare label exclusively for the real registry.
+    # Directory nicknames are free, local, unverified aliases. The .sara
+    # suffix makes that local-only scope explicit and avoids ambiguity.
     if not nick.endswith(".sara"):
         nick = nick + ".sara"
     if body.chain.lower() != "evm":
@@ -91,8 +88,7 @@ def rename_entry(entry_id: int, body: RenameDirectoryEntry, db: Session = Depend
     nick = body.nickname.strip().lower()
     if not nick:
         raise HTTPException(400, "Nickname required")
-    # Same ".sara" namespacing rule as add_entry — a rename must not be able
-    # to produce a bare label that could shadow a paid Sara Name either.
+    # Keep renamed aliases in the same explicit local-only .sara namespace.
     if not nick.endswith(".sara"):
         nick = nick + ".sara"
     conflict = db.query(AddressBook).filter(AddressBook.nickname == nick, AddressBook.id != entry_id).first()

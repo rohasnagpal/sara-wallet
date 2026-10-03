@@ -34,6 +34,9 @@ class MigrationTests(unittest.TestCase):
                     "CREATE TABLE proof_records (id INTEGER PRIMARY KEY, checkout_id VARCHAR NOT NULL, "
                     "encrypted_details TEXT NOT NULL)"
                 ))
+                conn.execute(text("CREATE TABLE sara_names (id INTEGER PRIMARY KEY)"))
+                conn.execute(text("CREATE TABLE sara_name_record_cache (id INTEGER PRIMARY KEY)"))
+                conn.execute(text("CREATE TABLE indexer_cursors (id INTEGER PRIMARY KEY)"))
             # New tables are created by normal startup before migrations run.
             Base.metadata.create_all(engine)
             with engine.begin() as conn:
@@ -60,6 +63,9 @@ class MigrationTests(unittest.TestCase):
             invoice_columns = {c["name"] for c in inspect(engine).get_columns("payment_requests")}
             self.assertTrue({"amount_raw", "decimals", "customer_name", "due_date", "payment_address", "merchant_client_id"} <= invoice_columns)
             self.assertNotIn("proof_records", inspect(engine).get_table_names())
+            self.assertNotIn("sara_names", inspect(engine).get_table_names())
+            self.assertNotIn("sara_name_record_cache", inspect(engine).get_table_names())
+            self.assertNotIn("indexer_cursors", inspect(engine).get_table_names())
             with engine.connect() as conn:
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM wallets WHERE chain != 'evm'")).scalar(), 0)
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM address_book WHERE chain != 'evm'")).scalar(), 0)
@@ -72,7 +78,7 @@ class MigrationTests(unittest.TestCase):
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
                 "009_drop_dual_control", "010_paywall_preview_message",
                 "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
-                "014_remove_sara_proof", "015_remove_non_evm_data",
+                "014_remove_sara_proof", "015_remove_non_evm_data", "016_remove_onchain_sara_names",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

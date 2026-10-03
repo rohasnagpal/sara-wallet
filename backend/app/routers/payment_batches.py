@@ -150,7 +150,7 @@ def add_item(batch_id: int, body: ItemBody, db: Session = Depends(get_db)):
     batch = _batch_or_404(db, batch_id)
     resolved = resolve_recipient_input(db, body.recipient_address, batch.network)
     if not resolved:
-        raise HTTPException(400, "Invalid recipient address, and no matching address book entry or Sara Name found")
+        raise HTTPException(400, "Invalid recipient address, and no matching local alias found")
     decimals = _resolve_decimals(batch)
     try:
         amount_raw = to_base_units(body.amount, decimals, batch.token)
@@ -186,7 +186,7 @@ def update_item(batch_id: int, item_id: int, body: ItemBody, db: Session = Depen
         raise HTTPException(404, "Batch item not found")
     resolved = resolve_recipient_input(db, body.recipient_address, batch.network)
     if not resolved:
-        raise HTTPException(400, "Invalid recipient address, and no matching address book entry or Sara Name found")
+        raise HTTPException(400, "Invalid recipient address, and no matching local alias found")
     decimals = _resolve_decimals(batch)
     try:
         amount_raw = to_base_units(body.amount, decimals, batch.token)
