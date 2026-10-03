@@ -170,7 +170,7 @@ class BalanceFetchTests(unittest.TestCase):
             {"symbol": "EURC", "name": "EURC", "balance": 20.0, "network": "ethereum"},
         ])
 
-    def test_arbitrum_never_checks_eurc(self):
+    def test_arbitrum_checks_usdc_and_usdt_but_never_eurc(self):
         """Regression guard: a network EURC was never deployed to must
         never have its EURC address queried at all."""
         with patch.dict("os.environ", {"ALCHEMY_API_KEY": "test-key"}), \
@@ -180,8 +180,10 @@ class BalanceFetchTests(unittest.TestCase):
             alchemy_post.return_value = mock_resp
             tokens.get_erc20_balances("0x" + "22" * 20, "arbitrum")
         requested_contracts = alchemy_post.call_args.kwargs["json"]["params"][1]
-        self.assertEqual(len(requested_contracts), 1)
-        self.assertEqual(requested_contracts[0], assets.get_stablecoin("USDC", "arbitrum").address)
+        self.assertCountEqual(requested_contracts, [
+            assets.get_stablecoin("USDC", "arbitrum").address,
+            assets.get_stablecoin("USDT", "arbitrum").address,
+        ])
 
 
 class ChatSendResolutionTests(unittest.TestCase):
