@@ -35,18 +35,23 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 
 ### Supported networks
 
-| Network | Native gas asset | USDC | EURC |
-|---|---|:---:|:---:|
-| Ethereum | ETH | Yes | Yes |
-| Arbitrum | ETH | Yes | |
-| Base | ETH | Yes | Yes |
-| OP Mainnet | ETH | Yes | |
-| Polygon PoS | POL | Yes | |
-| Arc | USDC | Yes | Yes |
+| Network | Gas asset | USDC | EURC | USDT | Open USD (OUSD) |
+|---|---|:---:|:---:|:---:|:---:|
+| Ethereum | ETH | Yes | Yes | Yes | Yes |
+| Arbitrum | ETH | Yes | | Yes | |
+| Base | ETH | Yes | Yes | | Yes |
+| OP Mainnet | ETH | Yes | | Yes | |
+| Polygon PoS | POL | Yes | | Yes | |
+| Arc | USDC | Yes | Yes | | |
+| Tempo | USD stablecoin | Yes (USDC.e) | | Yes (USDT0) | Yes |
 
-USDC and EURC contract addresses come from Circle's official lists ([USDC](https://developers.circle.com/stablecoins/usdc-contract-addresses)). EURC supports balance display and plain sends; it is not swappable or bridgeable in Sara yet.
+"Yes" means Sara can display the balance and make plain sends. Protocol-specific features such as swaps, bridges, CCTP, Aave, x402 and invoices have their own narrower network and asset support.
+
+USDC and EURC use Circle-published contracts ([contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses)). Ethereum USDT uses Tether's [official deployment](https://tether.to/en/supported-protocols/); the Arbitrum, OP Mainnet and Polygon entries use the network deployments listed by [USDT0](https://docs.usdt0.to/technical-documentation/deployments). Open USD uses the Ethereum, Base and Tempo contracts published by [Open Standard](https://joinopenstandard.com/blog/ousd-is-live/).
 
 Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances, plain sends and token creation. Swaps, bridges, CCTP, Aave and x402 are not available on Arc yet.
+
+Tempo has no separate native gas coin. Sara pays a transfer's fee in the TIP-20 stablecoin being sent and requires at least one Tempo stablecoin to remain enabled.
 
 You can enable or hide networks and tokens per network under **Settings → Manage Networks & Tokens**.
 
