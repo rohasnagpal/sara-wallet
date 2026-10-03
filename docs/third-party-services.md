@@ -58,12 +58,11 @@ full legal disclaimer.
 | Solana public RPC | Solana chain calls | No |
 | Bonfida's SNS proxy | Solana Name Service resolution | No |
 
-## Payments & evidence
+## Payments
 
 | Service | Used for | API key? |
 |---|---|---|
 | x402 facilitator (`x402.org`, or whichever you configure) | Verifying/settling x402 pay-per-call payments | No |
-| BlockchainProof | Credential-free file-evidence checkout: only the file's SHA-256 fingerprint is sent (see [privacy.md](privacy.md)) | No — no API key or shared billing account by design |
 
 ## Address risk screening
 

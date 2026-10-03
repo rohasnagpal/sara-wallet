@@ -18,13 +18,6 @@ class Settings(BaseSettings):
     EVM_CONFIRMATIONS_DEFAULT: int = 12
     EVM_CONFIRMATIONS_POLYGON: int = 64
 
-    # Public, credential-free BlockchainProof checkout API. Deployments may
-    # point this at a compatible self-hosted instance without changing code.
-    BLOCKCHAINPROOF_API_URL: str = "https://api.blockchainproof.org"
-    BLOCKCHAINPROOF_CHAIN_ID: int = 137
-    BLOCKCHAINPROOF_USDC_CONTRACT: str = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
-    BLOCKCHAINPROOF_RECEIVER_ADDRESS: str = ""
-
     # Sara Names (Stage 6) — the deployed SaraNamesRegistry contract on
     # Polygon Amoy testnet. SARA_NAME_SERVICE_URL, if set, is an *external*
     # off-chain record-hosting service Sara publishes/fetches signed

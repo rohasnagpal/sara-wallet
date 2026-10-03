@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, LargeBinary, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
@@ -257,31 +257,6 @@ class MerchantClient(Base):
     alert_destination_id = Column(Integer, nullable=True)
     enabled        = Column(Boolean, nullable=False, default=True)
     created_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-class ProofRecord(Base):
-    """Local, wallet-owned index of a BlockchainProof checkout.
-
-    Private checkout material (including the access token, document hash and
-    description) and the evidence ZIP are encrypted with Sara's in-memory
-    wallet key. Public status fields remain queryable for recovery/polling.
-    """
-    __tablename__ = "proof_records"
-    id                = Column(Integer, primary_key=True, index=True)
-    checkout_id       = Column(String, unique=True, nullable=False, index=True)
-    wallet_id         = Column(Integer, nullable=False, index=True)
-    wallet_address    = Column(String, nullable=False)
-    encrypted_details = Column(Text, nullable=False)
-    encrypted_evidence = Column(LargeBinary, nullable=True)
-    status            = Column(String, nullable=False, default="created", index=True)
-    payment_txid      = Column(String, nullable=True)
-    proof_id          = Column(String, nullable=True, index=True)
-    proof_status      = Column(String, nullable=True)
-    encrypted_proof   = Column(Text, nullable=True)
-    last_error        = Column(Text, nullable=True)
-    expires_at        = Column(String, nullable=True)
-    created_at        = Column(DateTime, default=datetime.utcnow)
-    updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Counterparty(Base):
@@ -654,7 +629,7 @@ class X402FetchedContent(Base):
     list); the actual response body lives in its own file under
     app.routers.x402.FETCHED_CONTENT_DIR, named by this row's own id once
     known. Not encrypted — matches the user's explicit choice for this
-    data, unlike a wallet key or proof evidence."""
+    data, unlike a wallet key or other secret."""
     __tablename__ = "x402_fetched_content"
     id             = Column(Integer, primary_key=True, index=True)
     wallet_id      = Column(Integer, nullable=False, index=True)

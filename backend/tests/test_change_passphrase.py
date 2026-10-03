@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db import session as db_session
-from app.db.models import Base, ProofRecord, Wallet
+from app.db.models import Base, Wallet
 from app.tools.wallet import encrypt
 from app.tools.wallet import lock as lock_state
 
@@ -46,24 +46,18 @@ class ChangePassphraseTests(unittest.TestCase):
         lock_state._locked_until = 0.0
         self.addCleanup(lock_state.lock)
 
-    def _make_wallet_and_proof(self):
+    def _make_wallet(self):
         db = self.Session()
         db.add(Wallet(
             name="main", chain="evm", address="0x" + "11" * 20,
             encrypted_key=encrypt.encrypt_key("super-secret-private-key"),
         ))
-        db.add(ProofRecord(
-            checkout_id="CO_1", wallet_id=1, wallet_address="0x" + "11" * 20,
-            encrypted_details=encrypt.encrypt_key('{"a":1}'),
-            encrypted_proof=encrypt.encrypt_key('{"b":2}'),
-            encrypted_evidence=encrypt.encrypt_bytes(b"evidence-bytes"),
-        ))
         db.commit()
         db.close()
 
-    def test_change_passphrase_reencrypts_wallets_and_proofs(self):
+    def test_change_passphrase_reencrypts_wallets(self):
         lock_state.setup_passphrase("original-passphrase")
-        self._make_wallet_and_proof()
+        self._make_wallet()
 
         self.assertTrue(lock_state.change_passphrase("original-passphrase", "brand-new-passphrase"))
 
@@ -77,16 +71,12 @@ class ChangePassphraseTests(unittest.TestCase):
         self.assertTrue(lock_state.unlock("brand-new-passphrase"))
         db = self.Session()
         wallet = db.query(Wallet).first()
-        proof = db.query(ProofRecord).first()
         self.assertEqual(encrypt.decrypt_key(wallet.encrypted_key), "super-secret-private-key")
-        self.assertEqual(encrypt.decrypt_key(proof.encrypted_details), '{"a":1}')
-        self.assertEqual(encrypt.decrypt_key(proof.encrypted_proof), '{"b":2}')
-        self.assertEqual(encrypt.decrypt_bytes(proof.encrypted_evidence), b"evidence-bytes")
         db.close()
 
     def test_change_passphrase_keeps_session_unlocked_under_new_key(self):
         lock_state.setup_passphrase("original-passphrase")
-        self._make_wallet_and_proof()
+        self._make_wallet()
 
         lock_state.change_passphrase("original-passphrase", "brand-new-passphrase")
 
@@ -94,7 +84,7 @@ class ChangePassphraseTests(unittest.TestCase):
 
     def test_wrong_old_passphrase_changes_nothing(self):
         lock_state.setup_passphrase("original-passphrase")
-        self._make_wallet_and_proof()
+        self._make_wallet()
 
         self.assertFalse(lock_state.change_passphrase("totally-wrong-passphrase", "brand-new-passphrase"))
 
@@ -103,7 +93,7 @@ class ChangePassphraseTests(unittest.TestCase):
 
     def test_new_passphrase_too_short_is_rejected_and_changes_nothing(self):
         lock_state.setup_passphrase("original-passphrase")
-        self._make_wallet_and_proof()
+        self._make_wallet()
 
         with self.assertRaises(ValueError):
             lock_state.change_passphrase("original-passphrase", "short")
