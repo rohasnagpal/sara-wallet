@@ -49,7 +49,7 @@ class LiveNetworkVerificationTests(unittest.TestCase):
             w3.eth.get_block_number()
         except Exception:
             self.skipTest("no network access to verify Arc's live USDC precompile")
-        contract = w3.eth.contract(address=Web3.to_checksum_address(assets.NETWORKS["arc"]["usdc"]), abi=abi)
+        contract = w3.eth.contract(address=Web3.to_checksum_address(assets.get_stablecoin("USDC", "arc").address), abi=abi)
         self.assertEqual(contract.functions.decimals().call(), 6)
         self.assertEqual(contract.functions.symbol().call(), "USDC")
 
@@ -84,8 +84,8 @@ class Erc20BalancesFallbackTests(unittest.TestCase):
         # (see test_eurc.py) for balance display, each checked via its own
         # direct RPC balanceOf() call.
         self.assertEqual(direct_call.call_count, 2)
-        direct_call.assert_any_call(assets.NETWORKS["arc"]["usdc"], 6, "0x" + "11" * 20, "arc")
-        direct_call.assert_any_call(assets.EURC_ADDRESSES["arc"], assets.EURC_DECIMALS, "0x" + "11" * 20, "arc")
+        direct_call.assert_any_call(assets.get_stablecoin("USDC", "arc").address, 6, "0x" + "11" * 20, "arc")
+        direct_call.assert_any_call(assets.get_stablecoin("EURC", "arc").address, 6, "0x" + "11" * 20, "arc")
         self.assertCountEqual(result, [
             {"symbol": "USDC", "name": "USD Coin", "balance": 12.5, "network": "arc"},
             {"symbol": "EURC", "name": "EURC", "balance": 12.5, "network": "arc"},

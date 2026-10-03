@@ -25,7 +25,7 @@ def _fetch(slug: str, key: str, address: str, direction: str) -> list[dict]:
 
 
 def index_wallet_activity(db) -> int:
-    from app.core.assets import NETWORKS, enabled_networks
+    from app.core.assets import ACTIVITY, NETWORKS, enabled_networks, stablecoins_on
     key = os.getenv("ALCHEMY_API_KEY", "").strip()
     if not key: return 0
     created = 0
@@ -33,6 +33,10 @@ def index_wallet_activity(db) -> int:
         for network in enabled_networks():
             slug = ALCHEMY_NETWORK_SLUGS.get(network)
             if not slug: continue
+            stablecoins_by_address = {
+                asset.address.lower(): asset
+                for asset in stablecoins_on(network, capability=ACTIVITY, enabled_only=True)
+            }
             for direction in ("incoming", "outgoing"):
                 try: transfers = _fetch(slug, key, wallet.address, direction)
                 except Exception: continue
@@ -50,15 +54,15 @@ def index_wallet_activity(db) -> int:
                         db.commit()
                         continue
                     contract = ((item.get("rawContract") or {}).get("address") or "").lower()
-                    expected_usdc = NETWORKS[network]["usdc"].lower()
                     is_native = item.get("category") == "external"
-                    if not is_native and contract != expected_usdc: continue
-                    decimals = 18 if is_native else 6
+                    stablecoin = stablecoins_by_address.get(contract)
+                    if not is_native and stablecoin is None: continue
+                    decimals = 18 if is_native else stablecoin.decimals
                     raw = _raw((item.get("rawContract") or {}).get("value"))
                     if raw is None:
                         try: raw = int(Decimal(str(item.get("value"))) * (Decimal(10) ** decimals))
                         except Exception: continue
-                    token = NETWORKS[network]["native"] if is_native else "USDC"
+                    token = NETWORKS[network]["native"] if is_native else stablecoin.symbol
                     timestamp = ((item.get("metadata") or {}).get("blockTimestamp") or "").replace("Z", "+00:00")
                     try: occurred = datetime.fromisoformat(timestamp).replace(tzinfo=None)
                     except ValueError: occurred = datetime.utcnow()

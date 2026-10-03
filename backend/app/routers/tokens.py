@@ -5,10 +5,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from web3 import Web3
 
-from app.chains.evm import _NATIVE_TOKEN
-from app.tools.market.paraswap import CHAIN_IDS, NATIVE_SYMBOLS, _TOKENS, _NATIVE
+from app.tools.market.paraswap import _NATIVE
 from app.core.amounts import to_base_units
-from app.core.assets import EURC_ADDRESSES, EURC_DECIMALS, enabled_networks, token_enabled
+from app.core.assets import NETWORKS, SEND, enabled_networks, stablecoins_on
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
 from app.db.models import TokenDeployment, Wallet
@@ -24,18 +23,15 @@ def trusted_tokens():
     this list is reachable from a send/swap/bridge command."""
     chains = []
     for network in enabled_networks():
-        # .get(), not [] — Arc has no Paraswap chain-id entry at all (it
-        # isn't swap-integrated by design), and indexing with [] here used
-        # to raise a bare KeyError and 500 this entire endpoint for every
-        # network the instant Arc was enabled, which it is by default.
-        chain_id = CHAIN_IDS.get(network)
-        native_symbol = NATIVE_SYMBOLS.get(network, _NATIVE_TOKEN.get(network, "ETH"))
+        native_symbol = NETWORKS[network]["native"]
         tokens = [{"symbol": native_symbol, "address": _NATIVE, "decimals": 18, "native": True}]
-        for symbol, (address, decimals) in (_TOKENS.get(chain_id, {}) if chain_id else {}).items():
-            if token_enabled(symbol, network):
-                tokens.append({"symbol": symbol, "address": address, "decimals": decimals, "native": False})
-        if network in EURC_ADDRESSES and token_enabled("EURC", network):
-            tokens.append({"symbol": "EURC", "address": EURC_ADDRESSES[network], "decimals": EURC_DECIMALS, "native": False})
+        for asset in stablecoins_on(network, capability=SEND, enabled_only=True):
+            if asset.symbol == native_symbol:
+                continue
+            tokens.append({
+                "symbol": asset.symbol, "address": asset.address,
+                "decimals": asset.decimals, "native": False,
+            })
         chains.append({"chain": network, "tokens": tokens})
 
     return {"chains": chains}

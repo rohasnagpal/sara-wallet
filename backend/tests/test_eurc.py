@@ -45,7 +45,7 @@ class LiveContractVerificationTests(unittest.TestCase):
         except Exception:
             self.skipTest(f"no network access to verify {network}'s live EURC contract")
         self.assertEqual(chain_id, expected_chain_id)
-        contract = w3.eth.contract(address=Web3.to_checksum_address(assets.EURC_ADDRESSES[network]), abi=self._ABI)
+        contract = w3.eth.contract(address=Web3.to_checksum_address(assets.get_stablecoin("EURC", network).address), abi=self._ABI)
         self.assertEqual(contract.functions.decimals().call(), 6)
         self.assertEqual(contract.functions.symbol().call(), "EURC")
 
@@ -61,11 +61,11 @@ class LiveContractVerificationTests(unittest.TestCase):
 
 class AssetRegistryTests(unittest.TestCase):
     def test_eurc_is_registered_on_exactly_ethereum_base_and_arc(self):
-        self.assertEqual(set(assets.EURC_ADDRESSES), {"ethereum", "base", "arc"})
+        self.assertEqual(set(assets.stablecoin_networks("EURC", enabled_only=False)), {"ethereum", "base", "arc"})
 
     def test_eurc_is_not_registered_on_arbitrum_optimism_or_polygon(self):
         for network in ("arbitrum", "optimism", "polygon"):
-            self.assertNotIn(network, assets.EURC_ADDRESSES)
+            self.assertIsNone(assets.get_stablecoin("EURC", network))
             self.assertFalse(assets.token_enabled("EURC", network))
 
     def test_eurc_is_enabled_by_default_on_its_three_networks(self):
@@ -78,15 +78,15 @@ class AssetRegistryTests(unittest.TestCase):
             self.assertFalse(assets.token_enabled("EURC", "ethereum"))
             self.assertFalse(assets.token_enabled("EURC", "arc"))
 
-    def test_resolve_extra_token_returns_address_and_decimals(self):
-        result = assets.resolve_extra_token("eurc", "base")
-        self.assertEqual(result, (assets.EURC_ADDRESSES["base"], 6))
+    def test_registry_resolves_eurc_address_and_decimals(self):
+        result = assets.resolve_stablecoin("eurc", "base", capability=assets.SEND)
+        self.assertEqual(result, (assets.get_stablecoin("EURC", "base").address, 6))
 
-    def test_resolve_extra_token_is_none_where_eurc_is_not_live(self):
-        self.assertIsNone(assets.resolve_extra_token("EURC", "arbitrum"))
+    def test_registry_is_none_where_eurc_is_not_live(self):
+        self.assertIsNone(assets.resolve_stablecoin("EURC", "arbitrum"))
 
-    def test_resolve_extra_token_ignores_unrelated_symbols(self):
-        self.assertIsNone(assets.resolve_extra_token("USDC", "base"))
+    def test_eurc_is_not_resolved_for_an_unsupported_capability(self):
+        self.assertIsNone(assets.resolve_stablecoin("EURC", "base", capability=assets.SWAP))
 
     def test_sendable_symbols_includes_eurc_where_live(self):
         self.assertIn("EURC", assets.sendable_symbols("ethereum"))
@@ -126,7 +126,7 @@ class TrustedTokensEndpointTests(unittest.TestCase):
         self.assertTrue(native_entry["native"])
         eurc_entry = next(t for t in arc_tokens if t["symbol"] == "EURC")
         self.assertFalse(eurc_entry["native"])
-        self.assertEqual(eurc_entry["address"], assets.EURC_ADDRESSES["arc"])
+        self.assertEqual(eurc_entry["address"], assets.get_stablecoin("EURC", "arc").address)
 
     def test_ethereum_and_base_gain_eurc_arbitrum_does_not(self):
         from app.routers.tokens import trusted_tokens
@@ -157,14 +157,14 @@ class BalanceFetchTests(unittest.TestCase):
              patch("requests.post") as alchemy_post:
             mock_resp = MagicMock()
             mock_resp.json.return_value = {"result": {"tokenBalances": [
-                {"contractAddress": assets.NETWORKS["ethereum"]["usdc"], "tokenBalance": hex(10_000_000)},
-                {"contractAddress": assets.EURC_ADDRESSES["ethereum"], "tokenBalance": hex(20_000_000)},
+                {"contractAddress": assets.get_stablecoin("USDC", "ethereum").address, "tokenBalance": hex(10_000_000)},
+                {"contractAddress": assets.get_stablecoin("EURC", "ethereum").address, "tokenBalance": hex(20_000_000)},
             ]}}
             alchemy_post.return_value = mock_resp
             result = tokens.get_erc20_balances("0x" + "22" * 20, "ethereum")
         requested_contracts = alchemy_post.call_args.kwargs["json"]["params"][1]
-        self.assertIn(assets.NETWORKS["ethereum"]["usdc"], requested_contracts)
-        self.assertIn(assets.EURC_ADDRESSES["ethereum"], requested_contracts)
+        self.assertIn(assets.get_stablecoin("USDC", "ethereum").address, requested_contracts)
+        self.assertIn(assets.get_stablecoin("EURC", "ethereum").address, requested_contracts)
         self.assertCountEqual(result, [
             {"symbol": "USDC", "name": "USD Coin", "balance": 10.0, "network": "ethereum"},
             {"symbol": "EURC", "name": "EURC", "balance": 20.0, "network": "ethereum"},
@@ -181,7 +181,7 @@ class BalanceFetchTests(unittest.TestCase):
             tokens.get_erc20_balances("0x" + "22" * 20, "arbitrum")
         requested_contracts = alchemy_post.call_args.kwargs["json"]["params"][1]
         self.assertEqual(len(requested_contracts), 1)
-        self.assertEqual(requested_contracts[0], assets.NETWORKS["arbitrum"]["usdc"])
+        self.assertEqual(requested_contracts[0], assets.get_stablecoin("USDC", "arbitrum").address)
 
 
 class ChatSendResolutionTests(unittest.TestCase):
@@ -209,7 +209,7 @@ class ChatSendResolutionTests(unittest.TestCase):
     def test_sending_eurc_on_base_resolves_the_real_contract(self):
         kind, payload = self._detect("send 10 EURC to 0x" + "33" * 20 + " on base")
         self.assertEqual(kind, "send_crypto", payload.get("message"))
-        self.assertEqual(payload["token_address"], assets.EURC_ADDRESSES["base"])
+        self.assertEqual(payload["token_address"], assets.get_stablecoin("EURC", "base").address)
         self.assertEqual(payload["token_decimals"], 6)
         self.assertEqual(payload["network"], "base")
 

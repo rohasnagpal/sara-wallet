@@ -45,12 +45,12 @@ from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from app.core.assets import NETWORKS
+from app.core.assets import NETWORKS, X402, resolve_stablecoin
 
 _USDC_DECIMALS = 6
 
 # base-sepolia's chain_id/USDC address, mirroring x402_client._TESTNET_ASSETS
-# (kept separate from app.core.assets.NETWORKS — Sara's production network
+# (kept separate from app.core.assets.STABLECOINS — Sara's production asset
 # list — for the same reason: a testnet must never leak into it).
 _TESTNET_CHAIN_ID = 84532
 _TESTNET_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
@@ -84,7 +84,10 @@ def network_asset(network: str) -> dict:
         return {"caip2": f"eip155:{_TESTNET_CHAIN_ID}", "usdc": _TESTNET_USDC}
     if network in LIVE_NETWORKS:
         entry = NETWORKS[network]
-        return {"caip2": f"eip155:{entry['chain_id']}", "usdc": entry["usdc"]}
+        resolved = resolve_stablecoin("USDC", network, capability=X402, enabled_only=False)
+        if resolved is None:
+            raise PaywallCodegenError(f"x402 USDC is not registered on {network}")
+        return {"caip2": f"eip155:{entry['chain_id']}", "usdc": resolved[0]}
     raise PaywallCodegenError(f"Unsupported network for x402 paywall: {network}")
 
 

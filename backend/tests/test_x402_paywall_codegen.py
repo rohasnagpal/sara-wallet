@@ -84,10 +84,10 @@ class NetworkAssetTests(unittest.TestCase):
         self.assertEqual(asset["usdc"], "0x036CbD53842c5426634e7929541eC2318f3dCF7e")
 
     def test_live_mode_networks_use_saras_own_trusted_usdc_registry(self):
-        from app.core.assets import NETWORKS
+        from app.core.assets import NETWORKS, get_stablecoin
         for network in codegen.LIVE_NETWORKS:
             asset = codegen.network_asset(network)
-            self.assertEqual(asset["usdc"], NETWORKS[network]["usdc"])
+            self.assertEqual(asset["usdc"], get_stablecoin("USDC", network).address)
             self.assertEqual(asset["caip2"], f"eip155:{NETWORKS[network]['chain_id']}")
 
     def test_unsupported_network_is_rejected(self):

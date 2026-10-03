@@ -256,17 +256,19 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             # Only ever resolves to Sara's verified contract list — a typo
             # like "USCD" can correct to USDC, but never to a different asset.
             resolve_network = (net_hint or "ethereum").lower()
-            from app.tools.market.paraswap import resolve_token_with_correction
-            token_result, corrected = resolve_token_with_correction(token, resolve_network)
+            from app.core.assets import SEND, resolve_stablecoin, stablecoins_on
+            from app.tools.wallet.token_trust import fuzzy_correct
+            token_result = resolve_stablecoin(token, resolve_network, capability=SEND)
+            corrected = None
             if not token_result:
-                # EURC (Ethereum/Base/Arc only) — kept out of Paraswap's own
-                # per-chain token table on purpose, so adding it here never
-                # makes it swappable and doesn't need a Paraswap chain-id
-                # entry for Arc, which doesn't have one.
-                from app.core.assets import resolve_extra_token
-                extra = resolve_extra_token(token, resolve_network)
-                if extra:
-                    token_result = extra
+                corrected = fuzzy_correct(
+                    token,
+                    [asset.symbol for asset in stablecoins_on(
+                        resolve_network, capability=SEND, enabled_only=True,
+                    )],
+                )
+                if corrected:
+                    token_result = resolve_stablecoin(corrected, resolve_network, capability=SEND)
             if token_result:
                 token_address, token_decimals = token_result
                 network = resolve_network

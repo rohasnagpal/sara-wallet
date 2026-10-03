@@ -52,24 +52,23 @@ _CALLDATA_VERIFIER_ABI = [{
 
 
 def resolve_token(symbol: str, network: str) -> tuple[str, int] | None:
-    """Native asset uses LI.FI's zero-address convention; ERC-20 tokens reuse
-    the already-verified address list in paraswap.py (contract addresses
-    aren't aggregator-specific, unlike the native-asset placeholder)."""
+    """Native asset uses LI.FI's zero-address convention; stablecoins resolve
+    through Sara's canonical registry and must explicitly support bridging."""
     from app.chains.evm import _NATIVE_TOKEN
     native_symbol = _NATIVE_TOKEN.get(network.lower())
     if native_symbol and symbol.upper() == native_symbol:
         return (_NATIVE, 18)
-    from app.tools.market.paraswap import resolve_token as _paraswap_resolve
-    return _paraswap_resolve(symbol, network)
+    from app.core.assets import BRIDGE, resolve_stablecoin
+    return resolve_stablecoin(symbol, network, capability=BRIDGE)
 
 
 def trusted_symbols(network: str) -> list[str]:
     from app.chains.evm import _NATIVE_TOKEN
-    from app.tools.market.paraswap import trusted_symbols as _paraswap_trusted
+    from app.core.assets import BRIDGE, stablecoins_on
     native = _NATIVE_TOKEN.get(network.lower())
-    symbols = _paraswap_trusted(network)
+    symbols = [asset.symbol for asset in stablecoins_on(network, capability=BRIDGE, enabled_only=True)]
     if native and native not in symbols:
-        symbols = [native] + symbols
+        symbols.insert(0, native)
     return symbols
 
 
