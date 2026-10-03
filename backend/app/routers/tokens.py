@@ -24,7 +24,8 @@ def trusted_tokens():
     chains = []
     for network in enabled_networks():
         native_symbol = NETWORKS[network]["native"]
-        tokens = [{"symbol": native_symbol, "address": _NATIVE, "decimals": 18, "native": True}]
+        tokens = ([{"symbol": native_symbol, "address": _NATIVE, "decimals": 18, "native": True}]
+                  if native_symbol else [])
         for asset in stablecoins_on(network, capability=SEND, enabled_only=True):
             if asset.symbol == native_symbol:
                 continue

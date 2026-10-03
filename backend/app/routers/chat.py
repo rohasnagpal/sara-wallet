@@ -52,7 +52,7 @@ WALLET_TOOLS = [
                     "wallet_name": {"type": "string", "description": "Name of the wallet to send from"},
                     "to": {"type": "string", "description": "Recipient wallet address"},
                     "amount": {"type": "number", "description": "Amount to send"},
-                    "network": {"type": "string", "description": "Network: ethereum, arbitrum, base, optimism, polygon"},
+                    "network": {"type": "string", "description": "Network: ethereum, arbitrum, base, optimism, polygon, arc, tempo"},
                 },
                 "required": ["wallet_name", "to", "amount"],
             },
@@ -774,7 +774,11 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         # assets, so it's excluded here to avoid listing it twice; the
         # ERC-20 loop below (which does include it) already shows it once,
         # correctly labeled USDC.
-        NATIVE_FETCH_NETWORKS = [n for n in EVM_NETWORKS if n != "arc"]
+        from app.core.assets import NETWORKS, STABLECOIN_SYMBOLS
+        NATIVE_FETCH_NETWORKS = [
+            n for n in EVM_NETWORKS
+            if NETWORKS[n]["native"] and NETWORKS[n]["native"] not in STABLECOIN_SYMBOLS
+        ]
         blocks = []
         for w in wallets:
             card = []
@@ -1016,7 +1020,8 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
             balance_line = (
                 f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
                 f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
-                f"(from your {preview['native_unit']} balance, not {token_sym})\n"
+                + (f"(paid in {token_sym})\n" if preview["native_unit"] == token_sym
+                   else f"(from your {preview['native_unit']} balance, not {token_sym})\n")
             )
         else:
             from app.chains import evm as evm_chain
@@ -1563,7 +1568,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                                 balance_line = (
                                     f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
                                     f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
-                                    f"(from your {preview['native_unit']} balance, not {token_sym})\n"
+                                    + (f"(paid in {token_sym})\n" if preview["native_unit"] == token_sym
+                                       else f"(from your {preview['native_unit']} balance, not {token_sym})\n")
                                 )
                             else:
                                 from app.chains import evm as evm_chain

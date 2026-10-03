@@ -11,7 +11,7 @@ independent second party to check the first one's work.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 import hashlib
 import json
 import uuid
@@ -111,9 +111,9 @@ def validate_batch(db: Session, batch: PaymentBatch) -> dict:
                         f"{preview['total']:.6f} required for all items plus gas"
                     )
             else:
-                from app.tools.market.paraswap import resolve_token
+                from app.core.assets import SEND, resolve_stablecoin
 
-                resolved = resolve_token(batch.token, batch.network)
+                resolved = resolve_stablecoin(batch.token, batch.network, capability=SEND)
                 if not resolved:
                     batch_errors.append(f"{batch.token} could not be resolved on {batch.network}")
                 else:
@@ -131,7 +131,23 @@ def validate_batch(db: Session, batch: PaymentBatch) -> dict:
                         items[0].recipient_address, batch.network,
                     )
                     est_total_gas = sample["gas_fee"] * len(items)
-                    if sample["native_balance"] < est_total_gas:
+                    # Tempo charges each TIP-20 transfer's fee in that same
+                    # stablecoin. Its one balance must therefore cover both
+                    # the complete batch amount and every transaction fee.
+                    # Other EVM networks keep token and native gas balances
+                    # separate and retain the conventional check below.
+                    if batch.network == "tempo":
+                        gas_raw = int(
+                            (Decimal(str(est_total_gas)) * (Decimal(10) ** resolved_decimals))
+                            .to_integral_value(rounding=ROUND_CEILING)
+                        )
+                        required_raw = total_raw + gas_raw
+                        if balance_raw < required_raw:
+                            batch_errors.append(
+                                f"insufficient {batch.token} for payments and gas: "
+                                f"{balance_raw} base units available, {required_raw} required"
+                            )
+                    elif sample["native_balance"] < est_total_gas:
                         batch_errors.append(
                             f"insufficient {sample['native_unit']} for gas: ~{est_total_gas:.6f} "
                             f"estimated for {len(items)} item(s), {sample['native_balance']:.6f} available"
@@ -247,9 +263,9 @@ def execute_batch(db: Session, batch: PaymentBatch, wallet: Wallet, private_key:
     is_native = batch.token.upper() == native
     token_address = None
     if not is_native:
-        from app.tools.market.paraswap import resolve_token
+        from app.core.assets import SEND, resolve_stablecoin
 
-        resolved = resolve_token(batch.token, batch.network)
+        resolved = resolve_stablecoin(batch.token, batch.network, capability=SEND)
         if not resolved:
             batch.status = "failed"
             batch.execution_lock_token = None

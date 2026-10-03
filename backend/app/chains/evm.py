@@ -9,11 +9,12 @@ _RPC = {
     "polygon":   os.getenv("POLY_RPC") or "https://polygon-bor-rpc.publicnode.com",
     "optimism":  os.getenv("OP_RPC")   or "https://mainnet.optimism.io",
     "arc":       os.getenv("ARC_RPC")  or "https://rpc.mainnet.arc.io",
+    "tempo":     os.getenv("TEMPO_RPC") or "https://rpc.tempo.xyz",
 }
 
 _CHAIN_IDS = {
     "ethereum": 1, "arbitrum": 42161, "base": 8453,
-    "polygon": 137, "optimism": 10, "arc": 5042,
+    "polygon": 137, "optimism": 10, "arc": 5042, "tempo": 4217,
 }
 
 _NATIVE_TOKEN = {
@@ -23,6 +24,7 @@ _NATIVE_TOKEN = {
     "optimism":  "ETH",
     "polygon":   "POL",
     "arc":       "USDC",  # Arc pays gas in USDC itself - no separate native token
+    "tempo":     None,    # Tempo fees are paid by TIP-20 stablecoins.
 }
 
 # Chains Alchemy's API supports — shared by reconcile.py (asset-transfer
@@ -47,6 +49,8 @@ def get_web3(network: str = "ethereum") -> Web3:
     return w3
 
 def get_balance(address: str, network: str = "ethereum") -> dict:
+    if _NATIVE_TOKEN.get(network.lower()) is None:
+        raise ValueError(f"{network.lower()} has no native asset; use stablecoin balances")
     w3 = get_web3(network)
     raw = w3.eth.get_balance(Web3.to_checksum_address(address))
     bal = float(w3.from_wei(raw, "ether"))
@@ -55,6 +59,8 @@ def get_balance(address: str, network: str = "ethereum") -> dict:
 
 def get_native_transfer_preview_raw(address: str, amount_wei: int, network: str = "ethereum") -> dict:
     network = network.lower()
+    if _NATIVE_TOKEN.get(network) is None:
+        raise ValueError(f"{network} has no native asset to send")
     w3 = get_web3(network)
     checksum = Web3.to_checksum_address(address)
     raw_balance = w3.eth.get_balance(checksum)
@@ -108,8 +114,12 @@ def get_erc20_balance(token_address: str, decimals: int, wallet_address: str, ne
 
 def get_erc20_transfer_preview_raw(token_address: str, decimals: int, wallet_address: str,
                                    amount_raw: int, to: str, network: str = "ethereum") -> dict:
-    """Preview an ERC-20 send: token balance (for the transfer amount) and native
-    balance (for gas) are two separate currencies — both must be checked."""
+    """Preview an ERC-20/TIP-20 send and verify both amount and gas funding.
+
+    Conventional EVM chains use a separate native gas balance. Tempo infers
+    the transferred TIP-20 as the fee token, so amount and gas share one
+    stablecoin balance.
+    """
     network = network.lower()
     w3 = get_web3(network)
     checksum = Web3.to_checksum_address(wallet_address)
@@ -129,16 +139,37 @@ def get_erc20_transfer_preview_raw(token_address: str, decimals: int, wallet_add
         gas_estimate = 65000  # fallback if estimation reverts before a real balance/allowance check
     gas_limit = int(gas_estimate * 1.2)
     fee_wei = gas_price * gas_limit
-    native_balance_wei = w3.eth.get_balance(checksum)
-    native_unit = _NATIVE_TOKEN.get(network, "ETH")
+    if network == "tempo":
+        # Tempo infers a TIP-20 transfer's target token as its fee token. Gas
+        # prices use 18-decimal attodollars, while these stablecoins use six
+        # decimals, so round the maximum fee up into token base units and
+        # require enough of the same token for both transfer and fee.
+        fee_scale = 10 ** (18 - decimals)
+        fee_raw = (fee_wei + fee_scale - 1) // fee_scale
+        from app.core.assets import stablecoins_on
+        asset = next(
+            (item for item in stablecoins_on("tempo")
+             if item.address.lower() == token_address.lower()),
+            None,
+        )
+        native_unit = asset.symbol if asset else "stablecoin"
+        native_balance = token_balance
+        has_gas_funds = token_balance_raw >= amount_raw + fee_raw
+        gas_fee = fee_raw / (10 ** decimals)
+    else:
+        native_balance_wei = w3.eth.get_balance(checksum)
+        native_unit = _NATIVE_TOKEN.get(network, "ETH")
+        native_balance = float(w3.from_wei(native_balance_wei, "ether"))
+        has_gas_funds = native_balance_wei >= fee_wei
+        gas_fee = float(w3.from_wei(fee_wei, "ether"))
     return {
         "network": network,
         "amount": amount_raw / (10 ** decimals),
         "token_balance": token_balance,
         "has_token_funds": token_balance_raw >= amount_raw,
-        "gas_fee": float(w3.from_wei(fee_wei, "ether")),
-        "native_balance": float(w3.from_wei(native_balance_wei, "ether")),
-        "has_gas_funds": native_balance_wei >= fee_wei,
+        "gas_fee": gas_fee,
+        "native_balance": native_balance,
+        "has_gas_funds": has_gas_funds,
         "native_unit": native_unit,
         "gas_limit": gas_limit,
         "gas_price": gas_price,
@@ -186,6 +217,8 @@ def prepare_native_transfer_raw(private_key: str, to: str, amount_wei: int,
     network = network.lower()
     if network not in _CHAIN_IDS:
         raise ValueError(f"unsupported EVM network: {network}")
+    if _NATIVE_TOKEN.get(network) is None:
+        raise ValueError(f"{network} has no native asset to send")
     w3 = get_web3(network)
     account = w3.eth.account.from_key(private_key)
     preview = get_native_transfer_preview_raw(account.address, int(amount_wei), network)

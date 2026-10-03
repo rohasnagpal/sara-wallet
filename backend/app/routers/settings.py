@@ -102,6 +102,14 @@ def save_asset_settings(body: AssetSettingsBody, db: Session = Depends(get_db)):
         selected.update(network for network in enabled if NETWORKS[network]["native"] == symbol)
         selected_by_symbol[symbol] = selected
 
+    for network in enabled:
+        if NETWORKS[network].get("stablecoin_gas") and not any(
+            network in selected for selected in selected_by_symbol.values()
+        ):
+            raise HTTPException(
+                400, f"Keep at least one fee-paying stablecoin enabled on {NETWORKS[network]['label']}",
+            )
+
     values = {
         "SARA_ENABLED_NETWORKS": ",".join(n for n in ALL_NETWORKS if n in enabled),
     }
