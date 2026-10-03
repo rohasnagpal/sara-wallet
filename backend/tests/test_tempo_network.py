@@ -28,7 +28,7 @@ class TempoRegistryTests(unittest.TestCase):
         self.assertEqual(usdt.capabilities, {assets.BALANCE, assets.SEND})
 
     def test_tempo_has_no_fake_native_asset(self):
-        self.assertEqual(assets.sendable_symbols("tempo"), ["USDC", "USDT"])
+        self.assertEqual(assets.sendable_symbols("tempo"), ["USDC", "USDT", "OUSD"])
         with self.assertRaisesRegex(ValueError, "no native asset"):
             evm.get_balance("0x" + "11" * 20, "tempo")
         with self.assertRaisesRegex(ValueError, "no native asset"):
@@ -38,7 +38,10 @@ class TempoRegistryTests(unittest.TestCase):
         payload = assets.serialize_preferences()
         tempo = next(network for network in payload["networks"] if network["id"] == "tempo")
         self.assertIsNone(tempo["native"])
-        self.assertEqual({token["symbol"] for token in tempo["stablecoins"]}, {"USDC", "USDT"})
+        self.assertEqual(
+            {token["symbol"] for token in tempo["stablecoins"]},
+            {"USDC", "USDT", "OUSD"},
+        )
         self.assertTrue(all(token["can_pay_gas"] for token in tempo["stablecoins"]))
         self.assertTrue(all(not token["required_for_gas"] for token in tempo["stablecoins"]))
 
@@ -109,7 +112,10 @@ class TempoEndpointTests(unittest.TestCase):
         from app.routers.tokens import trusted_tokens
 
         tempo = next(chain for chain in trusted_tokens()["chains"] if chain["chain"] == "tempo")
-        self.assertEqual({token["symbol"] for token in tempo["tokens"]}, {"USDC", "USDT"})
+        self.assertEqual(
+            {token["symbol"] for token in tempo["tokens"]},
+            {"USDC", "USDT", "OUSD"},
+        )
         self.assertTrue(all(not token["native"] for token in tempo["tokens"]))
 
     def test_settings_require_one_fee_paying_stablecoin(self):
@@ -123,7 +129,7 @@ class TempoEndpointTests(unittest.TestCase):
         db = sessionmaker(bind=engine)()
         body = AssetSettingsBody(
             enabled_networks=["tempo"],
-            stablecoin_networks={"USDC": [], "EURC": [], "USDT": []},
+            stablecoin_networks={"USDC": [], "EURC": [], "USDT": [], "OUSD": []},
         )
         try:
             with patch.dict("os.environ", {}, clear=True), self.assertRaises(HTTPException) as raised:

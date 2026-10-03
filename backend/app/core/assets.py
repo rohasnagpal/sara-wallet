@@ -69,7 +69,9 @@ def _coin(symbol: str, name: str, issuer: str, network: str, address: str,
 
 
 # Contract addresses are issuer- or network-published mainnet addresses. EURC exists only
-# on Ethereum, Base and Arc among Sara's current networks. USDT is native on
+# on Ethereum, Base and Arc among Sara's current networks. Open Standard's
+# OUSD exists on Ethereum, Base and Tempo (its Solana deployment is outside
+# Sara's EVM-only scope). USDT is native on
 # Ethereum, participates in USDT0's legacy mesh on Arbitrum, and is deployed
 # through USDT0 on Optimism and Polygon. Arc's USDC address is its enshrined
 # ERC-20 precompile, not a conventional deployed contract.
@@ -89,6 +91,9 @@ STABLECOINS: dict[tuple[str, str], Stablecoin] = {
     ("polygon", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "polygon", "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", _BALANCE_SEND_ACTIVITY),
     ("tempo", "USDC"): _coin("USDC", "USD Coin (USDC.e)", "Bridged USDC", "tempo", "0x20c000000000000000000000b9537d11c60e8b50", _BALANCE_AND_SEND),
     ("tempo", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "tempo", "0x20C00000000000000000000014f22CA97301EB73", _BALANCE_AND_SEND),
+    ("ethereum", "OUSD"): _coin("OUSD", "OpenUSD", "Open Standard / Bridge", "ethereum", "0x9f6F3991D525015a6F8CaF062C83b62fD3AC4436", _BALANCE_SEND_ACTIVITY),
+    ("base", "OUSD"): _coin("OUSD", "OpenUSD", "Open Standard / Bridge", "base", "0xB2000000000000000000002fEb517dFeC7415344", _BALANCE_SEND_ACTIVITY),
+    ("tempo", "OUSD"): _coin("OUSD", "OpenUSD", "Open Standard / Bridge", "tempo", "0x20c0000000000000000000006a37DA5C996874BE", _BALANCE_AND_SEND),
 }
 
 STABLECOIN_SYMBOLS = tuple(dict.fromkeys(symbol for _, symbol in STABLECOINS))
