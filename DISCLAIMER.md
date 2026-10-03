@@ -16,7 +16,7 @@ Sara Wallet's own software does not add any markup, commission, spread, or fee o
 
 ## 3. No Advice
 
-Sara Wallet does not provide financial, investment, trading, legal, tax, accounting, or regulatory advice. Any information, AI-generated output, market data, prices, charts, news, sentiment, portfolio analytics, DeFi analytics, or transaction-related explanation shown in Sara Wallet is provided for general informational and educational purposes only.
+Sara Wallet does not provide financial, investment, trading, legal, tax, accounting, or regulatory advice. Any information, AI-generated output, market data, prices, portfolio analytics, DeFi analytics, or transaction-related explanation shown in Sara Wallet is provided for general informational and educational purposes only.
 
 Nothing in Sara Wallet is, or should be treated as, a recommendation, solicitation, offer, endorsement, instruction, or advice to buy, sell, hold, swap, trade, stake, lend, borrow, bridge, deposit, withdraw, or otherwise transact in any asset or market. Past performance, backtested results, or simulated outcomes are not indicative of future results.
 

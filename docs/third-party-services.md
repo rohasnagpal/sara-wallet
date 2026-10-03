@@ -30,13 +30,12 @@ See [../DISCLAIMER.md](../DISCLAIMER.md) for the full legal disclaimer.
 |---|---|---|
 | [OpenRouter](https://openrouter.ai) (default) — or OpenAI, Anthropic, Groq, xAI, Google Gemini, Cloudflare Workers AI, or a local Ollama model | Chat, natural-language command parsing | **Required** — one of these, set via `LLM_PROVIDER`/the matching `*_API_KEY`. A local Ollama model needs no key and sends nothing off your machine. |
 
-## Market data & news
+## Market data
 
 | Service | Used for | API key? |
 |---|---|---|
 | [CoinGecko](https://coingecko.com) | Token prices | Optional — works keyless on the public tier; `COINGECKO_API_KEY` only raises the rate limit |
 | [Alchemy](https://alchemy.com) | ERC-20 balance discovery, automatic payment reconciliation, and verifying every swap and bridge (simulating the exact transaction) before signing | Needed to swap or bridge: without `ALCHEMY_API_KEY` Sara refuses to sign them. Optional otherwise — without it, reconciliation falls back to manual "mark as paid" |
-| CoinTelegraph + CoinDesk RSS, [Alternative.me](https://alternative.me) Fear & Greed Index | News headlines and market sentiment | No — free, keyless sources |
 
 ## Block explorers
 

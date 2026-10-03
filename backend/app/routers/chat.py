@@ -37,9 +37,6 @@ class _PendingStore(dict):
 # In-memory pending transaction store keyed by session_id
 _pending: dict[str, dict] = _PendingStore()
 
-# Per-session context: last mentioned coin (for follow-up questions like "is that a good time to buy?")
-_last_coin: dict[str, str] = {}  # session_id → coin symbol
-
 WALLET_TOOLS = [
     {
         "type": "function",
@@ -502,37 +499,9 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     if ("market cap" in m or "total market" in m or "crypto market" in m or "btc dominance" in m):
         return ("get_global_market", {})
 
-    # market: trending
-    if "trend" in m or "top coin" in m or "hot coin" in m or "gainers" in m:
-        return ("get_trending_coins", {})
-
     # portfolio
     if "portfolio" in m or ("my" in m and "holding" in m) or ("my" in m and "asset" in m):
         return ("get_portfolio", {})
-
-    # news & sentiment
-    NEWS_TRIGGERS = ("news", "sentiment", "what are people saying", "bullish", "bearish",
-                     "headlines", "what's happening with", "hype", "narrative",
-                     "good time to buy", "good time to sell", "should i buy", "should i sell",
-                     "outlook", "analysis")
-    if any(t in m for t in NEWS_TRIGGERS):
-        coin = None
-        from app.tools.market.coingecko import SYMBOL_TO_ID
-        for sym in SYMBOL_TO_ID:
-            if re.search(rf'\b{re.escape(sym.lower())}\b', m):
-                coin = sym
-                break
-        if not coin:
-            for name, sym in [("bitcoin","BTC"),("ethereum","ETH"),
-                               ("dogecoin","DOGE"),("ripple","XRP")]:
-                if name in m:
-                    coin = sym
-                    break
-        # fall back to last known coin in context
-        if not coin:
-            coin = _last_coin.get(session_id)
-        if coin:
-            return ("get_news_sentiment", {"coin": coin})
 
     return None
 
@@ -651,7 +620,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• **Payroll** — run payroll for employees and contractors in one action\n"
             "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges, batches, token transfers, x402)\n"
             "• **Ledger** — every send and receive with fiat value, tags and notes, linked to block explorers\n"
-            "• **Accounts** — income/expense reports, FIFO cost basis and P&L, CSV/XLSX export\n\n"
+            "• **Accounts** — income/expense reports and CSV/XLSX export\n\n"
             "**Tokens, Insights & Safety**\n"
             "• **Tokens** — deploy your own ERC-20 from tested templates, mint/burn/transfer, airdrop\n"
             "• **Treasury** — combined balances across your wallets, and a comparison of stablecoin routes between networks\n"
@@ -662,8 +631,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "**x402 agentic payments**\n"
             "• Pay machine-priced HTTP resources in USDC automatically; a spending policy lets payments under your cap go through unattended\n\n"
             "**Market Data & Intelligence** *(live via CoinGecko)*\n"
-            "• Crypto prices, gas fees, trending coins, global market cap\n"
-            "• News & sentiment, ENS resolution\n\n"
+            "• Crypto prices, gas fees, global market cap and ENS resolution\n\n"
             "**Security**\n"
             "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
             "• Only money-moving actions (send, swap, bridge) require unlocking — price checks and general chat work while locked\n"
@@ -824,13 +792,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
 
         return "\n".join(parts)
 
-    if tool_name == "get_trending_coins":
-        coins = coingecko.get_trending()
-        if not coins:
-            return "Could not fetch trending data."
-        lines = [f"• {c['name']} ({c['symbol']}) #{c.get('rank','?')}" for c in coins]
-        return "Trending now:\n" + "\n".join(lines)
-
     if tool_name == "get_global_market":
         d = coingecko.get_global()
         if not d:
@@ -862,22 +823,6 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
 
     if tool_name == "name_not_found":
         return f"Could not resolve **{args['name']}** — the name may not be registered or the lookup failed."
-
-    if tool_name == "get_news_sentiment":
-        coin = args.get("coin", "BTC")
-        from app.tools.market.coingecko import get_price
-        from app.tools.market.cryptopanic import get_news, get_sentiment
-        from app.tools.market.sentiment import synthesize
-        price_data = get_price(coin)
-        news_items = get_news(currencies=[coin], limit=5)
-        sentiment  = get_sentiment(coin)
-        summary = synthesize(coin, price_data or {}, news_items, sentiment)
-        if price_data:
-            sign = "+" if price_data["change_24h"] >= 0 else ""
-            price_line = f"**{coin}** — ${price_data['price']:,.4f}  ({sign}{price_data['change_24h']:.2f}% 24h)\n\n"
-        else:
-            price_line = ""
-        return price_line + summary
 
     return "Unknown tool."
 
@@ -1320,8 +1265,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 if req.reference and tool_name in ("send_crypto", "send_needs_wallet"):
                     args["reference"] = req.reference
                 result = _handle_tool_call(tool_name, args, db)
-                if tool_name == "get_crypto_price" and "coin" in args:
-                    _last_coin[req.session_id] = args["coin"]
                 if result.startswith("__PENDING_SEND__"):
                     send_args = json.loads(result[len("__PENDING_SEND__"):])
                     w = _resolve_wallet(send_args["wallet_name"], db)
@@ -1853,4 +1796,3 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-

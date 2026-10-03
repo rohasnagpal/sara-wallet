@@ -2,14 +2,13 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import io
 import unittest
-from unittest.mock import patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import AccountingClassification, Base, CostLot, Disposal, Transaction, Wallet
+from app.db.models import AccountingClassification, Base, Transaction, Wallet
 from app.routers import accounting, ledger
-from app.services import accounting_matcher, cost_basis
+from app.services import accounting_matcher
 
 NET = "polygon"
 TOKEN = "USDC"
@@ -79,91 +78,6 @@ class MatchingTests(AccountingTestCase):
         self.assertEqual(sell_cls.classification, "swap")
         self.assertEqual(buy_cls.classification, "swap")
         self.assertFalse(sell_cls.is_internal_transfer)
-
-
-class FifoCostBasisTests(AccountingTestCase):
-    def test_partial_disposal_reduces_lot_and_realizes_gain(self):
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10.00",
-                      when=datetime(2026, 1, 1), tx_hash="0xacq1")
-        disposal_tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="3", fiat_usd_value="3.30",
-                                    when=datetime(2026, 1, 2), tx_hash="0xdisp1")
-        result = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        self.assertEqual(result["lots_created"], 1)
-        self.assertEqual(result["disposals_created"], 1)
-        lot = self.db.query(CostLot).filter_by(token=TOKEN, network=NET).one()
-        self.assertEqual(Decimal(lot.remaining_raw) / Decimal(10 ** 6), Decimal("7"))
-        disposal = self.db.query(Disposal).filter_by(disposal_transaction_id=disposal_tx.id).one()
-        self.assertEqual(Decimal(disposal.cost_basis_usd), Decimal("3.00"))
-        self.assertEqual(Decimal(disposal.proceeds_usd), Decimal("3.30"))
-        self.assertEqual(Decimal(disposal.realized_gain_usd), Decimal("0.30"))
-
-    def test_disposal_spanning_two_lots(self):
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10.00",
-                      when=datetime(2026, 1, 1), tx_hash="0xacq1")
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="5", fiat_usd_value="5.00",
-                      when=datetime(2026, 1, 2), tx_hash="0xacq2")
-        disposal_tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="12", fiat_usd_value="12.00",
-                                    when=datetime(2026, 1, 3), tx_hash="0xdisp1")
-        cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        disposals = self.db.query(Disposal).filter_by(disposal_transaction_id=disposal_tx.id).all()
-        self.assertEqual(len(disposals), 2)  # 10 from lot1, 2 from lot2
-        total_qty = sum(int(d.quantity_raw) for d in disposals)
-        self.assertEqual(total_qty, 12_000000)
-        total_cost = sum(Decimal(d.cost_basis_usd) for d in disposals)
-        self.assertEqual(total_cost, Decimal("10.00") + Decimal("2") * (Decimal("5.00") / Decimal("5")))
-
-    def test_fee_reduces_realized_gain(self):
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10.00",
-                      when=datetime(2026, 1, 1), tx_hash="0xacq1")
-        disposal_tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="10", fiat_usd_value="11.00",
-                                    when=datetime(2026, 1, 2), tx_hash="0xdisp1",
-                                    fee_raw=str(10**16), fee_token="POL")  # 0.01 POL
-        with patch("app.tools.market.coingecko.get_historical_price", return_value={"price": 0.5}):
-            cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        disposal = self.db.query(Disposal).filter_by(disposal_transaction_id=disposal_tx.id).one()
-        self.assertEqual(Decimal(disposal.fee_usd), Decimal("0.005"))
-        self.assertEqual(Decimal(disposal.realized_gain_usd), Decimal("11.00") - Decimal("10.00") - Decimal("0.005"))
-
-    def test_internal_transfer_moves_lot_without_disposal(self):
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10.00",
-                      when=datetime(2026, 1, 1), tx_hash="0xacq1")
-        self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="4", tx_hash="0xmove",
-                      when=datetime(2026, 1, 2))
-        self.make_tx(wallet=self.wallet_b, direction="incoming", amount="4", tx_hash="0xmove",
-                      when=datetime(2026, 1, 2))
-        accounting_matcher.match_internal_transfers_and_swaps(self.db)
-        result = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        self.assertEqual(result["disposals_created"], 0)
-        lot_a = self.db.query(CostLot).filter_by(wallet_id=self.wallet_a.id).one()
-        lot_b = self.db.query(CostLot).filter_by(wallet_id=self.wallet_b.id).one()
-        self.assertEqual(Decimal(lot_a.remaining_raw) / Decimal(10 ** 6), Decimal("6"))
-        self.assertEqual(Decimal(lot_b.quantity_raw) / Decimal(10 ** 6), Decimal("4"))
-        self.assertEqual(Decimal(lot_b.acquisition_cost_usd), Decimal("4.00"))
-        self.assertEqual(lot_b.acquired_at, datetime(2026, 1, 1))  # original acquisition date preserved
-
-    def test_disposal_with_no_history_creates_synthetic_lot_and_warning(self):
-        disposal_tx = self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="5", fiat_usd_value="5.00",
-                                    when=datetime(2026, 1, 1), tx_hash="0xdisp1")
-        result = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        self.assertTrue(any("no matching purchase record" in w for w in result["warnings"]))
-        disposal = self.db.query(Disposal).filter_by(disposal_transaction_id=disposal_tx.id).one()
-        self.assertEqual(Decimal(disposal.cost_basis_usd), Decimal("0"))
-        self.assertEqual(Decimal(disposal.realized_gain_usd), Decimal("5.00"))
-        lot = self.db.query(CostLot).filter_by(source="unknown_opening_balance").one()
-        self.assertEqual(lot.remaining_raw, "0")
-
-    def test_rebuild_is_deterministic(self):
-        self.make_tx(wallet=self.wallet_a, direction="incoming", amount="10", fiat_usd_value="10.00",
-                      when=datetime(2026, 1, 1), tx_hash="0xacq1")
-        self.make_tx(wallet=self.wallet_a, direction="outgoing", amount="3", fiat_usd_value="3.30",
-                      when=datetime(2026, 1, 2), tx_hash="0xdisp1")
-        first = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        first_total_realized = sum(Decimal(d.realized_gain_usd) for d in self.db.query(Disposal).all())
-        second = cost_basis.rebuild_lots(self.db, TOKEN, NET)
-        second_total_realized = sum(Decimal(d.realized_gain_usd) for d in self.db.query(Disposal).all())
-        self.assertEqual(first["lots_created"], second["lots_created"])
-        self.assertEqual(first["disposals_created"], second["disposals_created"])
-        self.assertEqual(first_total_realized, second_total_realized)
 
 
 class ReportTests(AccountingTestCase):

@@ -41,7 +41,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Transaction preparation and confirmation
 - Invoices, payment QR codes, receipts and automatic reconciliation
 - Batch/recurring payments, payroll and authenticated approvals
-- Accounting, fiat valuation, FIFO cost basis, reporting and exports
+- Accounting, fiat valuation, income/expense reporting and exports
 - Token creation/management, allowance controls and transaction simulation
 - Treasury, wallet intelligence, risk screening and alerts
 - Free local `.sara` aliases and ENS resolution

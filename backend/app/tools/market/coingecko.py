@@ -127,33 +127,6 @@ def get_historical_price(coin: str, occurred_at, vs: str = "usd") -> dict | None
         "date": date,
     })
 
-def get_trending() -> list:
-    key = "trending"
-    cached = _cached(key, ttl=300)  # trending changes slowly, cache 5 min
-    if cached is not None:
-        return cached
-    data = _get("/search/trending")
-    if not data:
-        return []
-    results = []
-    for item in data.get("coins", [])[:7]:
-        c = item.get("item", {})
-        results.append({
-            "name": c.get("name"), "symbol": c.get("symbol"),
-            "rank": c.get("market_cap_rank"),
-        })
-    return _store(key, results)
-
-def get_ohlcv(coin: str, days: int = 30) -> list:
-    cid = _resolve_id(coin)
-    key = f"ohlcv:{cid}:{days}"
-    cached = _cached(key, ttl=600)  # OHLCV data, cache 10 min
-    if cached is not None:
-        return cached
-    data = _get(f"/coins/{cid}/ohlc", {"vs_currency": "usd", "days": str(days)})
-    result = data if isinstance(data, list) else []
-    return _store(key, result)
-
 def get_global() -> dict | None:
     key = "global"
     cached = _cached(key, ttl=120)

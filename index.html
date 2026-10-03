@@ -1371,31 +1371,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
 
             <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">What you paid for your tokens</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">To work out profit or loss, Sara needs to know what you originally paid for the tokens you have. Pick a token and network, then press <strong>Rebuild</strong>. Sara reads through your history and lists what you still hold and what it cost you. Press Rebuild again whenever you have new transactions. For information only, not tax advice.</div>
-              <div class="field-row">
-                <div class="field"><label class="field-label" for="lotsToken">Token</label><input class="settings-input" id="lotsToken" value="USDC" maxlength="20" placeholder="Token"></div>
-                <div class="field"><label class="field-label" for="lotsNetwork">Network</label><select class="settings-input" id="lotsNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <button class="settings-save-btn" onclick="rebuildLots()">Rebuild</button>
-              </div>
-              <div id="lotsRebuildStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-              <div id="lotsList" style="font-size:11px;margin-top:8px"></div>
-            </div>
-
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Profit &amp; loss on a token</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Shows how much you've gained or lost on one token. The first figure is for tokens you've already sent or sold, and the second is for tokens you still hold, at today's price. The oldest tokens are counted as sold first. Do the "What you paid" step above first, and leave the dates empty to include everything.</div>
-              <div class="field-row" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="pnlToken">Token</label><input class="settings-input" id="pnlToken" value="USDC" maxlength="20" placeholder="Token"></div>
-                <div class="field"><label class="field-label" for="pnlNetwork">Network</label><select class="settings-input" id="pnlNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="pnlStart">From</label><input class="settings-input" id="pnlStart" type="date"></div>
-                <div class="field"><label class="field-label" for="pnlEnd">To</label><input class="settings-input" id="pnlEnd" type="date"></div>
-                <button class="settings-save-btn" onclick="loadPnlReport()">Show</button>
-              </div>
-              <div id="pnlResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-
-            <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Money in and money out</div>
               <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Adds up the money that came in and the money that went out, in US dollars, across all your wallets. "Left over" is money in minus money out. Sara works out most transactions by itself (for example invoice payments count as money in, and payments you send count as money out), and moving money between your own wallets isn't counted. If something you received isn't counted, open it in the Ledger tab, press Edit, and choose what it counts as. Leave the dates empty to include everything.</div>
               <div class="field-row" style="margin-top:8px">
@@ -4045,50 +4020,9 @@ async function runAccountingMatch() {
     : (_apiErrorText(data, 'Could not match transfers.'));
 }
 
-async function rebuildLots() {
-  const body = {token: document.getElementById('lotsToken').value.trim().toUpperCase(), network: document.getElementById('lotsNetwork').value};
-  const r = await fetch('/api/accounting/lots/rebuild', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  const status = document.getElementById('lotsRebuildStatus');
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not rebuild.'); return; }
-  status.innerHTML = `Done. Found ${_escapeHtml(_plural(data.lots_created, 'purchase'))} and ${_escapeHtml(_plural(data.disposals_created, 'sale'))}.` + _warningsHtml(data.warnings);
-  await loadLots(body.token, body.network);
-}
-
-const _LOT_SOURCE = {
-  swap_in: 'from a swap', airdrop: 'airdrop', payroll_receipt: 'salary', invoice_receipt: 'invoice payment',
-  transfer_in: 'received', unknown_opening_balance: 'earlier balance, cost unknown',
-};
-
-async function loadLots(token, network) {
-  const params = new URLSearchParams({token, network, open_only: 'true'});
-  const data = await fetch('/api/accounting/lots?' + params).then(r => r.json()).catch(() => ({lots: []}));
-  document.getElementById('lotsList').innerHTML = data.lots.length ? data.lots.map(l => `
-    <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-      <strong>${_escapeHtml(l.remaining)} ${_escapeHtml(token)}</strong> still held${l.remaining !== l.quantity ? ' (of ' + _escapeHtml(l.quantity) + ' received)' : ''}
-      <div style="color:var(--text-muted)">Wallet #${_escapeHtml(l.wallet_id)} · received ${new Date(l.acquired_at).toLocaleDateString(undefined, {dateStyle: 'medium'})} · ${_escapeHtml(_LOT_SOURCE[l.source] || l.source)} · cost ${_escapeHtml(_usd(l.acquisition_cost_usd))}</div>
-    </div>`).join('') : '<div style="color:var(--text-muted)">Nothing to show. Press Rebuild first, or you may not hold any of this token on this network.</div>';
-}
-
 function _dateParam(id) {
   const v = document.getElementById(id).value;
   return v ? new Date(v).toISOString() : '';
-}
-
-async function loadPnlReport() {
-  const params = new URLSearchParams({token: document.getElementById('pnlToken').value.trim().toUpperCase(), network: document.getElementById('pnlNetwork').value});
-  const start = _dateParam('pnlStart'); if (start) params.set('start_date', start);
-  const end = _dateParam('pnlEnd'); if (end) params.set('end_date', end);
-  const r = await fetch('/api/accounting/reports/pnl?' + params);
-  const data = await r.json().catch(() => ({}));
-  const box = document.getElementById('pnlResult');
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load the report.'); return; }
-  box.innerHTML = `
-    <div>Tokens already sent or sold: ${_usdColored(data.realized_gain_usd)} <span style="color:var(--text-muted)">(${_escapeHtml(_plural(data.disposal_count, 'send'))})</span></div>
-    <div>Tokens you still hold, at today's price: ${data.unrealized_gain_usd !== null ? _usdColored(data.unrealized_gain_usd) : '<span style="color:var(--text-muted)">not available</span>'}</div>
-    ${_warningsHtml(data.warnings)}
-    <div style="color:var(--text-muted);margin-top:6px;font-size:10px">For information only, not tax advice.</div>
-  `;
 }
 
 const _CATEGORY_TEXT = {income: 'Income', payroll: 'Salaries', invoice_receipt: 'Invoice payments', airdrop: 'Airdrops', expense: 'Expenses', fee: 'Fees'};

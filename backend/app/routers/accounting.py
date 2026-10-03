@@ -13,10 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import AccountingClassification, AddressBook, CostLot, Disposal, Transaction, Wallet
+from app.db.models import AccountingClassification, AddressBook, Transaction, Wallet
 from app.db.session import get_db
 from app.routers.payments import _csv_safe
-from app.services import accounting_labels, accounting_matcher, cost_basis
+from app.services import accounting_labels, accounting_matcher
 
 router = APIRouter(prefix="/accounting", tags=["accounting"], dependencies=[Depends(require_session)])
 
@@ -137,105 +137,6 @@ def update_classification(transaction_id: int, body: ClassificationUpdate, db: S
 def match_transactions(db: Session = Depends(get_db)):
     matched = accounting_matcher.match_internal_transfers_and_swaps(db)
     return {"matched_pairs": matched}
-
-
-@router.get("/lots")
-def list_lots(token: str | None = None, network: str | None = None, wallet_id: int | None = None,
-              open_only: bool = True, db: Session = Depends(get_db)):
-    query = db.query(CostLot)
-    if token is not None:
-        query = query.filter(CostLot.token == token.upper())
-    if network is not None:
-        query = query.filter(CostLot.network == network.lower())
-    if wallet_id is not None:
-        query = query.filter(CostLot.wallet_id == wallet_id)
-    rows = query.order_by(CostLot.acquired_at).all()
-    if open_only:
-        rows = [r for r in rows if int(r.remaining_raw) > 0]
-    return {"lots": [{
-        "id": r.id, "wallet_id": r.wallet_id, "token": r.token, "network": r.network,
-        "acquisition_transaction_id": r.acquisition_transaction_id, "acquired_at": r.acquired_at.isoformat(),
-        "quantity": format(Decimal(r.quantity_raw) / (Decimal(10) ** r.decimals), "f"),
-        "remaining": format(Decimal(r.remaining_raw) / (Decimal(10) ** r.decimals), "f"),
-        "acquisition_cost_usd": r.acquisition_cost_usd, "source": r.source,
-    } for r in rows]}
-
-
-class RebuildBody(BaseModel):
-    token: str
-    network: str
-
-
-@router.post("/lots/rebuild")
-def rebuild_lots(body: RebuildBody, db: Session = Depends(get_db)):
-    result = cost_basis.rebuild_lots(db, body.token, body.network)
-    append_audit(db, "cost_lots.rebuilt", "cost_lot", details=result)
-    db.commit()
-    return result
-
-
-@router.get("/reports/pnl")
-def pnl_report(
-    token: str, network: str, start_date: datetime | None = None, end_date: datetime | None = None,
-    wallet_id: int | None = None, db: Session = Depends(get_db),
-):
-    token = token.upper()
-    network = network.lower()
-    disposal_query = (
-        db.query(Disposal, Transaction)
-        .join(Transaction, Transaction.id == Disposal.disposal_transaction_id)
-        .filter(Transaction.token == token, Transaction.network == network)
-    )
-    if start_date is not None:
-        disposal_query = disposal_query.filter(Transaction.timestamp >= start_date)
-    if end_date is not None:
-        disposal_query = disposal_query.filter(Transaction.timestamp <= end_date)
-    if wallet_id is not None:
-        disposal_query = disposal_query.filter(Transaction.wallet_id == wallet_id)
-    disposal_rows = disposal_query.order_by(Transaction.timestamp).all()
-
-    realized_total = sum((Decimal(d.realized_gain_usd) for d, _ in disposal_rows), Decimal(0))
-    warnings: list[str] = []
-    synthetic_lot_ids = {
-        r.id for r in db.query(CostLot).filter(CostLot.token == token, CostLot.network == network,
-                                                 CostLot.source == "unknown_opening_balance").all()
-    }
-    if any(d.lot_id in synthetic_lot_ids for d, _ in disposal_rows):
-        warnings.append("Some tokens you sent have no matching purchase record, so their cost was treated as $0 and your profit may look higher than it really is.")
-
-    lot_query = db.query(CostLot).filter(CostLot.token == token, CostLot.network == network)
-    if wallet_id is not None:
-        lot_query = lot_query.filter(CostLot.wallet_id == wallet_id)
-    open_lots = [lot for lot in lot_query.all() if int(lot.remaining_raw) > 0]
-
-    unrealized_total = Decimal(0)
-    current_price = None
-    if open_lots:
-        from app.tools.market.coingecko import get_price
-        quote = get_price(token, "usd")
-        if quote and quote.get("price"):
-            current_price = Decimal(str(quote["price"]))
-            for lot in open_lots:
-                remaining_qty = Decimal(lot.remaining_raw) / (Decimal(10) ** lot.decimals)
-                remaining_cost = (
-                    Decimal(lot.remaining_raw) / Decimal(lot.quantity_raw) * Decimal(lot.acquisition_cost_usd)
-                    if int(lot.quantity_raw) else Decimal(0)
-                )
-                unrealized_total += remaining_qty * current_price - remaining_cost
-        else:
-            warnings.append(f"Couldn't get today's price for {token}, so the figure for tokens you still hold isn't shown.")
-
-    return {
-        "method": "FIFO", "currency": "USD", "token": token, "network": network,
-        "start_date": start_date.isoformat() if start_date else None,
-        "end_date": end_date.isoformat() if end_date else None,
-        "realized_gain_usd": str(realized_total), "unrealized_gain_usd": str(unrealized_total) if open_lots else None,
-        "current_price_usd": str(current_price) if current_price is not None else None,
-        "disposal_count": len(disposal_rows), "open_lot_count": len(open_lots),
-        "disposal_transaction_ids": [d.disposal_transaction_id for d, _ in disposal_rows],
-        "warnings": warnings,
-        "disclaimer": "Not tax advice. FIFO cost-basis calculation for informational purposes only.",
-    }
 
 
 @router.get("/reports/income-expense")

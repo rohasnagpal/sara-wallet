@@ -26,21 +26,6 @@ def resolve_name(body: ResolveBody):
     return {"name": name, "address": None, "chain": None, "resolved": False}
 
 
-# ── News & Sentiment ──────────────────────────────────────────────────────────
-
-@router.get("/news")
-def get_news(coin: str = "", filter: str = "hot"):
-    from app.tools.market.cryptopanic import get_news as _news
-    currencies = [coin.upper()] if coin else None
-    return _news(currencies=currencies, filter=filter)
-
-
-@router.get("/sentiment/{coin}")
-def get_sentiment(coin: str):
-    from app.tools.market.cryptopanic import get_sentiment
-    return get_sentiment(coin)
-
-
 # ── Wallet intelligence (Stage 5.5) ──────────────────────────────────────────
 # Deterministic ledger queries only — an LLM may explain these results but
 # must never invent transactions or totals. Every total here carries the

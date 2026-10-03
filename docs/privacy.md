@@ -33,7 +33,6 @@ how keys are protected, see [security-model.md](security-model.md).
 | **x402 facilitator** | The details of an x402 payment you make. | Only when you pay for an x402 resource. |
 | **Telegram** | The alert messages you set up, such as a wallet name and balance, and your bot. | Only if you set up Telegram alerts. |
 | **Block explorers** | Nothing from Sara. Links open in your browser. | When you click a link. Optionally, a deployed token's source code is submitted for verification if you set an explorer key. |
-| **News and sentiment sources** (CoinTelegraph and CoinDesk feeds, Alternative.me) | Your IP address only. | Market news and sentiment. |
 | **The sanctions list** (Chainalysis oracle, read through a public node) | The address you screen. | Only when you screen an address. |
 
 Local `.sara` aliases are stored only in Sara's local database and are not

@@ -240,6 +240,13 @@ def _migration_017_single_recovery_seed(engine: Engine) -> None:
     _drop_column(engine, "wallets", "seed_id")
 
 
+def _migration_018_remove_cost_basis_and_pnl(engine: Engine) -> None:
+    """Remove the retired FIFO cost-basis and crypto P&L data."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS disposals"))
+        conn.execute(text("DROP TABLE IF EXISTS cost_lots"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -258,6 +265,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("015_remove_non_evm_data", _migration_015_remove_non_evm_data),
     ("016_remove_onchain_sara_names", _migration_016_remove_onchain_sara_names),
     ("017_single_recovery_seed", _migration_017_single_recovery_seed),
+    ("018_remove_cost_basis_and_pnl", _migration_018_remove_cost_basis_and_pnl),
 )
 
 

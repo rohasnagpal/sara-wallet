@@ -438,27 +438,6 @@ class AccountingClassification(Base):
     updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
-class CostLot(Base):
-    """One acquisition lot for FIFO cost-basis tracking. `remaining_raw` is
-    decremented as disposals/moves consume it; wallet_id changes when an
-    internal transfer moves the lot rather than realising a gain."""
-    __tablename__ = "cost_lots"
-    id                       = Column(Integer, primary_key=True, index=True)
-    wallet_id                = Column(Integer, nullable=False, index=True)
-    token                    = Column(String, nullable=False, index=True)
-    network                  = Column(String, nullable=False, index=True)
-    acquisition_transaction_id = Column(Integer, nullable=True)  # null for a synthetic unknown_opening_balance lot
-    acquired_at              = Column(DateTime, nullable=False)
-    quantity_raw             = Column(String, nullable=False)
-    remaining_raw            = Column(String, nullable=False)
-    decimals                 = Column(Integer, nullable=False)
-    acquisition_cost_usd     = Column(String, nullable=False)
-    source                   = Column(String, nullable=False, default="unknown")
-    # purchase | swap_in | transfer_in | airdrop | payroll_receipt |
-    # invoice_receipt | unknown_opening_balance
-    created_at               = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
 class TokenDeployment(Base):
     """An ERC-20 token deployed through Sara's token creator (compiled from
     the pinned templates under contracts/, never arbitrary Solidity)."""
@@ -480,23 +459,6 @@ class TokenDeployment(Base):
     status              = Column(String, nullable=False, default="submitted")  # submitted | confirmed | failed
     created_at          = Column(DateTime, default=datetime.utcnow, nullable=False)
     confirmed_at        = Column(DateTime, nullable=True)
-
-
-class Disposal(Base):
-    """One FIFO allocation of a disposal transaction against a CostLot. A
-    single disposal transaction may span multiple lots, hence one row per
-    (disposal transaction, lot) pair rather than one row per transaction."""
-    __tablename__ = "disposals"
-    id                     = Column(Integer, primary_key=True, index=True)
-    disposal_transaction_id = Column(Integer, nullable=False, index=True)
-    lot_id                 = Column(Integer, nullable=False, index=True)
-    quantity_raw           = Column(String, nullable=False)
-    proceeds_usd           = Column(String, nullable=False)
-    cost_basis_usd         = Column(String, nullable=False)
-    fee_usd                = Column(String, nullable=True)
-    realized_gain_usd      = Column(String, nullable=False)
-    method                 = Column(String, nullable=False, default="FIFO")
-    created_at             = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class RiskScreening(Base):

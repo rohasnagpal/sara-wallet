@@ -43,11 +43,8 @@ duplicate.
 5. **Counterparties** — save vendors, employees and contractors separately
    from your personal address book, for use in batches and payroll.
 6. **Income/expense reporting** — totals every ledger entry by category
-   over a date range — a quick P&L across all tokens and networks.
-7. **FIFO cost basis and P&L** — tracks acquisition cost lots per token and
-   computes realized gains/losses (not tax advice) when you dispose of
-   them.
-8. **CSV/XLSX exports** — download your full ledger with fiat values, fees
+   over a date range and shows money in, money out and the net amount.
+7. **CSV/XLSX exports** — download your full ledger with fiat values, fees
    and classifications for your accountant or tax software.
 
 ## Controls
