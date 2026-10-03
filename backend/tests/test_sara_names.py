@@ -165,10 +165,12 @@ class Eip712RecordTests(unittest.TestCase):
 
     def test_canonical_json_is_deterministic_regardless_of_address_order(self):
         r1 = self.make_record(addresses=[
-            {"network": "eip155:137", "addr": "0xaaa"}, {"network": "solana:mainnet", "addr": "Sol111"},
+            {"network": "eip155:137", "addr": "0xaaa"},
+            {"network": "eip155:8453", "addr": "0xbbb"},
         ])
         r2 = self.make_record(addresses=[
-            {"network": "solana:mainnet", "addr": "Sol111"}, {"network": "eip155:137", "addr": "0xaaa"},
+            {"network": "eip155:8453", "addr": "0xbbb"},
+            {"network": "eip155:137", "addr": "0xaaa"},
         ])
         # with_content_hash() already ran on both — canonical_json() sorts by network either way.
         self.assertEqual(

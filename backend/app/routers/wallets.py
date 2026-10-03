@@ -22,7 +22,6 @@ def get_db():
 
 class CreateWalletRequest(BaseModel):
     name: str
-    chain: str = "evm"
     # Which seed to derive this wallet from - omit to use the default (the
     # first one ever created, auto-creating it if none exists yet).
     # "Add another seed" (POST /wallets/seeds) is the advanced path for
@@ -31,7 +30,6 @@ class CreateWalletRequest(BaseModel):
 
 class ImportWalletRequest(BaseModel):
     name: str
-    chain: str
     private_key: str  # hex string
 
 class RenameWalletRequest(BaseModel):
@@ -72,9 +70,7 @@ def _default_seed(db: Session) -> tuple[WalletSeed, Optional[str]]:
 def create_wallet(req: CreateWalletRequest, db: Session = Depends(get_db)):
     if db.query(Wallet).filter(Wallet.name == req.name).first():
         raise HTTPException(400, "Wallet name already exists")
-    chain = req.chain.lower()
-    if chain != "evm":
-        raise HTTPException(400, "Sara now supports EVM wallets only")
+    chain = "evm"
 
     try:
         if req.seed_id is not None:
@@ -192,16 +188,13 @@ def reveal_seed(seed_id: int, req: RevealSeedRequest, db: Session = Depends(get_
 def import_wallet(req: ImportWalletRequest, db: Session = Depends(get_db)):
     if db.query(Wallet).filter(Wallet.name == req.name).first():
         raise HTTPException(400, "Wallet name already exists")
-    chain = req.chain.lower()
-    if chain == "evm":
-        from eth_account import Account
-        try:
-            acct = Account.from_key(req.private_key)
-            address = acct.address
-        except Exception:
-            raise HTTPException(400, "Invalid EVM private key")
-    else:
-        raise HTTPException(400, "Sara now supports EVM wallets only")
+    chain = "evm"
+    from eth_account import Account
+    try:
+        acct = Account.from_key(req.private_key)
+        address = acct.address
+    except Exception:
+        raise HTTPException(400, "Invalid EVM private key")
 
     try:
         encrypted = encrypt_key(req.private_key)

@@ -94,11 +94,11 @@ class AddressEncodingTests(unittest.TestCase):
 class UnsupportedNetworkTests(unittest.TestCase):
     def test_usdc_address_rejects_unsupported_network(self):
         with self.assertRaises(cctp.CctpError):
-            cctp.usdc_address("solana")
+            cctp.usdc_address("unsupported")
 
     def test_execute_burn_rejects_unsupported_source_network(self):
         with self.assertRaises(cctp.CctpError):
-            cctp.execute_burn("0xkey", "solana", "base", 1_000_000, "0x" + "11" * 20)
+            cctp.execute_burn("0xkey", "unsupported", "base", 1_000_000, "0x" + "11" * 20)
 
 
 def _make_fake_w3(*, allowance=0, chain_id=1):

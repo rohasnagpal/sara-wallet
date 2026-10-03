@@ -27,7 +27,6 @@ full legal disclaimer.
 |---|---|---|
 | [Paraswap](https://paraswap.io) | Same-chain EVM swaps (USDC ↔ native gas token) | No |
 | [LI.FI](https://li.fi) | Cross-chain bridges + swaps, aggregated | No |
-| [Jupiter](https://jup.ag) | Solana swaps | No |
 
 ## AI
 
@@ -55,8 +54,6 @@ full legal disclaimer.
 | Service | Used for | API key? |
 |---|---|---|
 | Public RPC endpoints (publicnode.com, drpc.org, and each network's own default endpoint) | Reading/broadcasting on Ethereum, Arbitrum, Base, OP Mainnet, Polygon | No — overridable via `ETH_RPC`/`ARB_RPC`/`BASE_RPC`/`POLY_RPC`/`OP_RPC` if you want your own |
-| Solana public RPC | Solana chain calls | No |
-| Bonfida's SNS proxy | Solana Name Service resolution | No |
 
 ## Payments
 

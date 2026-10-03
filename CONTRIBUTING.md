@@ -26,7 +26,7 @@ Thanks for your interest in contributing to Sara. This is an open-source project
 ## Ways to Contribute
 
 - **Build a tool** — payment flows, reconciliation, market data, trading, anything useful
-- **Add a chain** — new EVM chain, or a non-EVM network
+- **Add an EVM network** — extend Sara's supported EVM network registry
 - **Fix a bug** — check the Issues tab for known bugs
 - **Improve the UI** — the frontend is a single `index.html`, no build step needed
 - **Write docs** — better explanations, examples, edge case notes
@@ -122,7 +122,7 @@ Chain modules live in `backend/app/chains/`. Each module handles the specifics o
 Steps:
 
 1. For an EVM-compatible chain: add its RPC URL, chain ID, and native token symbol to those three dicts in `evm.py` — no new file needed. Also update `_TOKEN_TO_NETWORK` and `_NETWORK_NATIVE_TOKEN` in `chat.py` so chat commands recognize the new chain's native token.
-2. For a genuinely different chain family (like Solana): create a new file in `backend/app/chains/`, e.g. `my_chain.py`, following the interface `evm.py`/`solana.py` already use (balance, transfer preview, send).
+2. Sara is EVM-only. Add new networks through the EVM registry and shared EVM adapter rather than introducing another chain family.
 3. Document the new RPC env var in `.env` (the tracked template) and the README's Supported Chains table.
 
 ### Adding a New Token

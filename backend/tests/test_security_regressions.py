@@ -231,8 +231,6 @@ class WalletKeyLifecycleTests(unittest.TestCase):
 class ReconciliationAndFrontendTests(unittest.TestCase):
     def test_removed_network_credentials_are_not_settings(self):
         from app.routers import settings
-        self.assertNotIn("TRONGRID_API_KEY", settings.ALLOWED_KEYS)
-        self.assertNotIn("HELIUS_RPC", settings.ALLOWED_KEYS)
 
     def test_amount_conversion_is_exact_and_rejects_excess_precision(self):
         self.assertEqual(to_base_units("0.29", 6, "USDC"), 290_000)

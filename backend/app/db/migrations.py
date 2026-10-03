@@ -197,6 +197,16 @@ def _migration_014_remove_sara_proof(engine: Engine) -> None:
         conn.execute(text("DROP TABLE IF EXISTS proof_records"))
 
 
+def _migration_015_remove_non_evm_data(engine: Engine) -> None:
+    """Purge data for chain families Sara no longer supports."""
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM config WHERE key IN ('HELIUS_RPC', 'TRONGRID_API_KEY')"))
+        conn.execute(text("DELETE FROM payment_requests WHERE lower(chain) != 'evm'"))
+        conn.execute(text("DELETE FROM transactions WHERE lower(chain) != 'evm'"))
+        conn.execute(text("DELETE FROM address_book WHERE lower(chain) != 'evm'"))
+        conn.execute(text("DELETE FROM wallets WHERE lower(chain) != 'evm'"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -212,6 +222,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("012_paywall_facilitator", _migration_012_paywall_facilitator),
     ("013_wallet_seeds", _migration_013_wallet_seeds),
     ("014_remove_sara_proof", _migration_014_remove_sara_proof),
+    ("015_remove_non_evm_data", _migration_015_remove_non_evm_data),
 )
 
 

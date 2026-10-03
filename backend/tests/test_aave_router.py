@@ -49,7 +49,7 @@ class AaveRouterTests(unittest.TestCase):
         self.assertEqual(data["supply_apy_pct"], 4.2)
 
     def test_position_400s_for_unsupported_network(self):
-        resp = self.client.get(f"/api/aave/position?wallet_id={self.wallet.id}&network=solana")
+        resp = self.client.get(f"/api/aave/position?wallet_id={self.wallet.id}&network=unsupported")
         self.assertEqual(resp.status_code, 400)
 
     def test_supply_423s_when_wallet_is_locked(self):

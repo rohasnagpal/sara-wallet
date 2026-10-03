@@ -2075,12 +2075,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
       <input class="wallet-form-input" id="walletName" placeholder="e.g. Main ETH" maxlength="32" required aria-describedby="walletNameError" />
       <div class="wallet-form-error" id="walletNameError" role="alert">Enter a wallet name.</div>
     </div>
-    <div class="wallet-form-group">
-      <div class="wallet-form-label">Chain</div>
-      <select class="wallet-form-select" id="walletChain">
-        <option value="evm">EVM (Ethereum, Arbitrum, Base, OP Mainnet, Polygon PoS)</option>
-      </select>
-    </div>
     <div class="wallet-form-group" id="privateKeyGroup" style="display:none">
       <div class="wallet-form-label">Private Key (hex)</div>
       <input class="wallet-form-input" id="walletPrivKey" placeholder="0x... or raw hex" type="password" autocomplete="off" spellcheck="false" required aria-describedby="walletPrivKeyError" />
@@ -3161,7 +3155,6 @@ function _setFieldInvalid(inputId, errorId, invalid) {
 
 async function submitWallet() {
   const name = document.getElementById('walletName').value.trim();
-  const chain = document.getElementById('walletChain').value;
   _setFieldInvalid('walletName', 'walletNameError', false);
   if (!name) {
     _setFieldInvalid('walletName', 'walletNameError', true);
@@ -3173,7 +3166,7 @@ async function submitWallet() {
   try {
     let endpoint, body;
     if (walletTab === 'create') {
-      endpoint = '/api/wallets/create'; body = { name, chain };
+      endpoint = '/api/wallets/create'; body = { name };
     } else {
       const pk = document.getElementById('walletPrivKey').value.trim();
       _setFieldInvalid('walletPrivKey', 'walletPrivKeyError', false);
@@ -3183,7 +3176,7 @@ async function submitWallet() {
         btn.textContent = 'Import Wallet'; btn.disabled = false;
         return;
       }
-      endpoint = '/api/wallets/import'; body = { name, chain, private_key: pk };
+      endpoint = '/api/wallets/import'; body = { name, private_key: pk };
     }
     const resp = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await resp.json();

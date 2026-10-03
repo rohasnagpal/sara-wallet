@@ -218,7 +218,7 @@ class WalletSeedRouterTests(unittest.TestCase):
         from eth_account import Account
         acct = Account.create()
         resp = self.client.post("/api/wallets/import", json={
-            "name": "imported", "chain": "evm", "private_key": acct.key.hex(),
+            "name": "imported", "private_key": acct.key.hex(),
         })
         self.assertEqual(resp.status_code, 200, resp.text)
         row = self.db.query(Wallet).filter_by(name="imported").first()

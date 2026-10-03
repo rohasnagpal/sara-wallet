@@ -99,8 +99,8 @@ def _match_wallet(text: str, wallets: list) -> Optional[Wallet]:
     """Find a wallet whose name appears in the user's message
     (case-insensitive). Prefers the longest matching name over whichever
     wallet happens to be checked first — with wallets named "Main" and
-    "Main Sol", a message mentioning "Main Sol" used to resolve to "Main"
-    instead, since "main" is trivially a substring of "main sol" too and DB
+    "Main Savings", a message mentioning "Main Savings" used to resolve to "Main"
+    instead, since "main" is trivially a substring of "main savings" too and DB
     iteration order (not specificity) decided which one won."""
     text_l = text.lower()
     candidates = [w for w in wallets if w.name.lower() in text_l]
@@ -212,9 +212,8 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         return ("show_help", {})
 
     # send / transfer  — parse: (send|transfer) <amount> <token> [from <wallet>] to <address> [on <network>]
-    # Matched against the original-case msg (not the lowercased m) so
-    # case-sensitive base58 addresses (Solana, Tron) survive intact —
-    # re.IGNORECASE keeps the send/from/to keywords matching either way.
+    # Matched against the original-case msg so checksummed EVM addresses
+    # survive intact; re.IGNORECASE still matches the command keywords.
     send_match = re.search(
         r'(?:send|transfer)\s+([\d.]+)\s+(\w+)(?:\s+from\s+(\w[\w\s]*?))?\s+to\s+(\S+)(?:\s+on\s+(\w+))?$',
         msg, re.IGNORECASE
@@ -382,12 +381,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         except ValueError:
             amount = 0
         network = (net_hint or _TOKEN_TO_NETWORK.get(from_tok.lower()) or "ethereum")
-        # Resolve the wallet from only the chain this swap actually needs —
-        # matching against every wallet regardless of chain let a swap
-        # requested on one chain (e.g. Solana) silently resolve to a wallet
-        # on a different chain (e.g. an EVM wallet) whenever its name
-        # happened to match, with the mismatch only surfacing later (if at
-        # all) when actually trying to execute against the wrong chain.
+        # Swaps are EVM-only, so only an EVM wallet may be selected.
         required_chain = "evm"
         compatible_wallets = [w for w in wallets if w.chain == required_chain]
         wallet = None
@@ -447,9 +441,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
             amount = float(amount_str)
         except ValueError:
             amount = 0
-        # Bridging (LI.FI) is EVM-only — same reasoning as the swap intent
-        # above: matching against every wallet regardless of chain let this
-        # resolve to a Solana/Tron wallet that could never actually bridge.
+        # Bridging through LI.FI is EVM-only.
         evm_wallets_for_bridge = [w for w in wallets if w.chain == "evm"]
         wallet = None
         if from_hint:
@@ -536,7 +528,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
 
     # market: crypto price — also detect "X price in Y" currency modifier
     CRYPTO_KEYWORDS = ("price", "how much is", "what is", "what's", "whats", "cost", "worth", "at", "doing")
-    KNOWN_SYMBOLS = set(coingecko.SYMBOL_TO_ID.keys()) | {"BITCOIN", "ETHEREUM", "SOLANA"}
+    KNOWN_SYMBOLS = set(coingecko.SYMBOL_TO_ID.keys()) | {"BITCOIN", "ETHEREUM"}
     # Check for "in <currency>" modifier first
     vs_currency = "usd"
     vs_match = re.search(r'\bin\s+([a-z]{2,4})\b', m)
@@ -547,7 +539,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
     if any(re.search(rf'\b{re.escape(k)}\b', m) for k in CRYPTO_KEYWORDS):
         for sym in KNOWN_SYMBOLS:
             # Word-boundary match, not raw substring — several real symbols
-            # (OP, SOL, UNI, TON, ADA...) are short enough to appear inside
+            # (OP, UNI, TON, ADA...) are short enough to appear inside
             # unrelated words ("shOPping", "reSOLve", "cotton"), and with
             # generic trigger words like "at"/"doing" above, a message with
             # nothing to do with crypto could otherwise misfire into a price
@@ -584,7 +576,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                 coin = sym
                 break
         if not coin:
-            for name, sym in [("bitcoin","BTC"),("ethereum","ETH"),("solana","SOL"),
+            for name, sym in [("bitcoin","BTC"),("ethereum","ETH"),
                                ("dogecoin","DOGE"),("ripple","XRP")]:
                 if name in m:
                     coin = sym
@@ -638,7 +630,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         chains = ", ".join(_chain_display.get(n, n.capitalize()) for n in lifi.CHAIN_IDS)
         return (
             "**Bridging moves funds between chains** (e.g. Polygon → Arbitrum), via a third-party "
-            "bridge/swap aggregator (LI.FI). Supported chains: " + chains + ". EVM only — no Solana route.\n\n"
+            "bridge/swap aggregator (LI.FI). Supported chains: " + chains + ".\n\n"
             "There are two ways to phrase it:\n\n"
             "**1. Same token, different chain** — just move an asset across:\n"
             "`bridge 1 USDC from polygon to arbitrum`\n\n"
@@ -983,8 +975,6 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
     w = db.query(Wallet).filter(Wallet.id == pending["wallet_id"]).first()
     if not w:
         return _stream_text(f"Wallet '{pending['wallet_name']}' not found.", db, session_id)
-    if w.chain != "evm":
-        return _stream_text("This wallet uses a chain Sara no longer supports.", db, session_id)
     token_sym = pending.get("token") or (pending.get("network") or "native").upper()
     net_display = (pending.get("network") or "ethereum").capitalize()
     try:
@@ -1075,7 +1065,6 @@ def _build_register_pending(name: str, wallet: Wallet) -> tuple[Optional[dict], 
         "duration_seconds": duration_seconds,
         "wallet_name": wallet.name,
         "wallet_id": wallet.id,
-        "wallet_chain": wallet.chain,
         "wallet_address": wallet.address,
         "wallet_encrypted_key": wallet.encrypted_key,
     }
@@ -1155,7 +1144,6 @@ def _build_swap_pending(swap_args: dict, db: Session) -> tuple[Optional[dict], s
         "dest_amount": price_route.get("destAmount", "0"),
         "price_route": price_route,
         "wallet_id": w.id,
-        "wallet_chain": w.chain,
         "wallet_encrypted_key": w.encrypted_key,
     }
     text = (
@@ -1176,8 +1164,6 @@ def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict
     w = _resolve_wallet(bridge_args["wallet_name"], db)
     if not w:
         return None, f"Wallet '{bridge_args['wallet_name']}' not found."
-    if w.chain != "evm":
-        return None, "Cross-chain bridging is EVM-only right now — pick an EVM wallet."
 
     from app.tools.trading import lifi
     from_network = bridge_args["from_network"].lower()
@@ -1264,7 +1250,6 @@ def _build_bridge_pending(bridge_args: dict, db: Session) -> tuple[Optional[dict
             "route_order": order,
             "route_name": tool_name,
             "wallet_id": w.id,
-            "wallet_chain": w.chain,
             "wallet_encrypted_key": w.encrypted_key,
         }
         text = (
@@ -1346,7 +1331,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     "token_corrected_from": pending.get("token_corrected_from"),
                     "reference": pending.get("reference"),
                     "wallet_id": selected_wallet.id,
-                    "wallet_chain": selected_wallet.chain,
                     "wallet_address": selected_wallet.address,
                     "wallet_encrypted_key": selected_wallet.encrypted_key,
                 }
@@ -1502,8 +1486,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
             ptype = pending.get("type")
             if ptype == "swap":
                 return _stream_swap(pending, db, req.session_id)
-            if ptype == "sol_swap":
-                return _stream_text("Solana is no longer supported.", db, req.session_id)
             if ptype == "bridge":
                 return _stream_bridge(pending, db, req.session_id)
             if ptype == "register_name":
@@ -1545,66 +1527,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         net_display = (send_args.get("network") or "ethereum").capitalize()
                         # Fetch current balance
                         try:
-                            from app.tools.wallet.balance import get_wallet_balance
-                            if send_args.get("token_address") and w.chain == "tron":
-                                from app.chains import tron as tron_chain
-                                preview = tron_chain.get_trc20_transfer_preview(w.address, send_args["amount"], token_sym)
-                                if not preview["has_token_funds"]:
-                                    text = (
-                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
-                                        f"**{preview['token_balance']:.6f} {token_sym}**, but you asked to send "
-                                        f"**{send_args['amount']} {token_sym}**."
-                                    )
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
-                                if not preview["has_gas_funds"]:
-                                    text = (
-                                        f"Insufficient **{preview['native_unit']}** for fees. **{send_args['wallet_name']}** has "
-                                        f"**{preview['native_balance']:.6f} {preview['native_unit']}**, but this send needs "
-                                        f"~**{preview['gas_fee']:.6f} {preview['native_unit']}** for energy/bandwidth."
-                                    )
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
-                                balance_line = (
-                                    f"Token balance: **{preview['token_balance']:.6f} {token_sym}**\n"
-                                    f"Estimated fee: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
-                                    f"(from your {preview['native_unit']} balance, not {token_sym})\n"
-                                )
-                            elif send_args.get("token_address") and w.chain == "solana":
-                                from app.chains import solana as sol_chain
-                                from app.core.amounts import to_base_units
-                                token_balance = sol_chain.get_spl_token_balance(
-                                    w.address, send_args["token_address"], send_args["token_decimals"],
-                                )
-                                sol_balance = sol_chain.get_balance(w.address)
-                                requested_raw = to_base_units(
-                                    send_args["amount"], send_args["token_decimals"], token_sym,
-                                )
-                                if token_balance["raw_balance"] < requested_raw:
-                                    text = (
-                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
-                                        f"**{token_balance['balance']:.6f} {token_sym}**, but you asked to send "
-                                        f"**{send_args['amount']} {token_sym}**."
-                                    )
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
-                                if sol_balance["balance"] <= 0:
-                                    text = f"**{send_args['wallet_name']}** has no SOL to pay network fees."
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
-                                balance_line = (
-                                    f"Token balance: **{token_balance['balance']:.6f} {token_sym}**\n"
-                                    f"SOL balance (for fees): **{sol_balance['balance']:.6f} SOL**\n"
-                                )
-                            elif send_args.get("token_address"):
+                            if send_args.get("token_address"):
                                 from app.chains import evm as evm_chain
                                 preview = evm_chain.get_erc20_transfer_preview(
                                     send_args["token_address"], send_args["token_decimals"], w.address,
@@ -1635,7 +1558,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                                     f"Estimated gas: **{preview['gas_fee']:.6f} {preview['native_unit']}** "
                                     f"(from your {preview['native_unit']} balance, not {token_sym})\n"
                                 )
-                            elif w.chain == "evm":
+                            else:
                                 from app.chains import evm as evm_chain
                                 bal = evm_chain.get_native_transfer_preview(w.address, send_args["amount"], send_args.get("network"))
                                 balance_line = (
@@ -1662,36 +1585,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                                     for chunk in _chunk(text):
                                         yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
                                     return
-                            elif w.chain == "tron":
-                                from app.chains import tron as tron_chain
-                                bal = tron_chain.get_native_transfer_preview(w.address, send_args["amount"])
-                                balance_line = (
-                                    f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                                    f"Estimated fee: **{bal['fee']:.6f} {bal['unit']}**\n"
-                                )
-                                if not bal["has_funds"]:
-                                    text = (
-                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
-                                        f"**{bal['balance']:.6f} {bal['unit']}**, but this send needs "
-                                        f"**{bal['total']:.6f} {bal['unit']}** including fees."
-                                    )
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
-                            else:
-                                bal = get_wallet_balance(w, send_args.get("network"))
-                                balance_line = f"Balance: **{bal['balance']:.6f} {bal['unit']}**\n"
-                                if bal["balance"] < send_args["amount"]:
-                                    text = (
-                                        f"Insufficient balance. **{send_args['wallet_name']}** has "
-                                        f"**{bal['balance']:.6f} {bal['unit']}**, but you asked to send "
-                                        f"**{send_args['amount']} {bal['unit']}**."
-                                    )
-                                    full_response = text
-                                    for chunk in _chunk(text):
-                                        yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                                    return
                         except Exception as e:
                             text = f"Could not verify balance, so I will not prepare this send: {_exception_message(e)}"
                             full_response = text
@@ -1701,7 +1594,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                         _pending[req.session_id] = {
                             **send_args,
                             "wallet_id": w.id,
-                            "wallet_chain": w.chain,
                             "wallet_address": w.address,
                             "wallet_encrypted_key": w.encrypted_key,
                         }
@@ -1882,14 +1774,11 @@ def _stream_send(pending: dict, db: Session, session_id: str):
         plain_key = None
         try:
             plain_key = decrypt_key(pending["wallet_encrypted_key"])
-            chain = pending["wallet_chain"]
-            if chain != "evm":
-                raise ValueError("this wallet uses a chain Sara no longer supports")
             network = pending.get("network") or "ethereum"
             to_addr = pending["to"]
             amount = pending["amount"]
             if not _is_valid_recipient(to_addr, network):
-                raise ValueError("recipient is not a valid address or resolved directory/ENS/SNS name")
+                raise ValueError("recipient is not a valid address or resolved directory/ENS name")
 
             decimals = pending.get("token_decimals", 18) if pending.get("token_address") else 18
             token_sym = pending.get("token") or _NETWORK_NATIVE_TOKEN.get(network, "ETH")
@@ -1903,18 +1792,11 @@ def _stream_send(pending: dict, db: Session, session_id: str):
                 raise ValueError(denial)
             enforce_mandatory_screening(db, to_addr, network)
 
-            if chain == "evm" and pending.get("token_address"):
+            if pending.get("token_address"):
                 tx_hash = evm_chain.send_erc20_tx(
                     plain_key, pending["token_address"], pending["token_decimals"],
                     to_addr, amount, network,
                 )
-            elif chain == "evm":
-                balance = evm_chain.get_balance(pending["wallet_address"], network)
-                if balance["balance"] < amount:
-                    raise ValueError(
-                        f"insufficient balance: {balance['balance']:.6f} {balance['unit']} available"
-                    )
-                tx_hash = evm_chain.send_tx(plain_key, to_addr, amount, network)
             else:
                 balance = evm_chain.get_balance(pending["wallet_address"], network)
                 if balance["balance"] < amount:
@@ -2173,62 +2055,6 @@ def _stream_bridge(pending: dict, db: Session, session_id: str):
             yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
         yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
         db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(approval_note + text, role="assistant")))
-        db.commit()
-    return StreamingResponse(generate(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-
-
-def _stream_sol_swap(pending: dict, db: Session, session_id: str):
-    async def generate():
-        from app.tools.wallet.encrypt import decrypt_key
-        from app.tools.market.jupiter import get_quote as jup_quote, get_swap_transaction, execute_swap as jup_execute
-        plain_key = None
-        key_bytes = None
-        try:
-            plain_key   = decrypt_key(pending["wallet_encrypted_key"])
-            key_bytes   = bytes.fromhex(plain_key)
-            wallet_addr = pending["wallet_address"]
-            src_mint    = pending["src_mint"]
-            dst_mint    = pending["dst_mint"]
-            dst_dec     = pending.get("dst_dec", 9)
-            amount_raw  = pending["amount_raw"]
-            src_sym     = pending["from_token"]
-            dst_sym     = pending["to_token"]
-            amount      = pending["amount"]
-
-            # Re-quote right before executing rather than reusing the
-            # preview-time quote — same reasoning as the EVM swap/bridge flows.
-            quote = jup_quote(src_mint, dst_mint, amount_raw)
-            if not (quote and "outAmount" in quote):
-                err = quote.get("error", "unknown error") if quote else "Jupiter API unavailable"
-                raise Exception(f"could not refresh quote before executing — {err}")
-            new_dst_amount = int(quote["outAmount"])
-            original_dst_amount = int(pending["quote"]["outAmount"])
-            if original_dst_amount and new_dst_amount < original_dst_amount * 0.98:
-                original_human = original_dst_amount / (10 ** dst_dec)
-                new_human = new_dst_amount / (10 ** dst_dec)
-                raise Exception(
-                    f"the rate moved since you confirmed — you'd now get ~{new_human:.4f} {dst_sym} "
-                    f"instead of the ~{original_human:.4f} {dst_sym} you approved. Please re-run the "
-                    f"swap command to see the new rate and confirm again."
-                )
-
-            tx_b64 = get_swap_transaction(quote, wallet_addr)
-            if not tx_b64:
-                raise Exception("Jupiter did not return swap transaction")
-            sig = jup_execute(key_bytes, tx_b64, src_mint, dst_mint, amount_raw, int(new_dst_amount * 0.98))
-            dst_amount_human = new_dst_amount / (10 ** dst_dec)
-            text = (f"✅ Swapped **{amount} {src_sym} → ~{dst_amount_human:.4f} {dst_sym}** on Solana!\n"
-                    f"Signature: `{sig}`")
-        except Exception as e:
-            text = f"Solana swap failed: {_exception_message(e, plain_key, key_bytes)}"
-        finally:
-            plain_key = None
-            key_bytes = None
-        for chunk in _chunk(text):
-            yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-        yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=redact_for_storage(text, role="assistant")))
         db.commit()
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

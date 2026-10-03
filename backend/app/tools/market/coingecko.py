@@ -3,7 +3,7 @@ import os, time, requests
 BASE = "https://api.coingecko.com/api/v3"
 
 SYMBOL_TO_ID = {
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana",
+    "BTC": "bitcoin", "ETH": "ethereum",
     "AVAX": "avalanche-2", "MATIC": "matic-network", "POL": "polygon-ecosystem-token",
     "DOT": "polkadot", "ADA": "cardano", "DOGE": "dogecoin",
     "LINK": "chainlink", "BNB": "binancecoin", "XRP": "ripple",
