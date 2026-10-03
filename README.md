@@ -32,7 +32,6 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Recovery phrases** | One 24-word BIP-39 recovery phrase backs every wallet you create, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. Additional phrases, generated or imported, are an advanced option under **Settings → Recovery Phrases**. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Sara Names** (coming soon) | Human-readable names for wallet addresses, with signed multi-network records. The registry has not yet been broadcast to Polygon Amoy. | [sara-names.md](docs/sara-names.md) |
-| **File proofs** (coming soon) | Hash a file locally, authorize an exact 1 USDC Polygon checkout from your own wallet, and verify the file later. No BlockchainProof API key or shared billing account needed. | [third-party-services.md](docs/third-party-services.md) |
 
 ### Supported networks
 

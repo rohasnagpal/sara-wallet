@@ -145,18 +145,12 @@ def _recover_pending_migration(passphrase: str) -> bytes | None:
         return None
 
     from app.db.session import SessionLocal
-    from app.db.models import Wallet, ProofRecord
+    from app.db.models import Wallet
     db = SessionLocal()
     try:
         try:
             for wallet in db.query(Wallet).all():
                 encrypt.decrypt_with_key(wallet.encrypted_key, key)
-            for proof in db.query(ProofRecord).all():
-                encrypt.decrypt_with_key(proof.encrypted_details, key)
-                if proof.encrypted_proof:
-                    encrypt.decrypt_with_key(proof.encrypted_proof, key)
-                if proof.encrypted_evidence:
-                    encrypt.decrypt_bytes_with_key(proof.encrypted_evidence, key)
         except Exception:
             # The DB never committed; current .env.local remains authoritative.
             encrypt.discard_pending_migration()
@@ -207,8 +201,8 @@ def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> Non
     be updated in one real transaction, so the ordering here is deliberate:
       1. Stage the new env-format content to a deterministic, owner-only
          restart-recovery file — if this fails, nothing has changed at all.
-      2. Re-encrypt every wallet and every ProofRecord's encrypted fields
-         from the old key to the new one, in one DB transaction. If
+      2. Re-encrypt every wallet from the old key to the new one, in one DB
+         transaction. If
          anything here raises, the staged file is discarded and nothing
          has changed.
       3. Only once the DB commit has actually succeeded, promote the staged
@@ -220,7 +214,7 @@ def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> Non
     import logging
     from app.tools.wallet import encrypt
     from app.db.session import SessionLocal
-    from app.db.models import Wallet, ProofRecord
+    from app.db.models import Wallet
 
     encrypt.stage_migration_update({
         "SARA_MASTER_KEY": None,
@@ -234,15 +228,6 @@ def _stage_and_reencrypt(new_salt: bytes, new_key: bytes, old_key: bytes) -> Non
             for w in db.query(Wallet).all():
                 plaintext = encrypt.decrypt_with_key(w.encrypted_key, old_key)
                 w.encrypted_key = encrypt.encrypt_with_key(plaintext, new_key)
-            for proof in db.query(ProofRecord).all():
-                details = encrypt.decrypt_with_key(proof.encrypted_details, old_key)
-                proof.encrypted_details = encrypt.encrypt_with_key(details, new_key)
-                if proof.encrypted_proof:
-                    proof_json = encrypt.decrypt_with_key(proof.encrypted_proof, old_key)
-                    proof.encrypted_proof = encrypt.encrypt_with_key(proof_json, new_key)
-                if proof.encrypted_evidence:
-                    evidence = encrypt.decrypt_bytes_with_key(proof.encrypted_evidence, old_key)
-                    proof.encrypted_evidence = encrypt.encrypt_bytes_with_key(evidence, new_key)
             db.commit()
         finally:
             db.close()
@@ -278,7 +263,7 @@ def _migrate_legacy_wallets(passphrase: str, old_key: bytes) -> bytes:
 
 def change_passphrase(old_passphrase: str, new_passphrase: str) -> bool:
     """User-initiated passphrase change: verifies old_passphrase, then
-    re-encrypts every wallet/proof-record from the current key to a
+    re-encrypts every wallet from the current key to a
     freshly salted/scrypt-derived key from new_passphrase, via the same
     _stage_and_reencrypt sequence _migrate_legacy_wallets uses.
 

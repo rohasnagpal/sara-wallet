@@ -13,7 +13,6 @@ from app.tools.payments import reconcile
 from app.tools.trading import lifi
 from app.tools.wallet import encrypt, lock
 from app.tools.wallet import keygen
-from app.tools.proofs import blockchainproof
 from app.routers import chat, wallets
 from app.core import assets
 from app.core.amounts import to_base_units
@@ -199,12 +198,6 @@ class WalletKeyLifecycleTests(unittest.TestCase):
         self.assertEqual(encrypt.decrypt_with_key(first, key), "secret")
         self.assertEqual(encrypt.decrypt_with_key(second, key), "secret")
 
-    def test_binary_evidence_encryption_round_trips(self):
-        key = b"e" * 32
-        encrypted = encrypt.encrypt_bytes_with_key(b"PK\x03\x04evidence", key)
-        self.assertNotEqual(encrypted, b"PK\x03\x04evidence")
-        self.assertEqual(encrypt.decrypt_bytes_with_key(encrypted, key), b"PK\x03\x04evidence")
-
     def test_sensitive_exception_values_are_redacted(self):
         secret = "0x" + "ab" * 32
         message = chat._exception_message(
@@ -258,57 +251,7 @@ class ReconciliationAndFrontendTests(unittest.TestCase):
         self.assertIn("_escapeHtml(data.name)", html)
         self.assertIn("_escapeHtml(data.address)", html)
 
-    def test_proof_theme_is_default_and_file_is_hashed_locally(self):
-        html = pathlib.Path(__file__).parents[2].joinpath("index.html").read_text()
-        self.assertIn('<div class="app-shell theme-proof" id="appShell">', html)
-        self.assertIn('<div class="lock-overlay theme-proof open" id="lockOverlay">', html)
-        self.assertIn('data-theme="proof" title="Proof — inspired by BlockchainProof"', html)
-        self.assertIn("crypto.subtle.digest('SHA-256'", html)
-        # The BlockchainProof flow must only ever send a file's SHA-256
-        # fingerprint, never its raw bytes — scoped to that feature's own JS
-        # section rather than the whole file, since business features (e.g.
-        # airdrop CSV import) legitimately upload file content elsewhere.
-        proof_section = html.split("// BLOCKCHAIN PROOFS", 1)[1].split("// ADDRESS BOOK / DIRECTORY", 1)[0]
-        self.assertNotIn("new FormData", proof_section)
-
-
-class BlockchainProofCheckoutTests(unittest.TestCase):
-    def _checkout(self, address):
-        now = int(time.time())
-        return {
-            "checkout_id": "CO_TEST", "checkout_token": "a" * 64,
-            "price": {"amount": "1.00", "currency": "USDC", "network": "polygon"},
-            "typed_data": {
-                "types": {
-                    "EIP712Domain": [
-                        {"name":"name","type":"string"},{"name":"version","type":"string"},
-                        {"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"},
-                    ],
-                    "ReceiveWithAuthorization": [
-                        {"name":"from","type":"address"},{"name":"to","type":"address"},
-                        {"name":"value","type":"uint256"},{"name":"validAfter","type":"uint256"},
-                        {"name":"validBefore","type":"uint256"},{"name":"nonce","type":"bytes32"},
-                    ],
-                },
-                "primaryType": "ReceiveWithAuthorization",
-                "domain": {"name":"USD Coin","version":"2","chainId":137,"verifyingContract":assets.NETWORKS["polygon"]["usdc"]},
-                "message": {"from":address,"to":"0x" + "22"*20,"value":"1000000","validAfter":"0","validBefore":str(now+900),"nonce":"0x"+"33"*32},
-            },
-        }
-
-    def test_checkout_validation_binds_exact_payment(self):
-        account = keygen.Account.create()
-        checkout = self._checkout(account.address)
-        blockchainproof.validate_checkout(checkout, "ab" * 32, account.address)
-        checkout["typed_data"]["message"]["value"] = "1000001"
-        with self.assertRaisesRegex(blockchainproof.ProofServiceError, "safety validation"):
-            blockchainproof.validate_checkout(checkout, "ab" * 32, account.address)
-
-    def test_typed_payment_signature_recovers_selected_wallet(self):
-        account = keygen.Account.create()
-        checkout = self._checkout(account.address)
-        signature = blockchainproof.sign_checkout(checkout["typed_data"], account.key.hex(), account.address)
-        self.assertRegex(signature, r"^0x[0-9a-f]{130}$")
+class WalletSecurityTests(unittest.TestCase):
 
     def test_wallet_secret_fields_are_cleared_and_export_is_not_cached(self):
         html = pathlib.Path(__file__).parents[2].joinpath("index.html").read_text()

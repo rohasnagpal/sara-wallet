@@ -36,9 +36,7 @@ how keys are protected, see [security-model.md](security-model.md).
 | **News and sentiment sources** (CoinTelegraph and CoinDesk feeds, Alternative.me) | Your IP address only. | Market news and sentiment. |
 | **The sanctions list** (Chainalysis oracle, read through a public node) | The address you screen. | Only when you screen an address. |
 
-Coming soon: **File proofs** send only a file's SHA-256 fingerprint to
-BlockchainProof, never the file, and **Sara Names** will be described here
-when it returns.
+**Sara Names** is coming soon and will be described here when it returns.
 
 ## What Sara does not do
 

@@ -30,6 +30,10 @@ class MigrationTests(unittest.TestCase):
                     "CREATE TABLE payment_requests (id INTEGER PRIMARY KEY, chain VARCHAR NOT NULL, "
                     "network VARCHAR NOT NULL)"
                 ))
+                conn.execute(text(
+                    "CREATE TABLE proof_records (id INTEGER PRIMARY KEY, checkout_id VARCHAR NOT NULL, "
+                    "encrypted_details TEXT NOT NULL)"
+                ))
             # New tables are created by normal startup before migrations run.
             Base.metadata.create_all(engine)
             run_migrations(engine)
@@ -39,6 +43,7 @@ class MigrationTests(unittest.TestCase):
             self.assertTrue({"network", "amount_raw", "confirmations", "fiat_usd_value", "tags"} <= tx_columns)
             invoice_columns = {c["name"] for c in inspect(engine).get_columns("payment_requests")}
             self.assertTrue({"amount_raw", "decimals", "customer_name", "due_date", "payment_address", "merchant_client_id"} <= invoice_columns)
+            self.assertNotIn("proof_records", inspect(engine).get_table_names())
             with engine.connect() as conn:
                 versions = conn.execute(text("SELECT version FROM schema_migrations")).all()
             self.assertEqual([v[0] for v in versions], [
@@ -47,6 +52,7 @@ class MigrationTests(unittest.TestCase):
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
                 "009_drop_dual_control", "010_paywall_preview_message",
                 "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
+                "014_remove_sara_proof",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

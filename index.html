@@ -228,43 +228,6 @@
 .theme-lime .msg.user .msg-bubble { color: var(--accent-text); font-weight: 500; }
 
 /* ══════════════════════════════════════
-   PROOF (BlockchainProof-inspired)
-══════════════════════════════════════ */
-.theme-proof {
-  --bg-app-start: #deffe9;
-  --bg-app-end: #ccff9f;
-  --bg-sidebar1: rgba(248,255,249,0.76);
-  --bg-sidebar2: rgba(248,255,249,0.64);
-  --bg-card: rgba(250,255,251,0.82);
-  --bg-card2: rgba(255,255,255,0.62);
-  --bg-chat: rgba(248,255,249,0.48);
-  --bg-input: rgba(255,255,255,0.86);
-  --bg-msg-user: #10251b;
-  --bg-msg-bot: rgba(250,255,251,0.9);
-  --text-primary: #10251b;
-  --text-secondary: #486356;
-  --text-muted: rgba(72,99,86,0.68);
-  --accent: #08763a;
-  --accent2: #23df75;
-  --green: #08763a;
-  --red: #911717;
-  --border: rgba(16,37,27,0.17);
-  --border-dark: rgba(16,37,27,0.14);
-  --card-shadow: 0 24px 75px rgba(20,91,51,0.13), inset 0 1px 0 rgba(255,255,255,0.78);
-  --sidebar-nav-active: rgba(35,223,117,0.18);
-  --sidebar-nav-hover: rgba(255,255,255,0.58);
-  --pill-bg: rgba(35,223,117,0.14);
-  --chart-line: #08763a;
-  --chart-bg1: rgba(35,223,117,0.25);
-  --chart-bg2: rgba(35,223,117,0);
-  --upgrade-bg: linear-gradient(135deg, rgba(189,255,215,0.72), rgba(204,255,159,0.52));
-  --scrollbar: rgba(16,37,27,0.12);
-  --is-light: 1;
-  --accent-text: #ffffff;
-  --topbar-bg: rgba(222,255,233,0.72);
-}
-
-/* ══════════════════════════════════════
    BASE STYLES
 ══════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -295,24 +258,6 @@ body {
 .app-bg.theme-sunset { background: linear-gradient(135deg, #1a0a00, #2d1200); }
 .app-bg.theme-forest { background: linear-gradient(135deg, #071410, #0a1f18); }
 .app-bg.theme-lime { background: linear-gradient(135deg, #060606, #0a0a0a); }
-.app-bg.theme-proof {
-  background:
-    radial-gradient(circle at 8% 3%, rgba(255,255,255,0.98), transparent 24%),
-    radial-gradient(circle at 92% 10%, rgba(35,223,117,0.52), transparent 30%),
-    linear-gradient(135deg, #deffe9, #9dffc1 48%, #ccff9f);
-}
-.app-bg.theme-proof::after {
-  content: "";
-  position: absolute; inset: 0;
-  opacity: 0.17;
-  background-image:
-    linear-gradient(rgba(16,37,27,0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16,37,27,0.14) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: linear-gradient(#000, transparent 92%);
-  mask-image: linear-gradient(#000, transparent 92%);
-}
-
 .app-shell {
   position: relative; z-index: 1;
   display: flex; height: 100vh; overflow: hidden;
@@ -577,25 +522,7 @@ select.settings-input { text-overflow: ellipsis; }
 .theme-dot[data-theme="sunset"] { background: linear-gradient(135deg, #f59e0b, #ef4444); }
 .theme-dot[data-theme="forest"] { background: linear-gradient(135deg, #10b981, #34d399); }
 .theme-dot[data-theme="lime"] { background: linear-gradient(135deg, #0a0a0a, #d7ff3f); }
-.theme-dot[data-theme="proof"] { background: linear-gradient(135deg, #10251b 0 46%, #23df75 46% 72%, #ccff9f 72%); }
 .theme-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-body); }
-
-/* Proof vault */
-.proof-form { display: grid; gap: 9px; }
-.proof-file { display: grid; min-height: 78px; place-items: center; padding: 12px; border: 1.5px dashed var(--accent); border-radius: 12px; background: var(--pill-bg); color: var(--text-secondary); font-size: 11.5px; text-align: center; cursor: pointer; }
-.proof-file strong { display: block; color: var(--text-primary); font-size: 12.5px; }
-.proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.proof-preview { padding: 11px; border: 1px solid var(--border-dark); border-radius: 11px; background: var(--bg-card2); font-size: 11px; line-height: 1.55; }
-.proof-preview code, .proof-hash { font-family: var(--font-mono); overflow-wrap: anywhere; }
-.proof-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.proof-list { display: flex; flex-direction: column; gap: 8px; }
-.proof-entry { padding: 11px; border: 1px solid var(--border-dark); border-radius: 12px; background: var(--bg-card2); }
-.proof-entry-head { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
-.proof-status { flex-shrink: 0; padding: 2px 7px; border: 1px solid currentColor; border-radius: 999px; color: var(--accent); font: 700 9px var(--font-mono); text-transform: uppercase; }
-.proof-status.failed { color: var(--red); }
-.proof-status.complete { color: var(--green); }
-.proof-meta { margin-top: 5px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
-@media (max-width: 700px) { .proof-grid { grid-template-columns: 1fr; } }
 
 /* Reusable status pill + result/list-row cards (token deployments, previews, etc) */
 .status-pill {
@@ -1092,7 +1019,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 </head>
 <body>
 
-<div class="lock-overlay theme-proof open" id="lockOverlay">
+<div class="lock-overlay open" id="lockOverlay">
   <div class="lock-card">
     <div class="lock-icon">🔒</div>
     <div class="lock-title" id="lockTitle">Unlock Sara</div>
@@ -1105,9 +1032,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   </div>
 </div>
 
-<div class="app-bg theme-proof" id="appBg"></div>
+<div class="app-bg" id="appBg"></div>
 
-<div class="app-shell theme-proof" id="appShell">
+<div class="app-shell" id="appShell">
 
   <!-- ── Sidebar 1 ── -->
   <div class="sidebar1">
@@ -1143,12 +1070,11 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
         <span class="theme-label">Theme</span>
         <div class="theme-switcher">
           <div class="theme-dot" data-theme="lime" title="Lime"></div>
-          <div class="theme-dot" data-theme="default" title="Pearl (Default)"></div>
+          <div class="theme-dot active" data-theme="default" title="Pearl (Default)"></div>
           <div class="theme-dot" data-theme="glassy" title="Glassy"></div>
           <div class="theme-dot" data-theme="darkpro" title="Dark Pro"></div>
           <div class="theme-dot" data-theme="sunset" title="Sunset"></div>
           <div class="theme-dot" data-theme="forest" title="Forest"></div>
-          <div class="theme-dot active" data-theme="proof" title="Proof — inspired by BlockchainProof"></div>
         </div>
       </div>
     </div>
@@ -1170,7 +1096,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnNames" onclick="showTool('names')" disabled title="Temporarily unavailable">Names</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
-          <button class="col2-nav-btn" id="col2BtnProofs" onclick="showCol2('proofs')" disabled title="Temporarily unavailable">Proofs</button>
           <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
@@ -1903,43 +1828,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           </div>
         </div><!-- /alertsView -->
 
-        <!-- ── Proofs View ── -->
-        <div id="proofsView" style="display:none">
-          <div class="card" style="margin-bottom:10px">
-            <div style="font-size:15px;font-weight:600;color:var(--text-primary)">Create a file proof</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 12px">The file is hashed on this device. Only its SHA-256 fingerprint is sent to BlockchainProof. A proof records that fingerprint by a particular time; it does not by itself prove authorship or ownership.</div>
-            <div class="proof-form">
-              <label class="proof-file" for="proofFile"><span><strong id="proofFileTitle">Choose a file</strong><span id="proofFileHelp">The file never leaves Sara</span></span></label>
-              <input id="proofFile" type="file" hidden onchange="hashProofFile(this, 'proofHash', 'proofFileTitle')">
-              <div class="field"><label class="field-label" for="proofHash">SHA-256 fingerprint</label><input class="settings-input proof-hash" id="proofHash" maxlength="64" placeholder="SHA-256 fingerprint"></div>
-              <div class="proof-grid">
-                <div class="field"><label class="field-label" for="proofWallet">Wallet</label><select class="settings-input" id="proofWallet"><option value="">Select wallet</option></select></div>
-                <div class="field"><label class="field-label" for="proofDescription">Description (optional)</label><input class="settings-input" id="proofDescription" maxlength="300" placeholder="Private description (optional)"></div>
-              </div>
-              <button class="settings-save-btn" id="proofPrepareBtn" onclick="prepareProofCheckout()">Prepare 1 USDC proof</button>
-              <div class="settings-status" id="proofCreateStatus" style="height:auto;min-height:14px"></div>
-              <div id="proofCheckoutPreview"></div>
-            </div>
-          </div>
-
-          <div class="card" style="margin-bottom:10px">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:9px">My proofs</div>
-            <div class="proof-list" id="proofList"><div style="font-size:11px;color:var(--text-muted)">Loading…</div></div>
-          </div>
-
-          <div class="card">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Verify a file</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 9px">Hash locally and check BlockchainProof for matching public records.</div>
-            <div class="proof-form">
-              <label class="proof-file" for="proofVerifyFile"><span><strong id="proofVerifyFileTitle">Choose a file</strong><span>The file never leaves Sara</span></span></label>
-              <input id="proofVerifyFile" type="file" hidden onchange="hashProofFile(this, 'proofVerifyHash', 'proofVerifyFileTitle')">
-              <div class="field"><label class="field-label" for="proofVerifyHash">SHA-256 fingerprint</label><input class="settings-input proof-hash" id="proofVerifyHash" maxlength="64" placeholder="SHA-256 fingerprint"></div>
-              <button class="settings-save-btn" onclick="verifyProofHash()">Verify fingerprint</button>
-              <div id="proofVerifyResult" style="font-size:11px;color:var(--text-secondary)"></div>
-            </div>
-          </div>
-        </div><!-- /proofsView -->
-
         <!-- ── Settings View ── -->
         <div id="settingsView" style="display:none">
           <div class="card">
@@ -2383,7 +2271,7 @@ async function openReceipt(url, title) {
 
     // Snapshot the live theme's CSS custom properties so this separate
     // document (window.open gives it its own DOM) matches whatever skin
-    // (Pearl/Glassy/Dark Pro/Sunset/Forest/Lime/Proof) is active right now.
+    // (Pearl/Glassy/Dark Pro/Sunset/Forest/Lime) is active right now.
     const cs = getComputedStyle(document.getElementById('appShell') || document.documentElement);
     const themeVarNames = ['--bg-app-start','--bg-app-end','--bg-card','--bg-card2','--bg-input',
       '--text-primary','--text-secondary','--text-muted','--accent','--accent-text',
@@ -2551,7 +2439,7 @@ async function lockWalletNow() {
 // ══════════════════════════════════════
 // THEME SWITCHER
 // ══════════════════════════════════════
-const themes = ['default','glassy','darkpro','sunset','forest','lime','proof'];
+const themes = ['default','glassy','darkpro','sunset','forest','lime'];
 const shell = document.getElementById('appShell');
 const appBg = document.getElementById('appBg');
 
@@ -3383,13 +3271,12 @@ async function showCol2(mode) {
   document.getElementById('toolsView').style.display      = mode === 'tools'      ? '' : 'none';
   document.getElementById('safetyView').style.display     = mode === 'safety'     ? '' : 'none';
   document.getElementById('alertsView').style.display     = mode === 'alerts'     ? '' : 'none';
-  document.getElementById('proofsView').style.display     = mode === 'proofs'     ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'   ? '' : 'none';
   document.getElementById('directoryView').style.display  = mode === 'directory'  ? '' : 'none';
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
-   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnAlerts','col2BtnSafety','col2BtnProofs','col2BtnDir','col2BtnSettings'].forEach(id => {
+   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnAlerts','col2BtnSafety','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
@@ -3402,7 +3289,6 @@ async function showCol2(mode) {
   if (mode === 'accounting') document.getElementById('col2BtnAccounting')?.classList.add('active');
   if (mode === 'safety')     document.getElementById('col2BtnSafety')?.classList.add('active');
   if (mode === 'alerts')     document.getElementById('col2BtnAlerts')?.classList.add('active');
-  if (mode === 'proofs')     document.getElementById('col2BtnProofs')?.classList.add('active');
   if (mode === 'directory')  document.getElementById('col2BtnDir')?.classList.add('active');
   if (mode === 'settings')   document.getElementById('col2BtnSettings')?.classList.add('active');
 
@@ -3424,7 +3310,6 @@ async function showCol2(mode) {
   if (mode === 'tools') await loadToolsView();
   if (mode === 'safety') await loadSafety();
   if (mode === 'alerts') await loadAlertsView();
-  if (mode === 'proofs') await loadProofsView();
   if (mode === 'settings') await _loadSettingsView();
   if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
 }
@@ -5335,167 +5220,6 @@ async function testSavedAlert(id, btn) {
 
 function confirmDeleteAlert(btn, id) { _armConfirm(btn, () => deleteAlert(id)); }
 async function deleteAlert(id) { await fetch('/api/safety/alerts/' + id, {method: 'DELETE'}); await loadAlertDestinations(); }
-
-// ══════════════════════════════════════
-// BLOCKCHAIN PROOFS
-// ══════════════════════════════════════
-let _preparedProof = null;
-let _proofPollTimer = null;
-let _proofFileName = '';
-
-async function hashProofFile(input, targetId, titleId) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  if (targetId === 'proofHash') _proofFileName = file.name;
-  const target = document.getElementById(targetId);
-  if (titleId) document.getElementById(titleId).textContent = 'Hashing ' + file.name + '…';
-  try {
-    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-    target.value = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
-    if (titleId) document.getElementById(titleId).textContent = file.name;
-  } catch(e) {
-    if (titleId) document.getElementById(titleId).textContent = 'Could not hash this file';
-  }
-}
-
-async function loadProofsView() {
-  const walletSelect = document.getElementById('proofWallet');
-  try {
-    const wallets = await fetch('/api/wallets').then(r => r.json());
-    walletSelect.innerHTML = '<option value="">Select wallet</option>' + wallets.map(w =>
-      `<option value="${w.id}">${_escapeHtml(w.name)} · ${_escapeHtml(w.address.slice(0,8))}…</option>`
-    ).join('');
-  } catch(e) { walletSelect.innerHTML = '<option value="">Could not load wallets</option>'; }
-  await loadProofRecords();
-}
-
-async function _proofJson(response) {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const err = new Error(_apiErrorText(data, response.status ? `Request failed (HTTP ${response.status}).` : 'Request failed - no response from the server.'));
-    err.status = response.status;
-    throw err;
-  }
-  return data;
-}
-
-async function prepareProofCheckout() {
-  const hash = document.getElementById('proofHash').value.trim().toLowerCase();
-  const walletId = Number(document.getElementById('proofWallet').value);
-  const description = document.getElementById('proofDescription').value.trim();
-  const status = document.getElementById('proofCreateStatus');
-  const prepareButton = document.getElementById('proofPrepareBtn');
-  if (!/^[0-9a-f]{64}$/.test(hash)) { status.textContent = 'Choose a file or enter a valid SHA-256 fingerprint.'; return; }
-  if (!walletId) { status.textContent = 'Select the wallet that will pay 1 USDC.'; return; }
-  status.textContent = 'Preparing a secure checkout…';
-  prepareButton.disabled = true;
-  try {
-    _preparedProof = await _proofJson(await fetch('/api/proofs/checkouts', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({wallet_id:walletId, hash, description, file_name:_proofFileName}),
-    }));
-    const expiry = new Date(_preparedProof.expires_at).toLocaleString();
-    document.getElementById('proofCheckoutPreview').innerHTML = `<div class="proof-preview">
-      <strong>Review before authorizing</strong><br>
-      Pay: <strong>1.00 USDC</strong> on Polygon PoS<br>
-      Available: <strong>${Number(_preparedProof.usdc_balance).toFixed(2)} USDC</strong><br>
-      From: ${_escapeHtml(_preparedProof.wallet_name)} · <code>${_escapeHtml(_preparedProof.wallet_address)}</code><br>
-      To: <code>${_escapeHtml(_preparedProof.recipient)}</code><br>
-      Fingerprint: <code>${_escapeHtml(_preparedProof.hash)}</code><br>
-      Expires: ${_escapeHtml(expiry)}
-      <div class="proof-actions"><button class="settings-save-btn" onclick="authorizePreparedProof()">Authorize 1 USDC</button><button class="wallet-btn-cancel" onclick="cancelPreparedProof()">Cancel</button></div>
-    </div>`;
-    status.textContent = 'Checkout validated. Review every field before authorizing.';
-  } catch(e) { status.textContent = e.message; }
-  finally { prepareButton.disabled = false; }
-}
-
-function cancelPreparedProof() {
-  _preparedProof = null;
-  document.getElementById('proofCheckoutPreview').innerHTML = '';
-  document.getElementById('proofCreateStatus').textContent = 'Checkout left unsigned. It will expire without payment.';
-}
-
-async function authorizePreparedProof() {
-  if (!_preparedProof) return;
-  const passphrase = await requestTransactionPassphrase();
-  if (!passphrase) return;
-  const recordId = _preparedProof.id;
-  const status = document.getElementById('proofCreateStatus');
-  status.textContent = 'Signing the exact 1 USDC authorization…';
-  try {
-    const record = await _proofJson(await fetch(`/api/proofs/${recordId}/confirm`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({passphrase}),
-    }));
-    document.getElementById('lockInput').value = '';
-    _preparedProof = null;
-    document.getElementById('proofCheckoutPreview').innerHTML = '';
-    status.textContent = 'Payment authorization submitted. Creating the proof…';
-    await loadProofRecords();
-    pollProofRecord(record.id);
-  } catch(e) { status.textContent = e.message; }
-}
-
-function pollProofRecord(id) {
-  clearTimeout(_proofPollTimer);
-  let attempts = 0;
-  const poll = async () => {
-    attempts++;
-    try {
-      const row = await _proofJson(await fetch(`/api/proofs/${id}/refresh`, {method:'POST'}));
-      await loadProofRecords();
-      const terminal = ['complete','partial_failure','failed'].includes(row.proof_status) || ['failed','expired'].includes(row.status);
-      if (terminal) {
-        document.getElementById('proofCreateStatus').textContent = row.proof_status === 'complete' ? 'Proof complete. Evidence is stored locally.' : (row.last_error || 'Proof processing finished with an issue.');
-        return;
-      }
-    } catch(e) { document.getElementById('proofCreateStatus').textContent = e.message; }
-    if (attempts < 75) _proofPollTimer = setTimeout(poll, 4000);
-  };
-  poll();
-}
-
-async function refreshProofRecord(id) {
-  try { await _proofJson(await fetch(`/api/proofs/${id}/refresh`, {method:'POST'})); await loadProofRecords(); }
-  catch(e) { document.getElementById('proofCreateStatus').textContent = e.message; }
-}
-
-async function loadProofRecords() {
-  const list = document.getElementById('proofList');
-  try {
-    const rows = await _proofJson(await fetch('/api/proofs'));
-    if (!rows.length) { list.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No proofs yet.</div>'; return; }
-    list.innerHTML = rows.map(row => {
-      if (row.error) {
-        return `<div class="proof-entry"><div class="proof-meta">Proof #${row.id}${row.created_at ? ' · ' + _escapeHtml(new Date(row.created_at).toLocaleString()) : ''}</div><div class="proof-meta" style="color:var(--red)">Could not read this record: ${_escapeHtml(row.error_message || 'unknown error')}</div></div>`;
-      }
-      const status = row.proof_status || row.status;
-      const statusClass = status === 'complete' ? 'complete' : (status === 'failed' ? 'failed' : '');
-      const publicLink = row.public_url ? `<a href="${_escapeHtml(row.public_url)}" target="_blank" rel="noopener">Public proof</a>` : '';
-      const evidence = row.has_evidence ? `<a href="/api/proofs/${row.id}/evidence">Download evidence</a>` : '';
-      return `<div class="proof-entry"><div class="proof-entry-head"><div><strong>${_escapeHtml(row.description || row.file_name || 'File proof')}</strong><div class="proof-meta">${_escapeHtml(row.file_name || '')}${row.file_name ? ' · ' : ''}${_escapeHtml(row.wallet_name || '')} · ${_escapeHtml(new Date(row.created_at).toLocaleString())}</div></div><span class="proof-status ${statusClass}">${_escapeHtml(status)}</span></div><div class="proof-meta proof-hash">${_escapeHtml(row.hash)}</div><div class="proof-actions"><button class="wallet-btn-cancel" onclick="refreshProofRecord(${row.id})">Refresh</button>${publicLink}${evidence}</div>${row.last_error ? `<div class="proof-meta" style="color:var(--red)">${_escapeHtml(row.last_error)}</div>` : ''}</div>`;
-    }).join('');
-  } catch(e) {
-    const statusText = e.status ? `HTTP ${e.status}` : 'no response from the server';
-    list.innerHTML = `<div style="font-size:11px;color:var(--red)">
-      <div>Could not load proofs (${_escapeHtml(statusText)}): ${_escapeHtml(e.message)}</div>
-      <div style="color:var(--text-muted);margin-top:2px">${_escapeHtml(new Date().toLocaleString())}</div>
-      <button class="wallet-btn-cancel" style="margin-top:6px" onclick="loadProofRecords()">Retry</button>
-    </div>`;
-  }
-}
-
-async function verifyProofHash() {
-  const hash = document.getElementById('proofVerifyHash').value.trim().toLowerCase();
-  const result = document.getElementById('proofVerifyResult');
-  if (!/^[0-9a-f]{64}$/.test(hash)) { result.textContent = 'Enter a valid SHA-256 fingerprint.'; return; }
-  result.textContent = 'Checking public evidence…';
-  try {
-    const data = await _proofJson(await fetch('/api/proofs/verify/hash', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hash})}));
-    if (!data.match_count) { result.textContent = 'No matching public proof was found.'; return; }
-    result.innerHTML = `<strong>${data.match_count} matching proof${data.match_count === 1 ? '' : 's'} found.</strong>` + data.proofs.map(p => `<div class="proof-preview" style="margin-top:7px">${_escapeHtml(p.proof_id)} · ${p.all_available_evidence_valid ? 'Available evidence valid' : 'Review evidence status'}</div>`).join('');
-  } catch(e) { result.textContent = e.message; }
-}
 
 const _SETTINGS_FILLED_PLACEHOLDER = '••••••••••••••••••••';
 

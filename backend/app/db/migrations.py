@@ -191,6 +191,12 @@ def _migration_013_wallet_seeds(engine: Engine) -> None:
     _add_columns(engine, "wallets", {"seed_id": "INTEGER", "derivation_index": "INTEGER"})
 
 
+def _migration_014_remove_sara_proof(engine: Engine) -> None:
+    """Remove the retired Sara Proof feature and its local records."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS proof_records"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -205,6 +211,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("011_fetched_content_file_path", _migration_011_fetched_content_file_path),
     ("012_paywall_facilitator", _migration_012_paywall_facilitator),
     ("013_wallet_seeds", _migration_013_wallet_seeds),
+    ("014_remove_sara_proof", _migration_014_remove_sara_proof),
 )
 
 
