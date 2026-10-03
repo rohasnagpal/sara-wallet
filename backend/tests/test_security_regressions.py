@@ -249,6 +249,18 @@ class ReconciliationAndFrontendTests(unittest.TestCase):
         self.assertIn("_escapeHtml(data.name)", html)
         self.assertIn("_escapeHtml(data.address)", html)
 
+    def test_sara_green_is_the_default_theme_without_proof_branding(self):
+        html = pathlib.Path(__file__).parents[2].joinpath("index.html").read_text()
+        self.assertIn(".theme-sara {", html)
+        self.assertIn('<div class="app-bg theme-sara" id="appBg">', html)
+        self.assertIn('<div class="app-shell theme-sara" id="appShell">', html)
+        self.assertIn(
+            '<div class="theme-dot active" data-theme="sara" title="Sara Green (Default)">',
+            html,
+        )
+        self.assertIn("lockOverlay.classList.add('theme-'+theme)", html)
+        self.assertNotIn("theme-proof", html)
+
 class WalletSecurityTests(unittest.TestCase):
 
     def test_wallet_secret_fields_are_cleared_and_export_is_not_cached(self):
