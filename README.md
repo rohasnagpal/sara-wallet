@@ -37,15 +37,15 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 
 | Network | Gas asset | USDC | EURC | USDT | Open USD (OUSD) |
 |---|---|:---:|:---:|:---:|:---:|
-| Ethereum | ETH | Yes | Yes | Yes | Yes |
-| Arbitrum | ETH | Yes | | Yes | |
-| Base | ETH | Yes | Yes | | Yes |
-| OP Mainnet | ETH | Yes | | Yes | |
-| Polygon PoS | POL | Yes | | Yes | |
-| Arc | USDC | Yes | Yes | | |
-| Tempo | USD stablecoin | Yes (USDC.e) | | Yes (USDT0) | Yes |
+| Ethereum | ETH | ✅ | ✅ | ✅ | ✅ |
+| Arbitrum | ETH | ✅ | — | ✅ | — |
+| Base | ETH | ✅ | ✅ | — | ✅ |
+| OP Mainnet | ETH | ✅ | — | ✅ | — |
+| Polygon PoS | POL | ✅ | — | ✅ | — |
+| Arc | USDC | ✅ | ✅ | — | — |
+| Tempo | USD stablecoin | ✅ USDC.e | — | ✅ USDT0 | ✅ |
 
-"Yes" means Sara can display the balance and make plain sends. Protocol-specific features such as swaps, bridges, CCTP, Aave, x402 and invoices have their own narrower network and asset support.
+✅ means Sara can display the balance and make plain sends; — means the asset is not supported on that network. Protocol-specific features such as swaps, bridges, CCTP, Aave, x402 and invoices have their own narrower network and asset support.
 
 USDC and EURC use Circle-published contracts ([contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses)). Ethereum USDT uses Tether's [official deployment](https://tether.to/en/supported-protocols/); the Arbitrum, OP Mainnet and Polygon entries use the network deployments listed by [USDT0](https://docs.usdt0.to/technical-documentation/deployments). Open USD uses the Ethereum, Base and Tempo contracts published by [Open Standard](https://joinopenstandard.com/blog/ousd-is-live/).
 
