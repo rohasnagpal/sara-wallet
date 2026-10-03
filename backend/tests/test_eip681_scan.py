@@ -16,10 +16,20 @@ class ParseEip681Tests(unittest.TestCase):
         data = parse_eip681(f"ethereum:{RECIPIENT}@8453?value=100000000000000000")
         self.assertEqual((data["network"], data["token"], data["amount"]), ("base", "ETH", "0.1"))
 
-    def test_rejects_untrusted_token_contract(self):
+    def test_accepts_registered_usdt_contract(self):
         usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+        data = parse_eip681(
+            f"ethereum:{usdt}@1/transfer?address={RECIPIENT}&uint256=5000000"
+        )
+        self.assertEqual(
+            (data["network"], data["token"], data["amount"], data["to"]),
+            ("ethereum", "USDT", "5", RECIPIENT),
+        )
+
+    def test_rejects_untrusted_token_contract(self):
+        untrusted = "0x" + "44" * 20
         with self.assertRaises(ValueError):
-            parse_eip681(f"ethereum:{usdt}@1/transfer?address={RECIPIENT}&uint256=5")
+            parse_eip681(f"ethereum:{untrusted}@1/transfer?address={RECIPIENT}&uint256=5")
 
     def test_rejects_usdc_address_from_another_chain(self):
         with self.assertRaises(ValueError):
