@@ -273,7 +273,7 @@ class AssetPolicyTests(unittest.TestCase):
     def test_supported_networks_and_circle_usdc_contracts(self):
         self.assertEqual(
             set(assets.NETWORKS),
-            {"ethereum", "arbitrum", "base", "optimism", "polygon", "arc"},
+            {"ethereum", "arbitrum", "base", "optimism", "polygon", "arc", "tempo"},
         )
         self.assertEqual(assets.get_stablecoin("USDC", "ethereum").address, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
         self.assertEqual(assets.get_stablecoin("USDC", "arbitrum").address, "0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
@@ -290,7 +290,7 @@ class AssetPolicyTests(unittest.TestCase):
         enabled = ",".join(assets.ALL_NETWORKS)
         with patch.dict(os.environ, {"SARA_ENABLED_NETWORKS": enabled, "SARA_USDC_NETWORKS": enabled}):
             for network in assets.ALL_NETWORKS:
-                if network == "arc":
+                if network in ("arc", "tempo"):
                     # Arc is deliberately not wired into Paraswap - no swap
                     # aggregator has a confirmed Arc integration yet, so
                     # trusted_symbols() correctly returns nothing for it

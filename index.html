@@ -2708,7 +2708,7 @@ chatInput.addEventListener('input', () => {
 // ══════════════════════════════════════
 
 const NATIVE_SYMBOLS = { ethereum:'ETH', arbitrum:'ETH', base:'ETH', optimism:'ETH', polygon:'POL' };
-const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'OP Mainnet', polygon:'Polygon PoS' };
+const CHAIN_LABELS   = { ethereum:'Ethereum', arbitrum:'Arbitrum', base:'Base', optimism:'OP Mainnet', polygon:'Polygon PoS', arc:'Arc', tempo:'Tempo' };
 const SYMBOL_ICONS   = { ETH:'⚪', POL:'🟣', USDC:'🔵', EURC:'🟡', USDT:'🟢' };
 
 function _chainLabel(c) { return CHAIN_LABELS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : '-'); }
@@ -5260,8 +5260,10 @@ async function _loadAssetSettings() {
           <input type="checkbox" class="network-toggle" data-network="${_escapeHtml(n.id)}" ${n.enabled ? 'checked' : ''} onchange="_syncAssetSettingsRow(this)">
         </label>
         <div class="asset-settings-token">
-          <span>${_escapeHtml(n.native)} <span class="gas-required">Required for gas</span></span>
-          ${(n.stablecoins || []).map(asset => `<label>${_escapeHtml(asset.symbol)} <input type="checkbox" class="stablecoin-toggle" data-network="${_escapeHtml(n.id)}" data-symbol="${_escapeHtml(asset.symbol)}" data-required-for-gas="${asset.required_for_gas ? 'true' : 'false'}" ${asset.enabled ? 'checked' : ''} ${n.enabled && !asset.required_for_gas ? '' : 'disabled'}></label>`).join('')}
+          <span>${n.native
+            ? `${_escapeHtml(n.native)} <span class="gas-required">Required for gas</span>`
+            : '<span class="gas-required">Fees paid in an enabled stablecoin</span>'}</span>
+          ${(n.stablecoins || []).map(asset => `<label>${_escapeHtml(asset.symbol)}${asset.can_pay_gas && !asset.required_for_gas ? ' <span class="gas-required">Pays gas</span>' : ''} <input type="checkbox" class="stablecoin-toggle" data-network="${_escapeHtml(n.id)}" data-symbol="${_escapeHtml(asset.symbol)}" data-required-for-gas="${asset.required_for_gas ? 'true' : 'false'}" ${asset.enabled ? 'checked' : ''} ${n.enabled && !asset.required_for_gas ? '' : 'disabled'}></label>`).join('')}
         </div>
       </div>`).join('');
   } catch(e) {

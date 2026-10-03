@@ -154,6 +154,8 @@ def parse_eip681(uri: str) -> dict:
             raise ValueError("This payment QR has an invalid recipient address.")
         token, decimals, raw_amount = asset.symbol, asset.decimals, _integer(params.get("uint256"))
     elif function == "":
+        if not net["native"]:
+            raise ValueError(f"{net['label']} has no native asset; use a stablecoin payment URI.")
         recipient, token, decimals, raw_amount = address, net["native"], 18, _integer(params.get("value"))
     else:
         raise ValueError("This payment QR asks for something other than a plain payment.")

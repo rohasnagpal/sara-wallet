@@ -19,6 +19,10 @@ NETWORKS = {
     # the stablecoin registry because contract calls use that address, while
     # native transfers use Arc's 18-decimal native balance.
     "arc": {"label": "Arc", "chain_id": 5042, "native": "USDC"},
+    # Tempo has no native gas token. A TIP-20 transfer pays its fee in the
+    # stablecoin being transferred, so at least one enabled USD stablecoin is
+    # required instead of a separate native asset.
+    "tempo": {"label": "Tempo", "chain_id": 4217, "native": None, "stablecoin_gas": True},
 }
 
 ALL_NETWORKS = tuple(NETWORKS)
@@ -64,7 +68,7 @@ def _coin(symbol: str, name: str, issuer: str, network: str, address: str,
     )
 
 
-# Contract addresses are issuer-published mainnet addresses. EURC exists only
+# Contract addresses are issuer- or network-published mainnet addresses. EURC exists only
 # on Ethereum, Base and Arc among Sara's current networks. USDT is native on
 # Ethereum, participates in USDT0's legacy mesh on Arbitrum, and is deployed
 # through USDT0 on Optimism and Polygon. Arc's USDC address is its enshrined
@@ -83,6 +87,8 @@ STABLECOINS: dict[tuple[str, str], Stablecoin] = {
     ("arbitrum", "USDT"): _coin("USDT", "Tether USD", "Tether / USDT0", "arbitrum", "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", _BALANCE_SEND_ACTIVITY),
     ("optimism", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "optimism", "0x01bFF41798a0BcF287b996046Ca68b395DbC1071", _BALANCE_SEND_ACTIVITY),
     ("polygon", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "polygon", "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", _BALANCE_SEND_ACTIVITY),
+    ("tempo", "USDC"): _coin("USDC", "USD Coin (USDC.e)", "Bridged USDC", "tempo", "0x20c000000000000000000000b9537d11c60e8b50", _BALANCE_AND_SEND),
+    ("tempo", "USDT"): _coin("USDT", "Tether USD (USDT0)", "Tether / USDT0", "tempo", "0x20C00000000000000000000014f22CA97301EB73", _BALANCE_AND_SEND),
 }
 
 STABLECOIN_SYMBOLS = tuple(dict.fromkeys(symbol for _, symbol in STABLECOINS))
@@ -173,7 +179,8 @@ def sendable_symbols(network: str) -> list[str]:
     network = network.lower()
     if not network_enabled(network):
         return []
-    symbols = [NETWORKS[network]["native"]]
+    native = NETWORKS[network]["native"]
+    symbols = [native] if native else []
     for asset in stablecoins_on(network, capability=SEND, enabled_only=True):
         if asset.symbol not in symbols:
             symbols.append(asset.symbol)
@@ -199,6 +206,7 @@ def serialize_preferences() -> dict:
                         "capabilities": sorted(asset.capabilities),
                         "enabled": token_enabled(asset.symbol, network),
                         "required_for_gas": details["native"] == asset.symbol,
+                        "can_pay_gas": details.get("stablecoin_gas", False) or details["native"] == asset.symbol,
                     }
                     for asset in stablecoins_on(network)
                 ],

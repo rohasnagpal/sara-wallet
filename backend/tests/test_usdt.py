@@ -16,6 +16,7 @@ class UsdtRegistryTests(unittest.TestCase):
         "arbitrum": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
         "optimism": "0x01bFF41798a0BcF287b996046Ca68b395DbC1071",
         "polygon": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+        "tempo": "0x20C00000000000000000000014f22CA97301EB73",
     }
 
     def test_usdt_is_registered_on_exactly_the_verified_supported_networks(self):
@@ -34,11 +35,15 @@ class UsdtRegistryTests(unittest.TestCase):
             self.assertFalse(assets.token_enabled("USDT", network))
 
     def test_usdt_support_is_limited_to_wallet_capabilities(self):
-        for network in self.EXPECTED:
+        for network in set(self.EXPECTED) - {"tempo"}:
             asset = assets.get_stablecoin("USDT", network)
             self.assertEqual(asset.capabilities, {
                 assets.BALANCE, assets.SEND, assets.ACTIVITY,
             })
+        self.assertEqual(
+            assets.get_stablecoin("USDT", "tempo").capabilities,
+            {assets.BALANCE, assets.SEND},
+        )
 
     def test_usdt_can_be_disabled_per_network(self):
         with patch.dict("os.environ", {"SARA_USDT_NETWORKS": "ethereum,polygon"}):
