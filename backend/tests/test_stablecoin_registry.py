@@ -48,10 +48,13 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
 
     def test_preferences_are_registry_driven(self):
         payload = assets.serialize_preferences()
-        self.assertEqual(payload["stablecoin_symbols"], ["USDC", "EURC", "USDT"])
+        self.assertEqual(payload["stablecoin_symbols"], ["USDC", "EURC", "USDT", "OUSD"])
         ethereum = next(network for network in payload["networks"] if network["id"] == "ethereum")
         self.assertNotIn("usdc_enabled", ethereum)
-        self.assertEqual({asset["symbol"] for asset in ethereum["stablecoins"]}, {"USDC", "EURC", "USDT"})
+        self.assertEqual(
+            {asset["symbol"] for asset in ethereum["stablecoins"]},
+            {"USDC", "EURC", "USDT", "OUSD"},
+        )
         usdc = next(asset for asset in ethereum["stablecoins"] if asset["symbol"] == "USDC")
         self.assertIn(assets.INVOICE, usdc["capabilities"])
 
@@ -106,7 +109,10 @@ class AssetSettingsTests(unittest.TestCase):
 
         body = AssetSettingsBody(
             enabled_networks=["ethereum", "base", "arc"],
-            stablecoin_networks={"USDC": ["ethereum"], "EURC": ["base"], "USDT": ["ethereum"]},
+            stablecoin_networks={
+                "USDC": ["ethereum"], "EURC": ["base"],
+                "USDT": ["ethereum"], "OUSD": ["base"],
+            },
         )
         with patch.dict(os.environ, {}, clear=True):
             payload = save_asset_settings(body, self.db)
