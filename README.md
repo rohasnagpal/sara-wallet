@@ -2,7 +2,7 @@
 
 # Sara AI Wallet
 
-**An open-source, local-first AI wallet for stablecoin payments.** Send USDC or EURC in plain English: `send 50 USDC to something.sara`.
+Sara Wallet is the stablecoin wallet for small businesses: invoice customers, make batch payments, move money across chains, earn on idle balances, and power agentic payments..
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-e63946?style=flat-square)](ROADMAP.md)
@@ -11,7 +11,8 @@
 [![GitHub stars](https://img.shields.io/github/stars/rohasnagpal/sara-wallet?style=flat-square&color=f4a261)](https://github.com/rohasnagpal/sara-wallet/stargazers)
 
 <br />
-<img width="2836" height="1536" alt="Sara's chat-first wallet interface running on a local machine" src="https://github.com/user-attachments/assets/2f704c7e-e1c0-4187-a697-912ea5663f59" />
+<img width="1436" height="775" alt="image" src="https://github.com/user-attachments/assets/040779b8-4ccf-4d8b-9069-4e79ff059ce8" />
+
 </div>
 
 > **Status: alpha.** Use small amounts and testnets while Sara is under active development. There has been no third-party security audit yet; see [SECURITY.md](SECURITY.md). What is planned next is in [ROADMAP.md](ROADMAP.md).
