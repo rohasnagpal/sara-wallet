@@ -2,7 +2,7 @@
 
 # Sara AI Wallet
 
-**An open-source, local-first AI wallet for stablecoin payments.** Send USDC in plain English: `send 50 USDC to something.sara`.
+**An open-source, local-first AI wallet for stablecoin payments.** Send USDC or EURC in plain English: `send 50 USDC to something.sara`.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-f4a261?style=flat-square)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-e63946?style=flat-square)](ROADMAP.md)
@@ -22,32 +22,40 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 
 | Area | What it does | Docs |
 |---|---|---|
-| **Payments** | Natural-language USDC sends with the exact amount and fee shown before you confirm. Swaps and bridges with the quote shown before you sign, and a choice between routes when there is more than one. | |
+| **Payments** | Natural-language USDC and EURC sends with the exact amount and fee shown before you confirm. Swaps and bridges with the quote shown before you sign, and a choice between routes when there is more than one. Native USDC bridging with Circle's CCTP v2: burned on the source network and minted on the destination, with no wrapped token or pool. | |
+| **Buy USDC** | Buy USDC with a card through Coinbase's CDP Onramp. Checkout happens on Coinbase's hosted page and the USDC arrives as an ordinary transfer to your own wallet; Sara never handles the payment. | |
+| **Yield** | Supply USDC to Aave v3 and earn its variable rate, with your position and the live APY shown, and withdraw at any time. Supply and withdraw only: no borrowing, so no liquidation risk. | |
 | **Invoicing** | Invoices with a QR code any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. | [invoicing.md](docs/invoicing.md) |
 | **Business and accounting** | Batch payments from a CSV, recurring payments, payroll, spending policies, cost basis and profit and loss, income and expense reports, CSV and Excel exports. | [business-payments.md](docs/business-payments.md) |
-| **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
-| **Tokens and treasury** | Deploy your own ERC-20 token, review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
+| **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. Paid content is saved so you never lose it or pay twice. A paywall generator turns any PHP page on your own site into a paid page, settled through Circle Gateway Nanopayments (no API key) or Coinbase's CDP facilitator. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
+| **Tokens and treasury** | Deploy your own ERC-20 token (including on Arc), review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
+| **Recovery phrases** | One 24-word BIP-39 recovery phrase backs every wallet you create, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. Additional phrases, generated or imported, are an advanced option under **Settings → Recovery Phrases**. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Sara Names** (coming soon) | Human-readable names for wallet addresses, with signed multi-network records. The registry has not yet been broadcast to Polygon Amoy. | [sara-names.md](docs/sara-names.md) |
 | **File proofs** (coming soon) | Hash a file locally, authorize an exact 1 USDC Polygon checkout from your own wallet, and verify the file later. No BlockchainProof API key or shared billing account needed. | [third-party-services.md](docs/third-party-services.md) |
 
 ### Supported networks
 
-| Network | Native gas asset | USDC |
-|---|---|:---:|
-| Ethereum | ETH | Yes |
-| Arbitrum | ETH | Yes |
-| Base | ETH | Yes |
-| OP Mainnet | ETH | Yes |
-| Polygon PoS | POL | Yes |
+| Network | Native gas asset | USDC | EURC |
+|---|---|:---:|:---:|
+| Ethereum | ETH | Yes | Yes |
+| Arbitrum | ETH | Yes | |
+| Base | ETH | Yes | Yes |
+| OP Mainnet | ETH | Yes | |
+| Polygon PoS | POL | Yes | |
+| Arc | USDC | Yes | Yes |
 
-USDC contract addresses come from [Circle's official contract-address list](https://developers.circle.com/stablecoins/usdc-contract-addresses). You can enable or hide networks and USDC per network under **Settings → Manage Networks & Tokens**.
+USDC and EURC contract addresses come from Circle's official lists ([USDC](https://developers.circle.com/stablecoins/usdc-contract-addresses)). EURC supports balance display and plain sends; it is not swappable or bridgeable in Sara yet.
+
+Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances, plain sends and token creation. Swaps, bridges, CCTP, Aave and x402 are not available on Arc yet.
+
+You can enable or hide networks and tokens per network under **Settings → Manage Networks & Tokens**.
 
 ## Privacy
 
 Sara is private by default: no account, no telemetry, no cloud sync, and the page loads nothing from third parties. Your keys, wallet database and chat history stay on your machine.
 
-Some services necessarily see part of what you do. Your AI provider sees your chat, public blockchain nodes see the addresses you look up, and LI.FI and ParaSwap see your address when you swap or bridge. Blockchains are public, and Sara does not hide on-chain activity. To keep chats local, use a local Ollama model. The full "who sees what" table and ways to reduce exposure are in [docs/privacy.md](docs/privacy.md).
+Some services necessarily see part of what you do. Your AI provider sees your chat, public blockchain nodes see the addresses you look up, LI.FI and ParaSwap see your address when you swap or bridge, Circle sees your burn transaction when you bridge with CCTP, and Coinbase sees your purchase when you buy USDC. Blockchains are public, and Sara does not hide on-chain activity. To keep chats local, use a local Ollama model. The full "who sees what" table and ways to reduce exposure are in [docs/privacy.md](docs/privacy.md).
 
 ## Security
 
@@ -104,6 +112,8 @@ Then open `http://127.0.0.1:8888`.
 
 You'll be asked to **create a passphrase**, which protects your wallets' private keys. Remember it: there is no recovery, and if you lose it your existing wallets become permanently undecryptable. Afterwards you unlock with the same passphrase, and Sara auto-locks after 1 hour of inactivity.
 
+The first time you create a wallet, Sara shows a **24-word recovery phrase** exactly once. Write it down and keep it offline: it can restore your wallets in Sara or in any standard wallet such as MetaMask.
+
 Then open **Settings**, add your OpenRouter API key, and pick a model. At any point, type **"How to use Sara"** in the chat for a feature list and your current configuration status.
 
 ### Configuration
@@ -115,13 +125,14 @@ Set these in **Settings** or in `.env.local`. Only an AI provider is required.
 | `OPENROUTER_API_KEY` (or another provider's key, or a local Ollama model) | Required for chat | The AI that reads your requests |
 | `ALCHEMY_API_KEY` | Required to swap or bridge; optional otherwise | Sara verifies every swap and bridge before signing and refuses without it. Also token balances and automatic payment reconciliation |
 | `COINGECKO_API_KEY` | Optional | Higher rate limit for prices |
-| `ETH_RPC`, `ARB_RPC`, `BASE_RPC`, `POLY_RPC`, `OP_RPC` | Optional | Use your own blockchain node instead of public ones ([privacy](docs/privacy.md)) |
+| `ETH_RPC`, `ARB_RPC`, `BASE_RPC`, `POLY_RPC`, `OP_RPC`, `ARC_RPC` | Optional | Use your own blockchain node instead of public ones ([privacy](docs/privacy.md)) |
 | `RISK_SCREENING_PROVIDER`, `_API_URL`, `_API_KEY` | Optional | Broader screening (scams, hacks, mixers) than the built-in sanctions check |
 | `RISK_SCREENING_MANDATORY` | Optional, default `false` | Block sends to flagged addresses, or when screening can't run |
+| `SARA_EURC_NETWORKS` | Optional | Limit which networks show EURC |
 | `POLYGONSCAN_API_KEY` | Optional | Submit a deployed token's source for public verification |
 | `SARA_NAME_REGISTRAR_ADDRESS`, `SARA_NAME_SERVICE_URL` | Coming soon | Sara Names |
 
-Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page.
+Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page. Buying USDC needs a free Coinbase CDP API key, entered in the app and stored encrypted like a wallet key. The same goes for a CDP key used by a live x402 paywall.
 
 ## Contributing
 
