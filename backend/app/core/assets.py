@@ -1,110 +1,152 @@
-"""Sara's supported network and asset policy.
+"""Sara's canonical network and stablecoin policy.
 
-USDC addresses are Circle's official mainnet contracts:
-https://developers.circle.com/stablecoins/usdc-contract-addresses
-
-Users may hide supported networks or USDC on a network. Native assets remain
-enabled whenever their network is enabled because they are required for gas.
+Every supported stablecoin/chain pair is defined exactly once in
+``STABLECOINS``. Callers must resolve assets through this module instead of
+maintaining feature-local contract tables. A registry entry does not imply
+support for every feature: capabilities are explicit and chain-specific.
 """
+from dataclasses import dataclass
 import os
 
 
 NETWORKS = {
-    "ethereum": {
-        "label": "Ethereum", "chain_id": 1, "native": "ETH",
-        "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    },
-    "arbitrum": {
-        "label": "Arbitrum", "chain_id": 42161, "native": "ETH",
-        "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-    },
-    "base": {
-        "label": "Base", "chain_id": 8453, "native": "ETH",
-        "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    },
-    "optimism": {
-        "label": "OP Mainnet", "chain_id": 10, "native": "ETH",
-        "usdc": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-    },
-    "polygon": {
-        "label": "Polygon PoS", "chain_id": 137, "native": "POL",
-        "usdc": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-    },
-    "arc": {
-        # Arc (Circle's own L1, mainnet launched 2026-09-16) pays gas in
-        # USDC itself - there is no separate native token. USDC here is an
-        # "enshrined" precompile, not a bridged/deployed contract: verified
-        # live on-chain (decimals=6, symbol="USDC", name="USDC") at this
-        # exact address, kept in sync with the native 18-decimal balance by
-        # Arc itself. Deliberately not yet wired into swap (Paraswap),
-        # bridge (LI.FI), CCTP, Aave or the x402 facilitators - none of
-        # those have a confirmed Arc integration as of this network's
-        # addition, so claiming otherwise here would be a guess, not a
-        # verified fact. Wallet creation, balance display, plain sends and
-        # EURC (see EURC_ADDRESSES below) are what Sara currently supports
-        # on Arc, plus token creation (app/services/token_factory.py) -
-        # that one relies on Arc's Reth-based full EVM compatibility
-        # rather than a live test deployment (none has been done; the
-        # user chose to ship on that basis rather than fund a test wallet
-        # first). Source verification for tokens deployed there is
-        # best-effort only - it still uses POLYGONSCAN_API_KEY, which
-        # won't authenticate against ArcScan, but that failure is already
-        # designed to never block the deployment itself.
-        "label": "Arc", "chain_id": 5042, "native": "USDC",
-        "usdc": "0x3600000000000000000000000000000000000000",
-    },
+    "ethereum": {"label": "Ethereum", "chain_id": 1, "native": "ETH"},
+    "arbitrum": {"label": "Arbitrum", "chain_id": 42161, "native": "ETH"},
+    "base": {"label": "Base", "chain_id": 8453, "native": "ETH"},
+    "optimism": {"label": "OP Mainnet", "chain_id": 10, "native": "ETH"},
+    "polygon": {"label": "Polygon PoS", "chain_id": 137, "native": "POL"},
+    # Arc pays gas in USDC. Its ERC-20-compatible USDC precompile remains in
+    # the stablecoin registry because contract calls use that address, while
+    # native transfers use Arc's 18-decimal native balance.
+    "arc": {"label": "Arc", "chain_id": 5042, "native": "USDC"},
 }
 
 ALL_NETWORKS = tuple(NETWORKS)
 
-# EURC (Circle's euro-backed stablecoin) — deliberately narrower than USDC.
-# Live only on Ethereum, Base and Arc among Sara's networks (confirmed
-# against Circle's own contract-address reference and independently
-# verified live on-chain: decimals=6, symbol="EURC" on all three,
-# name="Euro Coin" on Ethereum, name="EURC" on Base and Arc). NOT
-# Arbitrum/Optimism/Polygon - Circle has never deployed EURC there.
-# Scope is deliberately narrow, same as Arc's own rollout: wallet balance
-# display and plain sends only. Not wired into swap (Paraswap), bridge
-# (LI.FI), CCTP (Circle itself says CCTP-for-EURC is "planned", not live),
-# Aave, x402 or onramp - each of those is a separate, larger decision.
-EURC_ADDRESSES = {
-    "ethereum": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
-    "base": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
-    "arc": "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1",
+BALANCE = "balance"
+SEND = "send"
+ACTIVITY = "activity"
+INVOICE = "invoice"
+RECONCILE = "reconcile"
+SWAP = "swap"
+BRIDGE = "bridge"
+CCTP = "cctp"
+AAVE = "aave"
+X402 = "x402"
+
+
+@dataclass(frozen=True)
+class Stablecoin:
+    symbol: str
+    name: str
+    issuer: str
+    network: str
+    address: str
+    decimals: int
+    capabilities: frozenset[str]
+    default_enabled: bool = True
+
+    def supports(self, capability: str) -> bool:
+        return capability in self.capabilities
+
+
+_USDC_STANDARD = frozenset({BALANCE, SEND, ACTIVITY, INVOICE, RECONCILE, SWAP, BRIDGE, CCTP, AAVE})
+_USDC_X402 = _USDC_STANDARD | {X402}
+_BALANCE_AND_SEND = frozenset({BALANCE, SEND})
+_BALANCE_SEND_ACTIVITY = frozenset({BALANCE, SEND, ACTIVITY})
+
+
+def _coin(symbol: str, name: str, issuer: str, network: str, address: str,
+          capabilities: frozenset[str]) -> Stablecoin:
+    return Stablecoin(
+        symbol=symbol, name=name, issuer=issuer, network=network,
+        address=address, decimals=6, capabilities=capabilities,
+    )
+
+
+# Contract addresses are issuer-published mainnet addresses. EURC exists only
+# on Ethereum, Base and Arc among Sara's current networks. Arc's USDC address
+# is its enshrined ERC-20 precompile, not a conventional deployed contract.
+STABLECOINS: dict[tuple[str, str], Stablecoin] = {
+    ("ethereum", "USDC"): _coin("USDC", "USD Coin", "Circle", "ethereum", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", _USDC_X402),
+    ("arbitrum", "USDC"): _coin("USDC", "USD Coin", "Circle", "arbitrum", "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", _USDC_X402),
+    ("base", "USDC"): _coin("USDC", "USD Coin", "Circle", "base", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", _USDC_X402),
+    ("optimism", "USDC"): _coin("USDC", "USD Coin", "Circle", "optimism", "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", _USDC_STANDARD),
+    ("polygon", "USDC"): _coin("USDC", "USD Coin", "Circle", "polygon", "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", _USDC_X402),
+    ("arc", "USDC"): _coin("USDC", "USD Coin", "Circle", "arc", "0x3600000000000000000000000000000000000000", _BALANCE_AND_SEND),
+    ("ethereum", "EURC"): _coin("EURC", "EURC", "Circle", "ethereum", "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c", _BALANCE_SEND_ACTIVITY),
+    ("base", "EURC"): _coin("EURC", "EURC", "Circle", "base", "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", _BALANCE_SEND_ACTIVITY),
+    ("arc", "EURC"): _coin("EURC", "EURC", "Circle", "arc", "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1", _BALANCE_AND_SEND),
 }
-EURC_DECIMALS = 6
+
+STABLECOIN_SYMBOLS = tuple(dict.fromkeys(symbol for _, symbol in STABLECOINS))
 
 
-def _read_set(key: str, default: tuple[str, ...]) -> set[str]:
+def get_stablecoin(symbol: str, network: str) -> Stablecoin | None:
+    return STABLECOINS.get((network.lower(), symbol.upper()))
+
+
+def stablecoins_on(network: str, *, capability: str | None = None,
+                   enabled_only: bool = False) -> tuple[Stablecoin, ...]:
+    network = network.lower()
+    assets = tuple(
+        asset for (asset_network, _), asset in STABLECOINS.items()
+        if asset_network == network and (capability is None or asset.supports(capability))
+    )
+    if enabled_only:
+        assets = tuple(asset for asset in assets if token_enabled(asset.symbol, network))
+    return assets
+
+
+def stablecoin_networks(symbol: str, *, capability: str | None = None,
+                        enabled_only: bool = True) -> tuple[str, ...]:
+    symbol = symbol.upper()
+    return tuple(
+        network for network in ALL_NETWORKS
+        if (asset := get_stablecoin(symbol, network)) is not None
+        and (capability is None or asset.supports(capability))
+        and (not enabled_only or token_enabled(symbol, network))
+    )
+
+
+def resolve_stablecoin(symbol: str, network: str, *, capability: str | None = None,
+                       enabled_only: bool = True) -> tuple[str, int] | None:
+    asset = get_stablecoin(symbol, network)
+    if asset is None or (capability is not None and not asset.supports(capability)):
+        return None
+    if enabled_only and not token_enabled(asset.symbol, asset.network):
+        return None
+    return asset.address, asset.decimals
+
+
+def _read_network_set(key: str, supported: tuple[str, ...]) -> set[str]:
     raw = os.getenv(key)
     if raw is None:
-        return set(default)
-    selected = {item.strip().lower() for item in raw.split(",")}
-    return selected.intersection(NETWORKS)
+        return set(supported)
+    selected = {item.strip().lower() for item in raw.split(",") if item.strip()}
+    return selected.intersection(supported)
 
 
 def enabled_networks() -> tuple[str, ...]:
-    selected = _read_set("SARA_ENABLED_NETWORKS", ALL_NETWORKS)
+    selected = _read_network_set("SARA_ENABLED_NETWORKS", ALL_NETWORKS)
     return tuple(network for network in ALL_NETWORKS if network in selected)
 
 
-def usdc_networks() -> tuple[str, ...]:
-    selected = _read_set("SARA_USDC_NETWORKS", ALL_NETWORKS)
-    enabled = set(enabled_networks())
-    return tuple(network for network in ALL_NETWORKS if network in selected and network in enabled)
-
-
-_EURC_ALL_NETWORKS = tuple(EURC_ADDRESSES)
-
-
-def eurc_networks() -> tuple[str, ...]:
-    raw = os.getenv("SARA_EURC_NETWORKS")
+def configured_stablecoin_networks(symbol: str) -> tuple[str, ...]:
+    symbol = symbol.upper()
+    supported = stablecoin_networks(symbol, enabled_only=False)
+    raw = os.getenv(f"SARA_{symbol}_NETWORKS")
     if raw is None:
-        selected = set(_EURC_ALL_NETWORKS)
+        selected = {
+            network for network in supported
+            if get_stablecoin(symbol, network).default_enabled
+        }
     else:
-        selected = {item.strip().lower() for item in raw.split(",")}.intersection(_EURC_ALL_NETWORKS)
+        selected = {
+            item.strip().lower() for item in raw.split(",") if item.strip()
+        }.intersection(supported)
     enabled = set(enabled_networks())
-    return tuple(network for network in _EURC_ALL_NETWORKS if network in selected and network in enabled)
+    return tuple(network for network in supported if network in selected and network in enabled)
 
 
 def network_enabled(network: str) -> bool:
@@ -113,64 +155,48 @@ def network_enabled(network: str) -> bool:
 
 def token_enabled(symbol: str, network: str) -> bool:
     network = network.lower()
+    symbol = symbol.upper()
     if not network_enabled(network):
         return False
-    symbol = symbol.upper()
     if symbol == NETWORKS[network]["native"]:
         return True
-    if symbol == "USDC" and network in usdc_networks():
-        return True
-    return symbol == "EURC" and network in eurc_networks()
+    return get_stablecoin(symbol, network) is not None and network in configured_stablecoin_networks(symbol)
 
 
 def sendable_symbols(network: str) -> list[str]:
-    """Every symbol Sara will resolve to a real, sendable contract on this
-    network - the native gas token, USDC/other tokens via Paraswap's
-    per-chain table (only present for networks Paraswap itself covers), and
-    EURC where it's live. Used for the assistant's "not recognized"
-    message. Deliberately doesn't call app.tools.market.paraswap.
-    trusted_symbols() directly: that function returns [] for Arc (Arc has
-    no Paraswap chain-id entry at all, by design - it isn't swap-integrated),
-    which would silently hide Arc's own native USDC from this message even
-    though sending it works fine."""
     network = network.lower()
     if not network_enabled(network):
         return []
     symbols = [NETWORKS[network]["native"]]
-    from app.tools.market.paraswap import trusted_symbols as _paraswap_trusted
-    for symbol in _paraswap_trusted(network):
-        if symbol not in symbols:
-            symbols.append(symbol)
-    if network in eurc_networks() and "EURC" not in symbols:
-        symbols.append("EURC")
+    for asset in stablecoins_on(network, capability=SEND, enabled_only=True):
+        if asset.symbol not in symbols:
+            symbols.append(asset.symbol)
     return symbols
-
-
-def resolve_extra_token(symbol: str, network: str) -> tuple[str, int] | None:
-    """Non-swap-routable tokens Sara still recognizes for balance display and
-    plain sends - currently just EURC. Kept out of
-    app.tools.market.paraswap's per-chain token table on purpose: that table
-    doubles as Paraswap's own swap-routing registry, so adding a symbol
-    there would also make it swappable, and Arc isn't even in Paraswap's
-    chain-id map at all. Returns (address, decimals) or None."""
-    symbol = symbol.upper()
-    network = network.lower()
-    if symbol == "EURC" and token_enabled("EURC", network):
-        return (EURC_ADDRESSES[network], EURC_DECIMALS)
-    return None
 
 
 def serialize_preferences() -> dict:
     enabled = set(enabled_networks())
-    usdc = set(usdc_networks())
     return {
+        "stablecoin_symbols": list(STABLECOIN_SYMBOLS),
         "networks": [
             {
                 "id": network,
                 **details,
                 "enabled": network in enabled,
-                "usdc_enabled": network in usdc,
+                "stablecoins": [
+                    {
+                        "symbol": asset.symbol,
+                        "name": asset.name,
+                        "issuer": asset.issuer,
+                        "address": asset.address,
+                        "decimals": asset.decimals,
+                        "capabilities": sorted(asset.capabilities),
+                        "enabled": token_enabled(asset.symbol, network),
+                        "required_for_gas": details["native"] == asset.symbol,
+                    }
+                    for asset in stablecoins_on(network)
+                ],
             }
             for network, details in NETWORKS.items()
-        ]
+        ],
     }

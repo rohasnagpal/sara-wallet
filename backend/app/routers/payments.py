@@ -13,7 +13,7 @@ from app.db.models import Wallet, PaymentRequest, Transaction
 from app.tools.payments.links import decode_payload, create_payment_request, encode_payload, parse_eip681
 from app.tools.payments.reconcile import check_payment_request
 from app.core.session_auth import require_session
-from app.core.assets import NETWORKS, token_enabled
+from app.core.assets import INVOICE, NETWORKS, get_stablecoin, token_enabled
 
 
 def _eip681_uri(token: str, network: str, payment_address: str | None, amount_raw) -> str | None:
@@ -27,8 +27,9 @@ def _eip681_uri(token: str, network: str, payment_address: str | None, amount_ra
     symbol = token.upper()
     if symbol == net["native"]:
         return f"ethereum:{payment_address}@{chain_id}?value={amount_raw}"
-    if symbol == "USDC" and net.get("usdc"):
-        return f"ethereum:{net['usdc']}@{chain_id}/transfer?address={payment_address}&uint256={amount_raw}"
+    asset = get_stablecoin(symbol, network)
+    if asset:
+        return f"ethereum:{asset.address}@{chain_id}/transfer?address={payment_address}&uint256={amount_raw}"
     return None
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -83,7 +84,8 @@ def _create_invoice(db: Session, wallet: Wallet, body: CreateInvoiceRequest):
     # Ethereum/Arbitrum/Base/Optimism/Polygon via the same Alchemy lookup
     # (see ALCHEMY_NETWORK_SLUGS in app/chains/evm.py), so any network the
     # user has USDC enabled for (Settings -> Manage Networks & Tokens) works.
-    if body.token.upper() != "USDC" or not token_enabled("USDC", body.network):
+    asset = get_stablecoin(body.token, body.network)
+    if body.token.upper() != "USDC" or not asset or not asset.supports(INVOICE) or not token_enabled("USDC", body.network):
         raise HTTPException(
             400,
             "Invoices currently support USDC only, on a network enabled for USDC in Settings.",

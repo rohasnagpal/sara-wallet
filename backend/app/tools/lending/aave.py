@@ -17,7 +17,7 @@ a single doc page:
   - Each aToken address was cross-checked two more ways: (1) calling the
     aToken contract's own UNDERLYING_ASSET_ADDRESS() live over each
     network's RPC and confirming it returns exactly Sara's own trusted
-    USDC contract (app.core.assets.NETWORKS) for that network, and
+    USDC contract (app.core.assets.STABLECOINS) for that network, and
     (2) calling the Pool contract's own getReserveData(usdc_address) live
     and confirming its returned aTokenAddress field matches. All five
     checks passed; see the module-level test file for the same
@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from web3 import Web3
 
-from app.core.assets import NETWORKS
+from app.core.assets import AAVE, resolve_stablecoin
 
 _MAX_GAS_LIMIT = 800_000
 _MAX_FEE_WEI = 50_000_000_000_000_000  # 0.05 native asset — matches paraswap.py's cap
@@ -122,7 +122,10 @@ def usdc_address(network: str) -> str:
     'token symbols only ever resolve to a hardcoded, developer-verified
     contract list' principle (see paraswap.trusted_symbols)."""
     network = _require_network(network)
-    return NETWORKS[network]["usdc"]
+    resolved = resolve_stablecoin("USDC", network, capability=AAVE, enabled_only=False)
+    if resolved is None:
+        raise AaveError(f"Aave USDC is not registered on {network}")
+    return resolved[0]
 
 
 def get_position(wallet_address: str, network: str) -> float:

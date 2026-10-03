@@ -44,7 +44,7 @@ class SettingBody(BaseModel):
 
 class AssetSettingsBody(BaseModel):
     enabled_networks: list[str]
-    usdc_networks: list[str]
+    stablecoin_networks: dict[str, list[str]]
 
 
 @router.post("", dependencies=[Depends(require_session)])
@@ -70,22 +70,47 @@ def get_asset_settings():
 
 @router.post("/assets", dependencies=[Depends(require_session)])
 def save_asset_settings(body: AssetSettingsBody, db: Session = Depends(get_db)):
-    from app.core.assets import ALL_NETWORKS, serialize_preferences
+    from app.core.assets import (
+        ALL_NETWORKS, NETWORKS, STABLECOIN_SYMBOLS,
+        serialize_preferences, stablecoin_networks,
+    )
     allowed = set(ALL_NETWORKS)
     enabled = set(body.enabled_networks)
-    usdc = set(body.usdc_networks)
     if not enabled:
         raise HTTPException(400, "Keep at least one network enabled")
-    unknown = (enabled | usdc) - allowed
+    unknown = enabled - allowed
     if unknown:
         raise HTTPException(400, f"Unsupported network: {sorted(unknown)[0]}")
-    if not usdc.issubset(enabled):
-        raise HTTPException(400, "USDC can only be enabled on an enabled network")
+
+    submitted_symbols = {symbol.upper() for symbol in body.stablecoin_networks}
+    if (submitted_symbols != set(STABLECOIN_SYMBOLS)
+            or len(body.stablecoin_networks) != len(submitted_symbols)):
+        raise HTTPException(400, "Stablecoin settings must include every supported stablecoin")
+
+    selected_by_symbol: dict[str, set[str]] = {}
+    for raw_symbol, selected_networks in body.stablecoin_networks.items():
+        symbol = raw_symbol.upper()
+        selected = set(selected_networks)
+        supported = set(stablecoin_networks(symbol, enabled_only=False))
+        unknown = selected - supported
+        if unknown:
+            raise HTTPException(400, f"{symbol} is unsupported on {sorted(unknown)[0]}")
+        if not selected.issubset(enabled):
+            raise HTTPException(400, f"{symbol} can only be enabled on an enabled network")
+        # A stablecoin that is also the chain's native gas asset cannot be
+        # disabled independently of that chain.
+        selected.update(network for network in enabled if NETWORKS[network]["native"] == symbol)
+        selected_by_symbol[symbol] = selected
 
     values = {
         "SARA_ENABLED_NETWORKS": ",".join(n for n in ALL_NETWORKS if n in enabled),
-        "SARA_USDC_NETWORKS": ",".join(n for n in ALL_NETWORKS if n in usdc),
     }
+    values.update({
+        f"SARA_{symbol}_NETWORKS": ",".join(
+            network for network in ALL_NETWORKS if network in selected_by_symbol[symbol]
+        )
+        for symbol in STABLECOIN_SYMBOLS
+    })
     for key, value in values.items():
         row = db.query(Config).filter(Config.key == key).first()
         if row:

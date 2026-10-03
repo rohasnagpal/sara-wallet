@@ -7,13 +7,13 @@ then returns the resource.
 Mainnet networks: base, ethereum, polygon, arbitrum - each independently
 confirmed against x402's own installed default-asset registry
 (x402.mechanisms.evm.default_assets.DEFAULT_ASSETS) to use the *exact same*
-USDC contract address Sara already trusts (app.core.assets.NETWORKS), with
+USDC contract address Sara already trusts (app.core.assets.STABLECOINS), with
 EIP-3009 support (no "permit2"/no-EIP-3009 marker on those entries).
 Optimism is deliberately excluded: it has no entry in x402's own registry
 at all, so its USDC's EIP-3009 support isn't confirmed - never assume.
 
 Also: base-sepolia (testnet, free USDC via faucet, no real money). Kept in
-a separate dict from app.core.assets.NETWORKS (Sara's *production* network
+a separate dict from app.core.assets.STABLECOINS (Sara's *production* asset
 policy) rather than added there, so a testnet chain never leaks into
 balance displays or send flows elsewhere in the app. It's here because
 x402's own public default facilitator (x402.org/facilitator, queried live
@@ -41,11 +41,11 @@ from dataclasses import dataclass
 
 from eth_account import Account
 
-from app.core.assets import NETWORKS
+from app.core.assets import NETWORKS, X402, resolve_stablecoin
 
 # base-sepolia's chain_id/USDC address, straight from x402's own installed
 # DEFAULT_ASSETS registry (x402.mechanisms.evm.default_assets) - not part
-# of app.core.assets.NETWORKS since that's Sara's production network list.
+# of app.core.assets.STABLECOINS since that's Sara's production asset list.
 _TESTNET_ASSETS = {
     "base-sepolia": {"chain_id": 84532, "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"},
 }
@@ -58,7 +58,13 @@ TESTNET_NETWORKS = ("base-sepolia",)
 
 
 def _network_asset(network: str) -> dict:
-    return _TESTNET_ASSETS.get(network) or NETWORKS[network]
+    testnet = _TESTNET_ASSETS.get(network)
+    if testnet:
+        return testnet
+    resolved = resolve_stablecoin("USDC", network, capability=X402, enabled_only=False)
+    if resolved is None:
+        raise X402Error(f"x402 USDC is not registered on {network}")
+    return {"chain_id": NETWORKS[network]["chain_id"], "usdc": resolved[0]}
 
 
 class X402Error(Exception):

@@ -1,40 +1,15 @@
 import requests
 from web3 import Web3
+from app.core.assets import NETWORKS, SWAP, resolve_stablecoin, stablecoins_on
 
 _BASE = "https://apiv5.paraswap.io"
 
-CHAIN_IDS = {
-    "ethereum": 1, "arbitrum": 42161, "base": 8453,
-    "optimism": 10, "polygon": 137,
-}
+_PARASWAP_NETWORKS = ("ethereum", "arbitrum", "base", "optimism", "polygon")
+CHAIN_IDS = {network: NETWORKS[network]["chain_id"] for network in _PARASWAP_NETWORKS}
 
-NATIVE_SYMBOLS = {
-    "ethereum": "ETH", "arbitrum": "ETH", "base": "ETH", "optimism": "ETH",
-    "polygon": "POL",
-}
+NATIVE_SYMBOLS = {network: NETWORKS[network]["native"] for network in _PARASWAP_NETWORKS}
 
 _NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-
-_TOKENS: dict[int, dict[str, tuple[str, int]]] = {  # symbol → (address, decimals)
-    # Sara specializes in stablecoin payments — only Circle-issued USDC (plus each
-    # chain's native gas token, handled separately via NATIVE_SYMBOLS) are
-    # trusted. No speculative/DeFi tokens.
-    1: {
-        "USDC":  ("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6),
-    },
-    137: {
-        "USDC":  ("0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", 6),
-    },
-    42161: {
-        "USDC":  ("0xaf88d065e77c8cC2239327C5EDb3A432268e5831", 6),
-    },
-    8453: {
-        "USDC":  ("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", 6),
-    },
-    10: {
-        "USDC":  ("0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", 6),
-    },
-}
 
 _PARASWAP_SPENDER_ABI = [
     {"inputs":[],"name":"getTokenTransferProxy","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"}
@@ -84,22 +59,21 @@ def resolve_token(symbol: str, network: str) -> tuple[str, int] | None:
     native = NATIVE_SYMBOLS.get(network, "ETH")
     if symbol.upper() == native:
         return (_NATIVE, 18)
-    entry = _TOKENS.get(chain_id, {}).get(symbol.upper())
-    return entry  # (address, decimals) or None
+    return resolve_stablecoin(symbol, network, capability=SWAP)
 
 
 def trusted_symbols(network: str) -> list[str]:
     """Every symbol Sara will resolve to a real contract on this network —
     the allowlist a user's input is checked (and typo-corrected) against."""
     network = network.lower()
-    from app.core.assets import network_enabled, token_enabled
+    from app.core.assets import network_enabled
     if not network_enabled(network):
         return []
     chain_id = CHAIN_IDS.get(network)
     if not chain_id:
         return []
     native = NATIVE_SYMBOLS.get(network, "ETH")
-    return [native] + [s for s in _TOKENS.get(chain_id, {}) if token_enabled(s, network)]
+    return [native] + [asset.symbol for asset in stablecoins_on(network, capability=SWAP, enabled_only=True)]
 
 
 def resolve_token_with_correction(symbol: str, network: str) -> tuple[tuple[str, int] | None, str | None]:

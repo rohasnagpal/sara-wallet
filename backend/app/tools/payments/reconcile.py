@@ -70,8 +70,8 @@ def check_evm_request(wallet, request) -> str | None:
     contract_addr = None
     decimals = 18
     if not is_native:
-        from app.tools.market.paraswap import resolve_token
-        result = resolve_token(request.token, request.network)
+        from app.core.assets import RECONCILE, resolve_stablecoin
+        result = resolve_stablecoin(request.token, request.network, capability=RECONCILE)
         if not result:
             return None
         contract_addr, decimals = result

@@ -21,13 +21,15 @@ def is_trusted_token(symbol: str, network: str) -> tuple[bool, str]:
     Returns (is_valid, canonical_symbol) — canonical_symbol is the corrected
     symbol to actually use (may differ from input if a typo was corrected)."""
     sym = symbol.upper()
-    from app.chains.evm import _NATIVE_TOKEN
-    native = _NATIVE_TOKEN.get(network, "ETH")
+    from app.core.assets import NETWORKS, SEND, resolve_stablecoin, sendable_symbols
+    native = NETWORKS.get(network, {}).get("native", "ETH")
     if sym == native:
         return True, native
-    from app.tools.market.paraswap import resolve_token_with_correction
-    result, corrected = resolve_token_with_correction(symbol, network)
-    return (result is not None), (corrected or sym)
+    if resolve_stablecoin(sym, network, capability=SEND):
+        return True, sym
+    from app.tools.wallet.token_trust import fuzzy_correct
+    corrected = fuzzy_correct(symbol, sendable_symbols(network))
+    return (corrected is not None), (corrected or sym)
 
 
 def encode_payload(data: dict) -> str:
@@ -66,8 +68,8 @@ def create_payment_request(db, wallet, network: str, token: str, amount, note: s
         return None, f"'{token}' is not a token Sara trusts on this wallet's chain"
 
     from app.core.amounts import to_base_units
-    from app.tools.market.paraswap import resolve_token
-    resolved = resolve_token(symbol, network)
+    from app.core.assets import resolve_stablecoin
+    resolved = resolve_stablecoin(symbol, network)
     decimals = resolved[1] if resolved else 18
     try:
         amount_raw = to_base_units(str(exact_amount), decimals, symbol)
@@ -139,12 +141,18 @@ def parse_eip681(uri: str) -> dict:
 
     net = NETWORKS[network]
     if function == "transfer":
-        if address.lower() != net["usdc"].lower():
-            raise ValueError(f"Sara only pays USDC from Circle's verified contract on {net['label']}; this QR names a different token.")
+        from app.core.assets import SEND, stablecoins_on
+        asset = next(
+            (candidate for candidate in stablecoins_on(network, capability=SEND, enabled_only=True)
+             if candidate.address.lower() == address.lower()),
+            None,
+        )
+        if asset is None:
+            raise ValueError(f"Sara does not recognize this token contract on {net['label']}.")
         recipient = params.get("address", "")
         if not _ADDRESS_RE.match(recipient):
             raise ValueError("This payment QR has an invalid recipient address.")
-        token, decimals, raw_amount = "USDC", 6, _integer(params.get("uint256"))
+        token, decimals, raw_amount = asset.symbol, asset.decimals, _integer(params.get("uint256"))
     elif function == "":
         recipient, token, decimals, raw_amount = address, net["native"], 18, _integer(params.get("value"))
     else:

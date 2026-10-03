@@ -57,7 +57,7 @@ from dataclasses import dataclass
 import httpx
 from web3 import Web3
 
-from app.core.assets import NETWORKS
+from app.core.assets import CCTP, resolve_stablecoin
 
 _MAX_GAS_LIMIT = 500_000
 _MAX_FEE_WEI = 50_000_000_000_000_000  # 0.05 native asset — matches aave.py/paraswap.py's cap
@@ -120,7 +120,10 @@ def usdc_address(network: str) -> str:
     every other feature (swaps, x402, Aave) already trusts, never derived
     from anything Circle's own API returns."""
     network = _require_network(network)
-    return NETWORKS[network]["usdc"]
+    resolved = resolve_stablecoin("USDC", network, capability=CCTP, enabled_only=False)
+    if resolved is None:
+        raise CctpError(f"CCTP USDC is not registered on {network}")
+    return resolved[0]
 
 
 def address_to_bytes32(address: str) -> bytes:

@@ -1915,7 +1915,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             <!-- Networks & Tokens -->
             <div class="settings-section-title">Manage Networks &amp; Tokens</div>
             <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
-              Choose where Sara operates. Native assets stay enabled for gas; USDC uses Circle's official contract on each network.
+              Choose where Sara operates. Native assets stay enabled for gas; stablecoins are shown only on chains where Sara has a verified contract.
             </div>
             <div class="asset-settings-list" id="assetSettingsList"></div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
@@ -3315,7 +3315,9 @@ async function loadInvoices() {
   if (!networkSelect.options.length) {
     let assetData = _assetSettings;
     if (!assetData) { try { assetData = await fetch('/api/settings/assets').then(r => r.json()); } catch(e) { assetData = {networks:[]}; } }
-    const usdcNetworks = (assetData.networks || []).filter(n => n.enabled && n.usdc_enabled);
+    const usdcNetworks = (assetData.networks || []).filter(n => n.enabled && (n.stablecoins || []).some(
+      asset => asset.symbol === 'USDC' && asset.enabled && (asset.capabilities || []).includes('invoice')
+    ));
     networkSelect.innerHTML = usdcNetworks.length
       ? usdcNetworks.map(n => `<option value="${_escapeHtml(n.id)}">${_escapeHtml(n.label)}</option>`).join('')
       : '<option value="">No USDC networks enabled</option>';
@@ -5259,7 +5261,7 @@ async function _loadAssetSettings() {
         </label>
         <div class="asset-settings-token">
           <span>${_escapeHtml(n.native)} <span class="gas-required">Required for gas</span></span>
-          <label>USDC <input type="checkbox" class="usdc-toggle" data-network="${_escapeHtml(n.id)}" ${n.usdc_enabled ? 'checked' : ''} ${n.enabled ? '' : 'disabled'}></label>
+          ${(n.stablecoins || []).map(asset => `<label>${_escapeHtml(asset.symbol)} <input type="checkbox" class="stablecoin-toggle" data-network="${_escapeHtml(n.id)}" data-symbol="${_escapeHtml(asset.symbol)}" data-required-for-gas="${asset.required_for_gas ? 'true' : 'false'}" ${asset.enabled ? 'checked' : ''} ${n.enabled && !asset.required_for_gas ? '' : 'disabled'}></label>`).join('')}
         </div>
       </div>`).join('');
   } catch(e) {
@@ -5269,15 +5271,22 @@ async function _loadAssetSettings() {
 
 function _syncAssetSettingsRow(networkToggle) {
   const row = networkToggle.closest('.asset-settings-row');
-  const usdc = row.querySelector('.usdc-toggle');
-  usdc.disabled = !networkToggle.checked;
-  if (!networkToggle.checked) usdc.checked = false;
+  row.querySelectorAll('.stablecoin-toggle').forEach(toggle => {
+    const isNative = toggle.dataset.requiredForGas === 'true';
+    toggle.disabled = !networkToggle.checked || isNative;
+    if (!networkToggle.checked) toggle.checked = false;
+    if (networkToggle.checked && isNative) toggle.checked = true;
+  });
 }
 
 async function saveAssetSettings() {
   const statusEl = document.getElementById('assetSettingsStatus');
   const enabled_networks = [...document.querySelectorAll('.network-toggle:checked')].map(el => el.dataset.network);
-  const usdc_networks = [...document.querySelectorAll('.usdc-toggle:checked:not(:disabled)')].map(el => el.dataset.network);
+  const stablecoin_networks = Object.fromEntries(
+    (_assetSettings.stablecoin_symbols || []).map(symbol => [symbol,
+      [...document.querySelectorAll(`.stablecoin-toggle[data-symbol="${symbol}"]:checked`)].map(el => el.dataset.network)
+    ])
+  );
   if (!enabled_networks.length) {
     statusEl.textContent = 'Keep at least one network enabled.';
     statusEl.style.color = 'var(--red)';
@@ -5286,7 +5295,7 @@ async function saveAssetSettings() {
   try {
     const r = await fetch('/api/settings/assets', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ enabled_networks, usdc_networks }),
+      body: JSON.stringify({ enabled_networks, stablecoin_networks }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(_apiErrorText(data, 'Could not save'));

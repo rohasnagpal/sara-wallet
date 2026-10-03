@@ -1,5 +1,5 @@
 import os, requests
-from app.core.assets import EURC_ADDRESSES, EURC_DECIMALS, NETWORKS, token_enabled
+from app.core.assets import BALANCE, stablecoins_on
 
 _ALCHEMY_SLUGS = {
     "ethereum": "eth-mainnet",
@@ -16,12 +16,10 @@ def _trusted_contracts(network: str) -> list[dict]:
     networks it's actually live on and enabled. Nothing outside this list
     is ever queried, same discipline as app.tools.market.paraswap's own
     trusted-contract table."""
-    contracts = []
-    if token_enabled("USDC", network):
-        contracts.append({"symbol": "USDC", "name": "USD Coin", "address": NETWORKS[network]["usdc"], "decimals": 6})
-    if token_enabled("EURC", network):
-        contracts.append({"symbol": "EURC", "name": "EURC", "address": EURC_ADDRESSES[network], "decimals": EURC_DECIMALS})
-    return contracts
+    return [
+        {"symbol": asset.symbol, "name": asset.name, "address": asset.address, "decimals": asset.decimals}
+        for asset in stablecoins_on(network, capability=BALANCE, enabled_only=True)
+    ]
 
 
 def _direct_rpc_balances(address: str, network: str) -> list[dict]:
