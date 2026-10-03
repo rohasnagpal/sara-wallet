@@ -16,13 +16,11 @@ def generate_reference() -> str:
     return "INV-" + secrets.token_hex(3).upper()
 
 
-def is_trusted_token(symbol: str, network: str, wallet_chain: str) -> tuple[bool, str]:
-    """Validates a token symbol against Sara's trusted list for this chain.
+def is_trusted_token(symbol: str, network: str) -> tuple[bool, str]:
+    """Validates a token symbol against Sara's trusted EVM-token list.
     Returns (is_valid, canonical_symbol) — canonical_symbol is the corrected
     symbol to actually use (may differ from input if a typo was corrected)."""
     sym = symbol.upper()
-    if wallet_chain != "evm":
-        return False, sym
     from app.chains.evm import _NATIVE_TOKEN
     native = _NATIVE_TOKEN.get(network, "ETH")
     if sym == native:
@@ -61,9 +59,9 @@ def create_payment_request(db, wallet, network: str, token: str, amount, note: s
     if not exact_amount.is_finite() or exact_amount <= 0:
         return None, "amount must be a positive, finite number"
     from app.core.assets import network_enabled
-    if wallet.chain != "evm" or not network_enabled(network):
-        return None, "This wallet or network is not supported"
-    valid, symbol = is_trusted_token(token, network, wallet.chain)
+    if not network_enabled(network):
+        return None, "This network is not supported"
+    valid, symbol = is_trusted_token(token, network)
     if not valid:
         return None, f"'{token}' is not a token Sara trusts on this wallet's chain"
 

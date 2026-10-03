@@ -46,7 +46,7 @@ def build_domain(chain_id: int, registry_address: str) -> dict:
 
 _TYPES = {
     "NetworkAddress": [
-        {"name": "network", "type": "string"},   # CAIP-2 identifier, e.g. "eip155:137", "solana:...", "tron:..."
+        {"name": "network", "type": "string"},   # EVM CAIP-2 identifier, e.g. "eip155:137"
         {"name": "addr", "type": "string"},
     ],
     "SaraNameRecord": [
@@ -114,12 +114,6 @@ class NameRecord:
                 if network.startswith("eip155:"):
                     if not Web3.is_address(address):
                         return False, f"invalid EVM address for {network}"
-                elif network.startswith("solana:"):
-                    from solders.pubkey import Pubkey
-                    Pubkey.from_string(address)
-                elif network.startswith("tron:"):
-                    from tronpy.keys import to_hex_address
-                    to_hex_address(address)
                 else:
                     return False, f"unsupported network identifier: {network}"
             except Exception:

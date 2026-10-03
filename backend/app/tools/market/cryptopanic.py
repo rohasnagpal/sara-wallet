@@ -32,7 +32,6 @@ _BEARISH_WORDS = {
 _COIN_ALIASES: dict[str, list[str]] = {
     "BTC":  ["bitcoin", "btc"],
     "ETH":  ["ethereum", "eth", "ether"],
-    "SOL":  ["solana", "sol"],
     "DOGE": ["dogecoin", "doge"],
     "XRP":  ["ripple", "xrp"],
     "ADA":  ["cardano", "ada"],

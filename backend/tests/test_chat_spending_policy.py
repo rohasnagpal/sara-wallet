@@ -81,7 +81,7 @@ class ChatSpendingPolicyTest(unittest.TestCase):
 
     # -- send ------------------------------------------------------------
     def send_pending(self, amount=5):
-        return {"type": "send", "wallet_id": self.wallet.id, "wallet_name": "Main", "wallet_chain": "evm",
+        return {"type": "send", "wallet_id": self.wallet.id, "wallet_name": "Main",
                 "wallet_address": ME, "wallet_encrypted_key": "x", "network": "polygon", "to": BOB,
                 "amount": amount, "token": "USDC", "token_address": USDC, "token_decimals": 6}
 

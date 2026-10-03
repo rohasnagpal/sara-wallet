@@ -2,17 +2,17 @@ import yfinance as yf
 
 # yfinance crypto tickers: symbol → Yahoo Finance ticker
 CRYPTO_TICKERS = {
-    "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD",
+    "BTC": "BTC-USD", "ETH": "ETH-USD",
     "AVAX": "AVAX-USD", "MATIC": "MATIC-USD", "POL": "POL-USD",
     "DOT": "DOT-USD", "ADA": "ADA-USD", "DOGE": "DOGE-USD",
     "LINK": "LINK-USD", "BNB": "BNB-USD", "XRP": "XRP-USD",
     "UNI": "UNI-USD", "AAVE": "AAVE-USD", "ARB": "ARB-USD",
     "OP": "OP-USD", "LTC": "LTC-USD", "ATOM": "ATOM-USD",
     "NEAR": "NEAR-USD", "FTM": "FTM-USD", "SUI": "SUI-USD",
-    "TON": "TON-USD", "PEPE": "PEPE-USD", "TRX": "TRX-USD",
+    "TON": "TON-USD", "PEPE": "PEPE-USD",
     "SHIB": "SHIB-USD", "BCH": "BCH-USD", "WIF": "WIF-USD",
     # CoinGecko IDs → yf tickers
-    "BITCOIN": "BTC-USD", "ETHEREUM": "ETH-USD", "SOLANA": "SOL-USD",
+    "BITCOIN": "BTC-USD", "ETHEREUM": "ETH-USD",
 }
 
 def _fetch(ticker: str) -> dict | None:

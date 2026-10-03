@@ -2,7 +2,7 @@
 
 Sara never resolves a token symbol to an arbitrary on-chain contract — every
 send/swap/bridge only accepts symbols present in the hardcoded, developer-
-verified address lists in paraswap.py, jupiter.py, and lifi.py. This module
+verified address lists in paraswap.py and lifi.py. This module
 just helps recover from a misspelled *symbol* (e.g. "UDST" -> "USDT") without
 ever substituting a different asset for the one the user actually typed.
 """

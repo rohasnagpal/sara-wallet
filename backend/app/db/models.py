@@ -21,7 +21,7 @@ class Wallet(Base):
     __tablename__ = "wallets"
     id            = Column(Integer, primary_key=True, index=True)
     name          = Column(String, unique=True, nullable=False)
-    chain         = Column(String, nullable=False)   # "evm" | "solana" | "tron"
+    chain         = Column(String, nullable=False)   # "evm"
     address       = Column(String, nullable=False)
     encrypted_key = Column(Text, nullable=False)     # AES-256-GCM, hex-encoded blob
     created_at    = Column(DateTime, default=datetime.utcnow)

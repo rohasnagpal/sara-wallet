@@ -61,7 +61,7 @@ class AddressTriangulationTests(unittest.TestCase):
 class UnsupportedNetworkTests(unittest.TestCase):
     def test_rejects_a_network_aave_isnt_configured_for(self):
         with self.assertRaises(aave.AaveError):
-            aave.usdc_address("solana")
+            aave.usdc_address("unsupported")
 
     def test_get_position_rejects_unsupported_network(self):
         with self.assertRaises(aave.AaveError):
@@ -193,7 +193,7 @@ class GetSupplyApyTests(unittest.TestCase):
 
     def test_rejects_unsupported_network(self):
         with self.assertRaises(aave.AaveError):
-            aave.get_supply_apy("solana")
+            aave.get_supply_apy("unsupported")
 
 
 if __name__ == "__main__":

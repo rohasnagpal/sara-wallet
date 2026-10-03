@@ -36,6 +36,22 @@ class MigrationTests(unittest.TestCase):
                 ))
             # New tables are created by normal startup before migrations run.
             Base.metadata.create_all(engine)
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "INSERT INTO wallets (name, chain, address, encrypted_key) "
+                    "VALUES ('removed-chain-wallet', 'non-evm', 'old-address', 'encrypted')"
+                ))
+                conn.execute(text(
+                    "INSERT INTO address_book (nickname, address, chain, type, active) "
+                    "VALUES ('removed-chain-contact', 'old-address', 'non-evm', 'friend', 1)"
+                ))
+                conn.execute(text(
+                    "INSERT INTO transactions (wallet_id, chain, tx_hash, to_address, amount, token, status, timestamp) "
+                    "VALUES (1, 'non-evm', 'old-tx', 'old-address', 1, 'OLD', 'confirmed', CURRENT_TIMESTAMP)"
+                ))
+                conn.execute(text(
+                    "INSERT INTO payment_requests (id, chain, network) VALUES (1, 'non-evm', 'removed')"
+                ))
             run_migrations(engine)
             run_migrations(engine)  # explicitly idempotent
 
@@ -45,6 +61,10 @@ class MigrationTests(unittest.TestCase):
             self.assertTrue({"amount_raw", "decimals", "customer_name", "due_date", "payment_address", "merchant_client_id"} <= invoice_columns)
             self.assertNotIn("proof_records", inspect(engine).get_table_names())
             with engine.connect() as conn:
+                self.assertEqual(conn.execute(text("SELECT count(*) FROM wallets WHERE chain != 'evm'")).scalar(), 0)
+                self.assertEqual(conn.execute(text("SELECT count(*) FROM address_book WHERE chain != 'evm'")).scalar(), 0)
+                self.assertEqual(conn.execute(text("SELECT count(*) FROM transactions WHERE chain != 'evm'")).scalar(), 0)
+                self.assertEqual(conn.execute(text("SELECT count(*) FROM payment_requests WHERE chain != 'evm'")).scalar(), 0)
                 versions = conn.execute(text("SELECT version FROM schema_migrations")).all()
             self.assertEqual([v[0] for v in versions], [
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
@@ -52,7 +72,7 @@ class MigrationTests(unittest.TestCase):
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
                 "009_drop_dual_control", "010_paywall_preview_message",
                 "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
-                "014_remove_sara_proof",
+                "014_remove_sara_proof", "015_remove_non_evm_data",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):
