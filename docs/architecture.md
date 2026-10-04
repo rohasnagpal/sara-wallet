@@ -42,7 +42,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Batch/recurring payments, payroll and authenticated approvals
 - Accounting, fiat valuation, income/expense reporting and exports
 - Allowance controls and transaction simulation
-- Treasury balances, stablecoin routing, risk screening and alerts
+- Risk screening and alerts
 - Local Directory handles and ENS resolution
 - x402 pay-per-call payments, policy-gated for unattended/agent use
 - Market data requests

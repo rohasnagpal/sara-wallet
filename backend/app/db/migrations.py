@@ -280,6 +280,13 @@ def _migration_020_remove_beta_scope_features(engine: Engine) -> None:
         conn.execute(text("DROP TABLE IF EXISTS portfolio_snapshots"))
 
 
+def _migration_021_remove_treasury_defi_onramp(engine: Engine) -> None:
+    """Remove data belonging to the retired CCTP and Coinbase onramp features."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS cctp_transfers"))
+        conn.execute(text("DROP TABLE IF EXISTS onramp_settings"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -301,6 +308,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("018_remove_cost_basis_and_pnl", _migration_018_remove_cost_basis_and_pnl),
     ("019_directory_handles", _migration_019_directory_handles),
     ("020_remove_beta_scope_features", _migration_020_remove_beta_scope_features),
+    ("021_remove_treasury_defi_onramp", _migration_021_remove_treasury_defi_onramp),
 )
 
 

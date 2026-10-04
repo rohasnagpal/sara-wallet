@@ -41,6 +41,8 @@ class MigrationTests(unittest.TestCase):
                 conn.execute(text("CREATE TABLE disposals (id INTEGER PRIMARY KEY)"))
                 conn.execute(text("CREATE TABLE token_deployments (id INTEGER PRIMARY KEY)"))
                 conn.execute(text("CREATE TABLE portfolio_snapshots (id INTEGER PRIMARY KEY)"))
+                conn.execute(text("CREATE TABLE cctp_transfers (id INTEGER PRIMARY KEY)"))
+                conn.execute(text("CREATE TABLE onramp_settings (id INTEGER PRIMARY KEY)"))
             # New tables are created by normal startup before migrations run.
             Base.metadata.create_all(engine)
             with engine.begin() as conn:
@@ -78,6 +80,8 @@ class MigrationTests(unittest.TestCase):
             self.assertNotIn("disposals", inspect(engine).get_table_names())
             self.assertNotIn("token_deployments", inspect(engine).get_table_names())
             self.assertNotIn("portfolio_snapshots", inspect(engine).get_table_names())
+            self.assertNotIn("cctp_transfers", inspect(engine).get_table_names())
+            self.assertNotIn("onramp_settings", inspect(engine).get_table_names())
             with engine.connect() as conn:
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM wallets WHERE chain != 'evm'")).scalar(), 0)
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM address_book WHERE chain != 'evm'")).scalar(), 0)
@@ -97,6 +101,7 @@ class MigrationTests(unittest.TestCase):
                 "014_remove_sara_proof", "015_remove_non_evm_data", "016_remove_onchain_sara_names",
                 "017_single_recovery_seed", "018_remove_cost_basis_and_pnl", "019_directory_handles",
                 "020_remove_beta_scope_features",
+                "021_remove_treasury_defi_onramp",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

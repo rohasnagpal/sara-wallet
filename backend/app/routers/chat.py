@@ -625,8 +625,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges, batches, x402)\n"
             "• **Ledger** — every send and receive with fiat value, tags and notes, linked to block explorers\n"
             "• **Accounts** — income/expense reports and CSV/XLSX export\n\n"
-            "**Treasury & Safety**\n"
-            "• **Treasury** — combined balances and low-balance alerts across your wallets, plus stablecoin route comparisons\n"
+            "**Safety**\n"
             "• **Risk** — screen an address against a public sanctions list\n"
             "• **Safety** — check for leftover token approvals from Sara's own swaps and bridges, and revoke them\n"
             "• **Alerts** — Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit\n\n"
@@ -1468,7 +1467,7 @@ def _record_submitted_transaction(
 
     direction defaults to "outgoing" (every send/swap/bridge/x402-payment
     caller genuinely pays out); pass "incoming" for money coming back to
-    the wallet (e.g. an Aave withdrawal) so it isn't shown as an outflow."""
+    the wallet so it isn't shown as an outflow."""
     from datetime import datetime
     from app.core.audit import append_audit
     from app.core.events import publish

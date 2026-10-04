@@ -1154,7 +1154,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
-          <button class="col2-nav-btn" id="col2BtnTreasury" onclick="showTool('treasury')">Treasury</button>
           <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
         </div>
 
@@ -1395,137 +1394,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
         </div><!-- /accountingView -->
 
-        <!-- ── Tools View (treasury / risk / x402) ── -->
+        <!-- ── Tools View (risk / x402) ── -->
         <div id="toolsView" style="display:none">
-          <div id="toolsTreasuryPane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Treasury overview</strong><button class="settings-save-btn" onclick="loadTreasuryOverview()">Refresh</button></div>
-              <div id="treasuryOverview" style="font-size:11px;margin-top:8px">Loading…</div>
-            </div>
-            <div class="card">
-              <div style="font-size:15px;font-weight:600">Compare stablecoin routes</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 8px">Shows the ways to move a stablecoin from one network to another (or swap it on one network), with what you would receive after fees and gas, so you can pick the cheapest. Nothing is sent from here. These are only quotes.</div>
-              <div class="field-grid" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="routeFromNetwork">From network</label><select class="settings-input" id="routeFromNetwork" onchange="syncRouteTokens()"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="routeToNetwork">To network</label><select class="settings-input" id="routeToNetwork" onchange="syncRouteTokens()"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <div class="field"><label class="field-label" for="routeFromToken">From token</label><select class="settings-input" id="routeFromToken"><option value="USDC">USDC</option></select></div>
-                <div class="field"><label class="field-label" for="routeToToken">To token</label><select class="settings-input" id="routeToToken"><option value="USDC">USDC</option></select></div>
-                <div class="field"><label class="field-label" for="routeAmount">Amount</label><input class="settings-input" id="routeAmount" placeholder="Amount"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="compareRoutes()">Compare</button>
-              <div id="routeResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="font-size:15px;font-weight:600">USDC yield (Aave)</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                Supply USDC to Aave's v3 lending pool and earn its variable supply rate - your USDC
-                stays withdrawable at any time. Sara only ever supplies or withdraws your own funds;
-                it never borrows against them. Supported on Ethereum, Base, Arbitrum, Optimism and Polygon.
-              </div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="aaveWallet">Wallet</label><select class="settings-input" id="aaveWallet" onchange="loadAavePosition()"></select></div>
-                <div class="field"><label class="field-label" for="aaveNetwork">Network</label>
-                  <select class="settings-input" id="aaveNetwork" onchange="loadAavePosition()">
-                    <option value="base">Base</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="arbitrum">Arbitrum</option>
-                    <option value="optimism">Optimism</option>
-                    <option value="ethereum">Ethereum</option>
-                  </select>
-                </div>
-              </div>
-              <div id="aavePosition" style="font-size:12px;margin:6px 0;color:var(--text-secondary)">Pick a wallet to see your position.</div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="aaveSupplyAmount">Supply amount (USDC)</label><input class="settings-input" id="aaveSupplyAmount" placeholder="100"></div>
-                <button class="settings-save-btn" onclick="aaveSupply()">Supply</button>
-              </div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="aaveWithdrawAmount">Withdraw amount (USDC, blank = all)</label><input class="settings-input" id="aaveWithdrawAmount" placeholder="Leave blank to withdraw everything"></div>
-                <button class="settings-save-btn" onclick="aaveWithdraw()">Withdraw</button>
-              </div>
-              <div id="aaveActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="font-size:15px;font-weight:600">Native USDC bridge (CCTP)</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                Moves USDC between networks via Circle's own Cross-Chain Transfer Protocol: real USDC is
-                burned on the source network and newly minted on the destination - no wrapped token, no
-                liquidity pool, no slippage. This needs two signed transactions (one per network), so your
-                wallet needs a small amount of the destination network's native gas token too, not just the
-                source one. For anything CCTP doesn't cover (other tokens, or a swap as part of the route),
-                use <strong>Compare stablecoin routes</strong> above instead.
-              </div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="cctpWallet">Wallet</label><select class="settings-input" id="cctpWallet"></select></div>
-                <div class="field"><label class="field-label" for="cctpFrom">From network</label>
-                  <select class="settings-input" id="cctpFrom">
-                    <option value="base">Base</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="arbitrum">Arbitrum</option>
-                    <option value="optimism">Optimism</option>
-                    <option value="ethereum">Ethereum</option>
-                  </select>
-                </div>
-                <div class="field"><label class="field-label" for="cctpTo">To network</label>
-                  <select class="settings-input" id="cctpTo">
-                    <option value="arbitrum">Arbitrum</option>
-                    <option value="base">Base</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="optimism">Optimism</option>
-                    <option value="ethereum">Ethereum</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="cctpAmount">Amount (USDC)</label><input class="settings-input" id="cctpAmount" placeholder="100"></div>
-                <div class="field"><label class="field-label" for="cctpSpeed">Speed</label>
-                  <select class="settings-input" id="cctpSpeed">
-                    <option value="fast">Fast (~8-20 seconds)</option>
-                    <option value="standard">Standard (waits for hard finality, ~13-19 min)</option>
-                  </select>
-                </div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="cctpTransfer()">Transfer</button>
-              <div id="cctpActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong style="font-size:12px">Transfers</strong><button class="settings-save-btn" onclick="loadCctpTransfers()">Refresh</button></div>
-              <div id="cctpTransfersList" style="font-size:11px;margin-top:6px">Loading…</div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="font-size:15px;font-weight:600">Add funds (buy USDC)</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                Buy USDC with a card or bank transfer, straight into a Sara wallet. Needs a free CDP API
-                key set up once in <strong>Settings &rarr; Buy USDC</strong> first.
-                <br><br>
-                Pick a wallet, network and (optionally) an amount below, then click <strong>Buy USDC</strong> -
-                Coinbase's own hosted checkout page opens in a new browser tab; Sara never sees the payment
-                or your card details. Pay there directly, then close that tab, come back here, and refresh
-                your balance (Balance or Portfolio tab) - the USDC shows up as a normal incoming transfer
-                once it settles on-chain, usually within a minute or two.
-                <br><br>
-                Available payment methods depend on your region (Coinbase currently supports the EU, UK
-                and US at launch).
-              </div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="onrampWallet">Deposit to wallet</label><select class="settings-input" id="onrampWallet"></select></div>
-                <div class="field"><label class="field-label" for="onrampNetwork">Network</label>
-                  <select class="settings-input" id="onrampNetwork">
-                    <option value="base">Base</option>
-                    <option value="ethereum">Ethereum</option>
-                    <option value="arbitrum">Arbitrum</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="optimism">Optimism</option>
-                  </select>
-                </div>
-                <div class="field"><label class="field-label" for="onrampAmount">Amount in USD (optional)</label><input class="settings-input" id="onrampAmount" placeholder="100"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="startOnramp()">Buy USDC</button>
-              <div id="onrampActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-            </div>
-          </div>
-
           <div id="toolsRiskPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="font-size:15px;font-weight:600">Screen an address</div>
@@ -1773,37 +1643,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                 <button class="settings-save-btn" onclick="saveSetting('ALCHEMY_API_KEY')">Save</button>
               </div>
               <div class="settings-status" id="sstatus-ALCHEMY_API_KEY"></div>
-            </div>
-
-            <!-- Buy USDC -->
-            <div class="settings-section-title">Buy USDC (Coinbase Onramp)</div>
-            <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">
-              Lets you buy USDC with a card or bank transfer, straight into a Sara wallet, via
-              Coinbase's own hosted checkout page - Sara never touches the payment or your card details.
-              This isn't Circle's own "Onramp Kit" - that one isn't publicly documented yet, so
-              Coinbase's separately-built, publicly available equivalent is used instead; the end
-              result (USDC lands in your wallet) is the same.
-              <br><br>
-              <strong>Setup, one time only:</strong>
-              1) Get a free key from the <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">CDP Portal &rarr; API Keys</a>
-              - when it asks for the key type, choose <strong>Ed25519</strong> (not EC/ES256).
-              2) Paste the Key ID and Key Secret below and Save (Sara must be unlocked).
-              That's it - this one key works for buying into any of your wallets, so you only set it
-              up once. To actually buy USDC, go to <strong>Treasury &rarr; Add funds</strong>.
-            </div>
-            <div class="settings-row" id="srow-onrampCdpKeyId">
-              <div class="settings-label">CDP API Key ID</div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="onrampCdpKeyId" type="text" placeholder="organizations/.../apiKeys/..." autocomplete="off">
-              </div>
-            </div>
-            <div class="settings-row" id="srow-onrampCdpKeySecret">
-              <div class="settings-label">CDP API Key Secret</div>
-              <div class="settings-input-row">
-                <input class="settings-input" id="onrampCdpKeySecret" type="password" placeholder="Ed25519 private key, base64" autocomplete="off">
-                <button class="settings-save-btn" onclick="saveOnrampSettings()">Save</button>
-              </div>
-              <div class="settings-status" id="onrampSettingsStatus"></div>
             </div>
 
             <!-- Networks & Tokens -->
@@ -3984,19 +3823,18 @@ async function downloadAccountingExport(format) {
 }
 
 // ══════════════════════════════════════
-// TOOLS: treasury / risk / x402
+// TOOLS: risk / x402
 // ══════════════════════════════════════
-let _toolsTab = 'treasury';
+let _toolsTab = 'risk';
 
 async function loadToolsView() {
-  syncRouteTokens();
   _fillWalletSelects(['x402Wallet', 'paywallWallet']);
   return showToolsTab(_toolsTab);
 }
 
 // The Tools pages each have their own button
 // in the top nav; they share one view container whose visible pane is chosen here.
-const _TOOL_NAV = {treasury: 'col2BtnTreasury', risk: 'col2BtnRisk', x402: 'col2BtnX402'};
+const _TOOL_NAV = {risk: 'col2BtnRisk', x402: 'col2BtnX402'};
 
 function showTool(tab) {
   _toolsTab = tab;
@@ -4005,10 +3843,9 @@ function showTool(tab) {
 
 function showToolsTab(tab) {
   _toolsTab = tab;
-  const panes = {treasury: 'toolsTreasuryPane', risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
+  const panes = {risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
-  if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet', 'cctpWallet', 'onrampWallet']); loadAavePosition(); loadCctpTransfers(); }
   if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
 }
 
@@ -4093,187 +3930,6 @@ function _ledgerDetails(t) {
   if (t.wallet) add('Wallet', _escapeHtml(t.wallet));
   if (t.timestamp) add('Date', _escapeHtml(new Date(t.timestamp.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(t.timestamp) ? t.timestamp : t.timestamp + 'Z').toLocaleString()));
   return `<dl class="tx-card-details">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-}
-
-// ---- Treasury ----
-async function loadTreasuryOverview() {
-  const data = await fetch('/api/treasury/overview').then(r => r.json()).catch(() => null);
-  const box = document.getElementById('treasuryOverview');
-  if (!data) { box.textContent = 'Could not load treasury overview.'; return; }
-  box.innerHTML = `
-    <div>Total: <strong>$${_escapeHtml(data.total_usd)}</strong></div>
-    <div style="margin-top:6px">${(data.low_balance_flags || []).map(f => `<div>⚠ ${_escapeHtml(f.wallet)}: ${_escapeHtml(f.token)} on ${_escapeHtml(f.network)} is ${_escapeHtml(f.condition)} its configured threshold.</div>`).join('') || 'No low-balance alerts are currently triggered.'}</div>
-  `;
-}
-
-// ---- Aave USDC yield (supply/withdraw only, no borrowing) ----
-async function loadAavePosition() {
-  const box = document.getElementById('aavePosition');
-  const walletId = Number(document.getElementById('aaveWallet').value);
-  const network = document.getElementById('aaveNetwork').value;
-  if (!walletId) { box.textContent = 'Create or choose a wallet first.'; return; }
-  box.textContent = 'Loading…';
-  try {
-    const r = await fetch(`/api/aave/position?wallet_id=${walletId}&network=${encodeURIComponent(network)}`);
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not load your Aave position.'); return; }
-    box.innerHTML = `Supplied: <strong>${_escapeHtml(_fmtBal(data.usdc_supplied))} USDC</strong> · Current supply APY: <strong>${_escapeHtml(data.supply_apy_pct.toFixed(2))}%</strong>`;
-  } catch (e) { box.textContent = 'Could not load your Aave position.'; }
-}
-
-async function aaveSupply() {
-  const status = document.getElementById('aaveActionStatus');
-  const walletId = Number(document.getElementById('aaveWallet').value);
-  const network = document.getElementById('aaveNetwork').value;
-  const amount = document.getElementById('aaveSupplyAmount').value.trim();
-  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
-  if (!amount) { status.textContent = 'Enter an amount to supply.'; return; }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  status.textContent = 'Supplying…';
-  const r = await fetch('/api/aave/supply', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({wallet_id: walletId, network, amount, passphrase}),
-  });
-  const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok ? `Supplied - tx ${data.tx_hash}` : _apiErrorText(data, 'Supply failed.');
-  if (r.ok) { document.getElementById('aaveSupplyAmount').value = ''; await loadAavePosition(); }
-}
-
-async function aaveWithdraw() {
-  const status = document.getElementById('aaveActionStatus');
-  const walletId = Number(document.getElementById('aaveWallet').value);
-  const network = document.getElementById('aaveNetwork').value;
-  const amount = document.getElementById('aaveWithdrawAmount').value.trim() || null;
-  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  status.textContent = 'Withdrawing…';
-  const r = await fetch('/api/aave/withdraw', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({wallet_id: walletId, network, amount, passphrase}),
-  });
-  const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok ? `Withdrawn - tx ${data.tx_hash}` : _apiErrorText(data, 'Withdraw failed.');
-  if (r.ok) { document.getElementById('aaveWithdrawAmount').value = ''; await loadAavePosition(); }
-}
-
-// ---- Native USDC bridging via Circle's CCTP (alongside LI.FI, not instead of it) ----
-async function cctpTransfer() {
-  const status = document.getElementById('cctpActionStatus');
-  const walletId = Number(document.getElementById('cctpWallet').value);
-  const source_network = document.getElementById('cctpFrom').value;
-  const destination_network = document.getElementById('cctpTo').value;
-  const amount = document.getElementById('cctpAmount').value.trim();
-  const fast = document.getElementById('cctpSpeed').value === 'fast';
-  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
-  if (source_network === destination_network) { status.textContent = 'Pick two different networks.'; return; }
-  if (!amount) { status.textContent = 'Enter an amount.'; return; }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  status.textContent = 'Burning on ' + source_network + '…';
-  const r = await fetch('/api/cctp/transfer', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({wallet_id: walletId, source_network, destination_network, amount, fast, passphrase}),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Transfer failed.'); return; }
-  status.textContent = data.status === 'complete'
-    ? `Done - burned ${data.burn_tx_hash.slice(0, 10)}…, minted ${data.mint_tx_hash.slice(0, 10)}…`
-    : `Burned (tx ${data.burn_tx_hash.slice(0, 10)}…) - Circle's attestation wasn't ready yet. Your funds are safe; click Complete below once it is.`;
-  document.getElementById('cctpAmount').value = '';
-  await loadCctpTransfers();
-}
-
-async function loadCctpTransfers() {
-  const box = document.getElementById('cctpTransfersList');
-  try {
-    const data = await fetch('/api/cctp/transfers').then(r => r.json());
-    const rows = data.transfers || [];
-    box.innerHTML = rows.length ? rows.map(t => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-        <div style="display:flex;justify-content:space-between">
-          <span>${_escapeHtml(_fmtBal(t.amount))} USDC: ${_escapeHtml(t.source_network)} → ${_escapeHtml(t.destination_network)}</span>
-          <span class="tx-card-status ${t.status === 'complete' ? 'confirmed' : 'pending'}">${_escapeHtml(t.status)}</span>
-        </div>
-        <div style="color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
-          <span title="${_escapeHtml(t.burn_tx_hash)}">Burn: ${_escapeHtml(_truncMid(t.burn_tx_hash))}${t.mint_tx_hash ? ' · Mint: ' + _escapeHtml(_truncMid(t.mint_tx_hash)) : ''}</span>
-          ${t.status !== 'complete' ? `<button class="settings-save-btn" onclick="cctpCompleteTransfer(${t.id})">Complete</button>` : ''}
-        </div>
-      </div>`).join('') : '<div style="color:var(--text-muted)">No CCTP transfers yet.</div>';
-  } catch (e) { box.textContent = 'Could not load transfers.'; }
-}
-
-async function cctpCompleteTransfer(id) {
-  const status = document.getElementById('cctpActionStatus');
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  status.textContent = 'Checking for Circle\'s attestation…';
-  const r = await fetch(`/api/cctp/transfers/${id}/complete`, {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passphrase}),
-  });
-  const data = await r.json().catch(() => ({}));
-  status.textContent = r.ok ? `Completed - mint tx ${data.mint_tx_hash}` : _apiErrorText(data, "Not ready yet - Circle's attestation may still be pending. Try again shortly.");
-  await loadCctpTransfers();
-}
-
-// Sara supports each network's own gas token plus USDC (POL on Polygon, ETH
-// on the rest), so offer exactly those instead of a free-text box that
-// accepts things like ETH on Polygon and then finds no route.
-const _ROUTE_NATIVE = {polygon: 'POL', ethereum: 'ETH', arbitrum: 'ETH', base: 'ETH', optimism: 'ETH'};
-function syncRouteTokens() {
-  [['routeFromNetwork', 'routeFromToken'], ['routeToNetwork', 'routeToToken']].forEach(([netId, tokId]) => {
-    const network = document.getElementById(netId).value;
-    const sel = document.getElementById(tokId);
-    const tokens = ['USDC', _ROUTE_NATIVE[network] || 'ETH'];
-    const keep = tokens.includes(sel.value) ? sel.value : 'USDC';
-    sel.innerHTML = tokens.map(t => `<option value="${t}">${t}</option>`).join('');
-    sel.value = keep;
-  });
-}
-
-async function compareRoutes() {
-  const params = new URLSearchParams({
-    from_network: document.getElementById('routeFromNetwork').value, to_network: document.getElementById('routeToNetwork').value,
-    from_token: document.getElementById('routeFromToken').value.trim().toUpperCase(), to_token: document.getElementById('routeToToken').value.trim().toUpperCase(),
-    amount: document.getElementById('routeAmount').value.trim(),
-  });
-  const r = await fetch('/api/treasury/routes?' + params);
-  const data = await r.json().catch(() => ({}));
-  const box = document.getElementById('routeResult');
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not compare routes.'); return; }
-  const routes = data.routes || [];
-  const from = _chainLabel(data.from_network), to = _chainLabel(data.to_network);
-  const PROVIDER = {lifi: 'LI.FI', paraswap: 'Paraswap'};
-  const secs = n => !n ? 'not quoted' : n < 60 ? 'under a minute' : n < 90 ? 'about 1 minute' : `about ${Math.round(n / 60)} minutes`;
-  const quotedTimes = routes.map(r => r.estimated_seconds).filter(Boolean);
-  const fastest = quotedTimes.length ? Math.min(...quotedTimes) : null;
-  const prettyTool = t => String(t || '').replace(/V\d+$/, '');
-  const cost = v => (v && Number(v) > 0) ? _usd(v) : 'None quoted';
-  const summary = routes.length
-    ? `<div style="font-size:11.5px;margin-bottom:8px">Moving <strong>${_escapeHtml(data.amount)} ${_escapeHtml(data.from_token)}</strong> ${data.from_network === data.to_network ? 'on ' + _escapeHtml(from) : 'from ' + _escapeHtml(from) + ' to ' + _escapeHtml(to)}.` +
-      (routes.length > 1 && routes[0].recommended ? ` <strong>${_escapeHtml((PROVIDER[routes[0].provider] || routes[0].provider) + (routes[0].tool ? ' via ' + prettyTool(routes[0].tool) : ''))}</strong> leaves you with the most after fees and gas.` : '') + '</div>'
-    : '';
-  const cards = routes.map(rt => {
-    const bridge = rt.kind === 'cross_chain_bridge';
-    return _listCard({
-      title: `${PROVIDER[rt.provider] || rt.provider}${rt.tool ? ' via ' + prettyTool(rt.tool) : ''} · ${bridge ? 'Bridge to ' + to : 'Swap on ' + from}`,
-      accent: rt.recommended ? 'tx-in' : 'tx-neutral',
-      pill: {
-        text: routes.length === 1 ? 'Available' : rt.recommended ? 'Best option'
-          : (fastest && rt.estimated_seconds === fastest ? 'Fastest' : ''),
-        cls: 'confirmed',
-      },
-      headline: `You receive ${_fmtBal(Number(rt.delivered_amount))} ${data.to_token}`,
-      details: [
-        ['Fee', cost(rt.fee_usd)],
-        ['Gas', cost(rt.gas_cost_usd)],
-        ['Estimated time', secs(rt.estimated_seconds)],
-        ['Risk', bridge ? 'Uses a bridge between networks, which adds a small extra risk.' : 'A swap on one network. No bridge involved.'],
-      ],
-    });
-  }).join('');
-  box.innerHTML = routes.length
-    ? summary + cards + '<div style="color:var(--text-muted);font-size:10.5px;margin-top:2px">Prices change quickly. These quotes are only good for a moment, so get a fresh one right before you send.</div>' +
-      (routes.some(r => r.kind === 'cross_chain_bridge') ? '<div style="color:var(--text-muted);font-size:10.5px;margin-top:4px">Bridge estimate; actual time may vary.</div>' : '')
-    : `<div style="color:var(--text-muted)">${data.warnings && data.warnings.length ? data.warnings.map(w => _escapeHtml(w)).join('<br>') : 'No route was found for this combination.'}</div>`;
-  if (routes.length && data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
 }
 
 // ---- Risk screening ----
@@ -4797,7 +4453,6 @@ async function _loadSettingsView() {
     await _loadOpenrouterModels();
     _updateAIActiveLabel(savedModel);
     await _loadAssetSettings();
-    await _loadOnrampSettings();
     await loadSeedsSettings();
   } catch(e) {}
 }
@@ -4864,52 +4519,6 @@ async function saveAssetSettings() {
     statusEl.textContent = e.message;
     statusEl.style.color = 'var(--red)';
   }
-}
-
-// ---- Buy USDC via Coinbase's CDP Onramp ----
-async function _loadOnrampSettings() {
-  try {
-    const data = await fetch('/api/onramp/settings').then(r => r.json());
-    if (data.configured) {
-      document.getElementById('onrampCdpKeyId').value = data.cdp_key_id || '';
-      document.getElementById('onrampCdpKeySecret').placeholder = _SETTINGS_FILLED_PLACEHOLDER;
-    }
-  } catch(e) {}
-}
-
-async function saveOnrampSettings() {
-  const status = document.getElementById('onrampSettingsStatus');
-  const cdp_key_id = document.getElementById('onrampCdpKeyId').value.trim();
-  const cdp_key_secret = document.getElementById('onrampCdpKeySecret').value.trim();
-  if (!cdp_key_id || !cdp_key_secret) { status.textContent = 'Enter both the key ID and secret.'; status.style.color = 'var(--red)'; return; }
-  status.textContent = 'Saving…'; status.style.color = '';
-  const r = await fetch('/api/onramp/settings', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({cdp_key_id, cdp_key_secret}),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not save.'); status.style.color = 'var(--red)'; return; }
-  status.textContent = 'Saved!'; status.style.color = 'var(--green)';
-  document.getElementById('onrampCdpKeySecret').value = '';
-  document.getElementById('onrampCdpKeySecret').placeholder = _SETTINGS_FILLED_PLACEHOLDER;
-  setTimeout(() => { status.textContent = ''; }, 3000);
-}
-
-async function startOnramp() {
-  const status = document.getElementById('onrampActionStatus');
-  const walletId = Number(document.getElementById('onrampWallet').value);
-  const network = document.getElementById('onrampNetwork').value;
-  const amount_usd = document.getElementById('onrampAmount').value.trim() || null;
-  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
-  status.textContent = 'Opening Coinbase checkout…';
-  const r = await fetch('/api/onramp/session', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({wallet_id: walletId, network, amount_usd}),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not start checkout.'); return; }
-  window.open(data.onramp_url, '_blank', 'noopener');
-  status.textContent = 'Opened in a new tab - come back and refresh your balance once you\'re done.';
 }
 
 async function _loadOpenrouterModels() {

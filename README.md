@@ -23,13 +23,11 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 
 | Area | What it does | Docs |
 |---|---|---|
-| **Payments** | Natural-language USDC and EURC sends with the exact amount and fee shown before you confirm. Swaps and bridges with the quote shown before you sign, and a choice between routes when there is more than one. Native USDC bridging with Circle's CCTP v2: burned on the source network and minted on the destination, with no wrapped token or pool. | |
-| **Buy USDC** | Buy USDC with a card through Coinbase's CDP Onramp. Checkout happens on Coinbase's hosted page and the USDC arrives as an ordinary transfer to your own wallet; Sara never handles the payment. | |
-| **Yield** | Supply USDC to Aave v3 and earn its variable rate, with your position and the live APY shown, and withdraw at any time. Supply and withdraw only: no borrowing, so no liquidation risk. | |
+| **Payments** | Natural-language stablecoin sends with the exact amount and fee shown before you confirm. Swaps and bridges with the quote shown before you sign, and a choice between routes when there is more than one. | |
 | **Invoicing** | Invoices with a QR code any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. | [invoicing.md](docs/invoicing.md) |
 | **Business and accounting** | Batch payments from a CSV, recurring payments, payroll, spending policies, income and expense reports, CSV and Excel exports. | [business-payments.md](docs/business-payments.md) |
 | **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. Paid content is saved so you never lose it or pay twice. A paywall generator turns any PHP page on your own site into a paid page, settled through Circle Gateway Nanopayments (no API key) or Coinbase's CDP facilitator. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
-| **Treasury and safety** | Review and revoke leftover approvals, monitor low balances, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [business-payments.md](docs/business-payments.md) |
+| **Safety** | Review and revoke leftover approvals, monitor low balances, and screen addresses against a sanctions list. | [business-payments.md](docs/business-payments.md) |
 | **Recovery phrase** | One 24-word BIP-39 recovery phrase backs every wallet Sara creates, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. An existing phrase can be restored before creating a wallet. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Directory handles** | Save an EVM address with a name and unique local handle, such as `Rohas Nagpal` and `rohasnagpal`, and use the handle wherever Sara accepts a recipient. Dotted names are reserved for on-chain naming. | |
@@ -46,11 +44,11 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | Arc | USDC | ✅ | ✅ | — | — |
 | Tempo | USD stablecoin | ✅ USDC.e | — | ✅ USDT0 | ✅ |
 
-✅ means Sara can display the balance and make plain sends; — means the asset is not supported on that network. Protocol-specific features such as swaps, bridges, CCTP, Aave, x402 and invoices have their own narrower network and asset support.
+✅ means Sara can display the balance and make plain sends; — means the asset is not supported on that network. Protocol-specific features such as swaps, bridges, x402 and invoices have their own narrower network and asset support.
 
 USDC and EURC use Circle-published contracts ([contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses)). Ethereum USDT uses Tether's [official deployment](https://tether.to/en/supported-protocols/); the Arbitrum, OP Mainnet and Polygon entries use the network deployments listed by [USDT0](https://docs.usdt0.to/technical-documentation/deployments). Open USD uses the Ethereum, Base and Tempo contracts published by [Open Standard](https://joinopenstandard.com/blog/ousd-is-live/).
 
-Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances, plain sends and token creation. Swaps, bridges, CCTP, Aave and x402 are not available on Arc yet.
+Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances and plain sends. Swaps, bridges and x402 are not available on Arc yet.
 
 Tempo has no separate native gas coin. Sara pays a transfer's fee in the TIP-20 stablecoin being sent and requires at least one Tempo stablecoin to remain enabled.
 
@@ -60,7 +58,7 @@ You can enable or hide networks and tokens per network under **Settings → Mana
 
 Sara is private by default: no account, no telemetry, no cloud sync, and the page loads nothing from third parties. Your keys, wallet database and chat history stay on your machine.
 
-Some services necessarily see part of what you do. Your AI provider sees your chat, public blockchain nodes see the addresses you look up, LI.FI and ParaSwap see your address when you swap or bridge, Circle sees your burn transaction when you bridge with CCTP, and Coinbase sees your purchase when you buy USDC. Blockchains are public, and Sara does not hide on-chain activity. To keep chats local, use a local Ollama model. The full "who sees what" table and ways to reduce exposure are in [docs/privacy.md](docs/privacy.md).
+Some services necessarily see part of what you do. Your AI provider sees your chat, public blockchain nodes see the addresses you look up, and LI.FI and ParaSwap see your address when you swap or bridge. Blockchains are public, and Sara does not hide on-chain activity. To keep chats local, use a local Ollama model. The full "who sees what" table and ways to reduce exposure are in [docs/privacy.md](docs/privacy.md).
 
 ## Security
 

@@ -71,14 +71,6 @@ duplicate.
 > blocked action never asks for CONFIRM) and again right before signing. A
 > swap or bridge counts the token you spend against your caps.
 
-## Treasury
-
-1. **Treasury balances** — see combined balances across every wallet and
-   network in one view, including triggered low-balance monitors.
-2. **Stablecoin route comparison** — estimates cost and time to move funds
-   between two networks, e.g. Polygon to Arbitrum, for deciding how to
-   rebalance.
-
 ## Alerts
 
 Sara can send you a Telegram message when a balance crosses a limit you set

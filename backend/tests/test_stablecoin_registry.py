@@ -64,10 +64,9 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
         self.assertIsNone(assets.resolve_stablecoin("USDC", "arc", capability=assets.RECONCILE))
 
     def test_capabilities_match_current_integration_networks(self):
-        from app.tools.lending import aave
         from app.tools.market import paraswap
         from app.tools.payments import x402_client
-        from app.tools.trading import cctp, lifi
+        from app.tools.trading import lifi
 
         self.assertEqual(
             set(assets.stablecoin_networks("USDC", capability=assets.SWAP, enabled_only=False)),
@@ -76,14 +75,6 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
         self.assertEqual(
             set(assets.stablecoin_networks("USDC", capability=assets.BRIDGE, enabled_only=False)),
             set(lifi.CHAIN_IDS),
-        )
-        self.assertEqual(
-            set(assets.stablecoin_networks("USDC", capability=assets.CCTP, enabled_only=False)),
-            set(cctp.SUPPORTED_NETWORKS),
-        )
-        self.assertEqual(
-            set(assets.stablecoin_networks("USDC", capability=assets.AAVE, enabled_only=False)),
-            set(aave.SUPPORTED_NETWORKS),
         )
         self.assertEqual(
             set(assets.stablecoin_networks("USDC", capability=assets.X402, enabled_only=False)),

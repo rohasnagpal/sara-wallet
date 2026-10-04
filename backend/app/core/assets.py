@@ -34,8 +34,6 @@ INVOICE = "invoice"
 RECONCILE = "reconcile"
 SWAP = "swap"
 BRIDGE = "bridge"
-CCTP = "cctp"
-AAVE = "aave"
 X402 = "x402"
 
 
@@ -54,7 +52,7 @@ class Stablecoin:
         return capability in self.capabilities
 
 
-_USDC_STANDARD = frozenset({BALANCE, SEND, ACTIVITY, INVOICE, RECONCILE, SWAP, BRIDGE, CCTP, AAVE})
+_USDC_STANDARD = frozenset({BALANCE, SEND, ACTIVITY, INVOICE, RECONCILE, SWAP, BRIDGE})
 _USDC_X402 = _USDC_STANDARD | {X402}
 _BALANCE_AND_SEND = frozenset({BALANCE, SEND})
 _BALANCE_SEND_ACTIVITY = frozenset({BALANCE, SEND, ACTIVITY})
