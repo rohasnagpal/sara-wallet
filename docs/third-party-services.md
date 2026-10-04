@@ -41,7 +41,6 @@ See [../DISCLAIMER.md](../DISCLAIMER.md) for the full legal disclaimer.
 
 | Service | Used for | API key? |
 |---|---|---|
-| Etherscan, Arbiscan, Basescan, Optimistic Etherscan, Polygonscan | Optionally submitting the source of a token you deploy for public verification | Optional: without a `POLYGONSCAN_API_KEY` Sara simply skips it (the setting name is legacy, not a sign it's Polygon-only) |
 | Same five explorers, link only | "View on explorer" links in the transaction ledger | No — just a URL, no API call |
 
 ## Blockchain RPCs

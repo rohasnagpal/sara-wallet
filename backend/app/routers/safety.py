@@ -178,8 +178,7 @@ class DestinationBody(BaseModel):
     config: dict = {}           # {"bot_token": "...", "event_types": [...] (optional)}
 
 
-# What a destination can be told about. Anything not listed here stays quiet
-# unless the destination is set to receive everything (no event_types).
+# What a destination can be told about. Anything not listed here stays quiet.
 ALERT_EVENT_GROUPS = [
     ("balance", "Balance alerts", ["balance.threshold_reached"]),
     ("invoices", "Invoices paid", ["payment_request.paid"]),
@@ -208,11 +207,9 @@ def _validate_telegram(target: str, config: dict) -> tuple[str, str]:
 
 
 def _validate_events(config: dict) -> None:
-    if "event_types" not in config or config["event_types"] is None:
-        return  # everything
-    events = config["event_types"]
+    events = config.get("event_types")
     if not isinstance(events, list) or not events:
-        raise HTTPException(400, "Choose at least one thing to be told about, or choose Everything.")
+        raise HTTPException(400, "Choose at least one thing to be told about.")
     unknown = [e for e in events if e not in _KNOWN_EVENTS]
     if unknown:
         raise HTTPException(400, f"Unknown alert type: {unknown[0]}")
@@ -233,7 +230,7 @@ def list_destinations(db: Session = Depends(get_db)):
             config = {}
         # the bot token / any secret is never returned
         out.append({"id": d.id, "kind": d.kind, "target": d.target, "enabled": d.enabled,
-                    "event_types": config.get("event_types")})
+                    "event_types": config.get("event_types") or sorted(_KNOWN_EVENTS)})
     return out
 
 
@@ -243,9 +240,7 @@ def create_destination(body: DestinationBody, db: Session = Depends(get_db)):
         raise HTTPException(400, "Only Telegram alerts are supported.")
     token, chat_id = _validate_telegram(body.target, body.config)
     _validate_events(body.config)
-    config = {"bot_token": token}
-    if body.config.get("event_types") is not None:
-        config["event_types"] = body.config["event_types"]
+    config = {"bot_token": token, "event_types": body.config["event_types"]}
     row = AlertDestination(kind="telegram", target=chat_id, secret=json.dumps(config))
     db.add(row); db.commit(); db.refresh(row)
     return {"id": row.id, "status": "created"}

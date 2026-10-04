@@ -29,7 +29,7 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Invoicing** | Invoices with a QR code any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. | [invoicing.md](docs/invoicing.md) |
 | **Business and accounting** | Batch payments from a CSV, recurring payments, payroll, spending policies, income and expense reports, CSV and Excel exports. | [business-payments.md](docs/business-payments.md) |
 | **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. Paid content is saved so you never lose it or pay twice. A paywall generator turns any PHP page on your own site into a paid page, settled through Circle Gateway Nanopayments (no API key) or Coinbase's CDP facilitator. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
-| **Tokens and treasury** | Deploy your own ERC-20 token (including on Arc), review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
+| **Treasury and safety** | Review and revoke leftover approvals, monitor low balances, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [business-payments.md](docs/business-payments.md) |
 | **Recovery phrase** | One 24-word BIP-39 recovery phrase backs every wallet Sara creates, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. An existing phrase can be restored before creating a wallet. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Directory handles** | Save an EVM address with a name and unique local handle, such as `Rohas Nagpal` and `rohasnagpal`, and use the handle wherever Sara accepts a recipient. Dotted names are reserved for on-chain naming. | |
@@ -134,7 +134,6 @@ Set these in **Settings** or in `.env.local`. Only an AI provider is required.
 | `RISK_SCREENING_PROVIDER`, `_API_URL`, `_API_KEY` | Optional | Broader screening (scams, hacks, mixers) than the built-in sanctions check |
 | `RISK_SCREENING_MANDATORY` | Optional, default `false` | Block sends to flagged addresses, or when screening can't run |
 | `SARA_EURC_NETWORKS` | Optional | Limit which networks show EURC |
-| `POLYGONSCAN_API_KEY` | Optional | Submit a deployed token's source for public verification |
 
 Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page. Buying USDC needs a free Coinbase CDP API key, entered in the app and stored encrypted like a wallet key. The same goes for a CDP key used by a live x402 paywall.
 

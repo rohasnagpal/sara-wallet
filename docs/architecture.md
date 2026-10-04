@@ -7,7 +7,6 @@ machine.
 ```
 sara-wallet/
 ├── index.html              # Frontend app
-├── contracts/              # Foundry ERC-20 templates for the token creator
 ├── examples/x402/          # Runnable x402 demo seller + tool-calling agent
 └── backend/
     ├── main.py             # FastAPI entrypoint
@@ -42,8 +41,8 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Invoices, payment QR codes, receipts and automatic reconciliation
 - Batch/recurring payments, payroll and authenticated approvals
 - Accounting, fiat valuation, income/expense reporting and exports
-- Token creation/management, allowance controls and transaction simulation
-- Treasury, wallet intelligence, risk screening and alerts
+- Allowance controls and transaction simulation
+- Treasury balances, stablecoin routing, risk screening and alerts
 - Local Directory handles and ENS resolution
 - x402 pay-per-call payments, policy-gated for unattended/agent use
 - Market data requests
@@ -56,8 +55,7 @@ Sara uses SQLite by default at `backend/sara.db`. Versioned startup
 migrations preserve existing local databases. In addition to wallets and
 transactions, the schema stores invoices, receipts, counterparties, batches
 and approvals, schedules and payroll, spending policies, accounting
-classifications and cost lots, alert/outbox records, token deployments,
-risk checks and local Directory entries.
+classifications, alert/outbox records, risk checks and local Directory entries.
 
 ## Wallet Encryption & Locking
 

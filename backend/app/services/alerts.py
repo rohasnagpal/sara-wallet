@@ -9,6 +9,12 @@ import requests
 from app.db.models import AlertDelivery, AlertDestination
 from app.db.session import SessionLocal
 
+_USER_ALERT_EVENTS = {
+    "balance.threshold_reached", "payment_request.paid",
+    "transaction.confirmed", "transaction.failed", "transaction.reorg_detected",
+    "payment_batch.executed", "schedule.materialized",
+}
+
 
 def validate_webhook_url(url: str) -> None:
     parsed = urlparse(url)
@@ -99,8 +105,8 @@ def deliver_event(event, payload: dict) -> None:
         errors = []
         for destination in destinations:
             config = json.loads(destination.secret or "{}")
-            configured_types = config.get("event_types")
-            if configured_types and event.event_type not in configured_types:
+            configured_types = config.get("event_types") or _USER_ALERT_EVENTS
+            if event.event_type not in configured_types:
                 continue
             merchant_id = config.get("merchant_client_id")
             if merchant_id is not None and payload.get("merchant_client_id") != merchant_id:

@@ -18,8 +18,6 @@ class Settings(BaseSettings):
     EVM_CONFIRMATIONS_DEFAULT: int = 12
     EVM_CONFIRMATIONS_POLYGON: int = 64
 
-    POLYGONSCAN_API_KEY: str = ""
-
     # Address risk screening (Stage 5.6) — provider-neutral. No vendor ships
     # configured by default; PROVIDER + API_KEY select the adapter and the
     # generic HTTP adapter additionally requires an HTTPS API_URL. Until configured, every

@@ -37,6 +37,7 @@ class AlertsTestCase(unittest.TestCase):
         self.db.close()
 
     def create(self, target=CHAT, **config):
+        config.setdefault("event_types", ["balance.threshold_reached"])
         return safety.create_destination(
             safety.DestinationBody(kind="telegram", target=target, config={"bot_token": TOKEN, **config}), self.db)
 
@@ -66,13 +67,19 @@ class ValidationTests(AlertsTestCase):
         self.assertIn("at least one", self.rejected(target=CHAT, config={"bot_token": TOKEN, "event_types": []}))
         self.assertIn("Unknown alert type", self.rejected(target=CHAT, config={"bot_token": TOKEN, "event_types": ["made.up"]}))
         self.create(event_types=["balance.threshold_reached"])   # ok
-        self.create()                                             # no filter = everything, ok
+        self.assertIn("at least one", self.rejected(target=CHAT, config={"bot_token": TOKEN}))
 
     def test_saved_list_never_returns_the_bot_token(self):
         self.create(event_types=["balance.threshold_reached"])
         listing = safety.list_destinations(self.db)
         self.assertEqual(listing[0]["event_types"], ["balance.threshold_reached"])
         self.assertNotIn(TOKEN, json.dumps(listing))
+
+    def test_legacy_unfiltered_destination_is_shown_as_all_supported_alerts(self):
+        self.db.add(AlertDestination(kind="telegram", target=CHAT, secret=json.dumps({"bot_token": TOKEN})))
+        self.db.commit()
+        listing = safety.list_destinations(self.db)
+        self.assertEqual(set(listing[0]["event_types"]), safety._KNOWN_EVENTS)
 
     def test_options_lists_the_trigger_groups(self):
         groups = {g["id"]: g for g in safety.alert_options()["groups"]}
@@ -136,6 +143,16 @@ class DeliveryTests(AlertsTestCase):
              patch.object(alerts, "_send", side_effect=lambda d, t, p: sent.append(t)):
             for event_type in ("transaction.indexed", "balance.threshold_reached", "accounting.legs_matched"):
                 alerts.deliver_event(SimpleNamespace(id=hash(event_type) % 10_000, event_type=event_type), {})
+        self.assertEqual(sent, ["balance.threshold_reached"])
+
+    def test_legacy_unfiltered_destination_does_not_receive_internal_events(self):
+        self.db.add(AlertDestination(kind="telegram", target=CHAT, secret=json.dumps({"bot_token": TOKEN})))
+        self.db.commit()
+        sent = []
+        with patch.object(alerts, "SessionLocal", return_value=self.db), \
+             patch.object(alerts, "_send", side_effect=lambda d, t, p: sent.append(t)):
+            alerts.deliver_event(SimpleNamespace(id=1, event_type="accounting.legs_matched"), {})
+            alerts.deliver_event(SimpleNamespace(id=2, event_type="balance.threshold_reached"), {})
         self.assertEqual(sent, ["balance.threshold_reached"])
 
     def test_unsupported_legacy_kind_fails_clearly_instead_of_sending(self):

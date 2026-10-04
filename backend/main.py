@@ -72,7 +72,6 @@ def _run_foundation_cycle() -> None:
     from app.services.balance_monitor import check_balance_monitors
     from app.services.activity_indexer import index_wallet_activity
     from app.services.schedules import materialize_due_schedules
-    from app.services.token_factory import check_pending_deployments
     from app.tools.payments.reconcile import reconcile_pending_requests
     db = SessionLocal()
     try:
@@ -81,7 +80,6 @@ def _run_foundation_cycle() -> None:
         reconcile_pending_requests(db)
         check_balance_monitors(db)
         materialize_due_schedules(db)
-        check_pending_deployments(db)
         process_pending(db)
     finally:
         db.close()

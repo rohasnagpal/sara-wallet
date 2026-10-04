@@ -2,9 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeoutError
 from app.db.session import get_db
-from app.db.models import Wallet, PortfolioSnapshot
-from datetime import datetime, timedelta
-import json
+from app.db.models import Wallet
 from app.chains import evm as evm_chain
 from app.core.assets import enabled_networks
 from app.tools.wallet.tokens import get_erc20_balances
@@ -28,7 +26,7 @@ def get_portfolio(db: Session = Depends(get_db)):
     wallets = db.query(Wallet).all()
     if not wallets:
         return {
-            "total_usd": 0, "change_24h_pct": 0,
+            "total_usd": 0,
             "assets": [], "by_chain": {}, "allocation": [],
         }
 
@@ -104,19 +102,18 @@ def get_portfolio(db: Session = Depends(get_db)):
             any_price_unavailable = True
             assets.append({
                 "wallet": h["wallet"], "symbol": sym, "balance": h["balance"],
-                "price": None, "usd_value": None, "change_24h": None,
+                "price": None, "usd_value": None,
                 "chain": h["chain"], "price_unavailable": True,
             })
             continue
         price = p.get("price", 0)
-        change_24h = p.get("change_24h", 0)
         usd_value = h["balance"] * price
         total_usd += usd_value
         by_chain[h["chain"]] = by_chain.get(h["chain"], 0) + usd_value
         assets.append({
             "wallet": h["wallet"], "symbol": sym, "balance": h["balance"],
             "price": price, "usd_value": usd_value,
-            "change_24h": change_24h, "chain": h["chain"], "price_unavailable": False,
+            "chain": h["chain"], "price_unavailable": False,
         })
 
     priced = [a for a in assets if not a["price_unavailable"]]
@@ -132,29 +129,11 @@ def get_portfolio(db: Session = Depends(get_db)):
             "color": COLORS[i % len(COLORS)],
         })
 
-    weighted_change = sum(a["change_24h"] * a["usd_value"] for a in priced) / total_usd if total_usd else 0
-
     result = {
         "total_usd": round(total_usd, 2),
-        "change_24h_pct": round(weighted_change, 2),
         "assets": assets,
         "by_chain": {k: round(v, 2) for k, v in by_chain.items()},
         "allocation": allocation,
         "prices_unavailable": any_price_unavailable,
     }
-    # Skip the durable snapshot when any price is missing — a rate-limited
-    # provider must not write an artificially low total into portfolio
-    # history (the 30-day chart) any more than it should show one live.
-    if not any_price_unavailable:
-        latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.captured_at.desc()).first()
-        if latest is None or latest.captured_at < datetime.utcnow() - timedelta(hours=1):
-            db.add(PortfolioSnapshot(total_usd=str(result["total_usd"]), holdings=json.dumps(assets, default=str)))
-            db.commit()
     return result
-
-
-@router.get("/history")
-def portfolio_history(days: int = 30, db: Session = Depends(get_db)):
-    since = datetime.utcnow() - timedelta(days=max(1, min(days, 365)))
-    rows = db.query(PortfolioSnapshot).filter(PortfolioSnapshot.captured_at >= since).order_by(PortfolioSnapshot.captured_at).all()
-    return {"history": [{"timestamp": row.captured_at.isoformat(), "total_usd": row.total_usd} for row in rows]}

@@ -66,28 +66,16 @@ duplicate.
 
 > Spending-policy enforcement covers batch payments (manual batches,
 > airdrops, schedules, payroll), chat sends, chat swaps and bridges,
-> deployed-token transfers and x402 payments. Chat sends,
+> and x402 payments. Chat sends,
 > swaps and bridges are checked twice: when the action is previewed (so a
 > blocked action never asks for CONFIRM) and again right before signing. A
 > swap or bridge counts the token you spend against your caps.
 
-## Portfolio & wallet intelligence
+## Treasury
 
-1. **Historical performance** — track total portfolio value over time
-   across every wallet and network.
-2. **Exposure** — see how holdings break down by token and network at a
-   glance.
-3. **Top-payee analysis** — "who have I sent the most to?", ranked from
-   your own ledger, not a third-party service.
-4. **Spend by category** — totals outgoing transactions by the
-   tags/categories you've assigned them.
-5. **Recurring-counterparty detection** — flags addresses you pay
-   repeatedly, useful for spotting subscriptions or regular vendors.
-6. **Unusual-activity detection** — flags transactions that look out of
-   pattern compared to your usual activity.
-7. **Treasury monitoring** — see combined balances and exposure across
-   every wallet and network in one view.
-8. **Stablecoin route comparison** — estimates cost and time to move funds
+1. **Treasury balances** — see combined balances across every wallet and
+   network in one view, including triggered low-balance monitors.
+2. **Stablecoin route comparison** — estimates cost and time to move funds
    between two networks, e.g. Polygon to Arbitrum, for deciding how to
    rebalance.
 

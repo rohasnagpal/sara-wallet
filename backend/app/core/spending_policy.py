@@ -2,8 +2,7 @@
 
 Scope: governs the batch engine (app.services.batch_engine) — manual batch
 payments, airdrops, recurring schedules and payroll runs — and chat sends,
-swaps and bridges (app.routers.chat._spending_policy_denial), deployed-token
-transfers and x402 payments.
+swaps and bridges (app.routers.chat._spending_policy_denial), and x402 payments.
 
 Policies are evaluated twice per item, per CLAUDE_STAGES_3_TO_7.md: once
 during batch preparation (app.services.batch_engine.validate_batch) and

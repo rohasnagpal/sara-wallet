@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import append_audit
 from app.core.session_auth import require_session
-from app.db.models import AccountingClassification, TokenDeployment, Transaction, Wallet
+from app.db.models import AccountingClassification, Transaction, Wallet
 from app.db.session import get_db
 from app.services import accounting_labels
 
@@ -35,16 +35,6 @@ def _row(row: Transaction, wallet_name: str | None = None) -> dict:
     }
 
 
-_TOKEN_CATEGORIES = {"token_mint", "token_burn", "token_transfer"}
-
-
-def _deployed_token_contracts(db: Session) -> dict[tuple[str, str], set[str]]:
-    contracts: dict[tuple[str, str], set[str]] = {}
-    for dep in db.query(TokenDeployment).filter(TokenDeployment.contract_address.isnot(None)).all():
-        contracts.setdefault((dep.network, dep.symbol.upper()), set()).add(dep.contract_address)
-    return contracts
-
-
 @router.get("")
 def list_ledger(
     wallet_id: int | None = None, network: str | None = None, token: str | None = None,
@@ -59,7 +49,6 @@ def list_ledger(
             query = query.filter(column == value)
     rows = query.order_by(Transaction.timestamp.desc(), Transaction.id.desc()).limit(limit).all()
     names = {w.id: w.name for w in db.query(Wallet).all()}
-    contracts = _deployed_token_contracts(db)
     own = accounting_labels.own_addresses(db)
     labels = {c.transaction_id: c for c in db.query(AccountingClassification).filter(
         AccountingClassification.transaction_id.in_([r.id for r in rows])).all()} if rows else {}
@@ -70,11 +59,6 @@ def list_ledger(
         # the user set it or Sara worked it out.
         item["accounting_label"], item["accounting_label_source"] = accounting_labels.effective_label(
             row, labels.get(row.id), own)
-        # Link a mint/burn/transfer to the token's contract page - but only when the
-        # network+symbol maps to exactly one deployment, so we never link the wrong one.
-        found = contracts.get((row.network, (row.token or "").upper()), set())
-        if row.category in _TOKEN_CATEGORIES and len(found) == 1:
-            item["token_contract"] = next(iter(found))
         out.append(item)
     return {"transactions": out}
 

@@ -199,13 +199,6 @@ class AlertDelivery(Base):
     delivered_at   = Column(DateTime, nullable=True)
 
 
-class PortfolioSnapshot(Base):
-    __tablename__ = "portfolio_snapshots"
-    id          = Column(Integer, primary_key=True, index=True)
-    total_usd   = Column(String, nullable=False)
-    holdings    = Column(Text, nullable=False, default="[]")
-    captured_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-
 class PaymentRequest(Base):
     __tablename__ = "payment_requests"
     __table_args__ = (
@@ -436,29 +429,6 @@ class AccountingClassification(Base):
     notes             = Column(Text, nullable=True)
     created_at        = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at        = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-
-class TokenDeployment(Base):
-    """An ERC-20 token deployed through Sara's token creator (compiled from
-    the pinned templates under contracts/, never arbitrary Solidity)."""
-    __tablename__ = "token_deployments"
-    id                  = Column(Integer, primary_key=True, index=True)
-    template_id         = Column(String, nullable=False)  # fixed_supply | mintable_burnable_capped
-    wallet_id           = Column(Integer, nullable=False)  # deployer
-    network             = Column(String, nullable=False)
-    contract_address    = Column(String, nullable=True, index=True)  # set once the deployment confirms
-    owner_address        = Column(String, nullable=False)  # initial recipient / mint authority
-    name                = Column(String, nullable=False)
-    symbol              = Column(String, nullable=False)
-    decimals            = Column(Integer, nullable=False)
-    initial_supply_raw  = Column(String, nullable=False)
-    cap_raw             = Column(String, nullable=True)  # null for fixed_supply
-    compiler_version    = Column(String, nullable=False)
-    source_sha256       = Column(String, nullable=False)
-    deployment_tx_hash  = Column(String, nullable=False, unique=True, index=True)
-    status              = Column(String, nullable=False, default="submitted")  # submitted | confirmed | failed
-    created_at          = Column(DateTime, default=datetime.utcnow, nullable=False)
-    confirmed_at        = Column(DateTime, nullable=True)
 
 
 class RiskScreening(Base):

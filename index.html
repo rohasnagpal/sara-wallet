@@ -980,9 +980,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
   display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px;
 }
 .asset-headline-price { font-family: var(--font-body); font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-primary); }
-.asset-headline-chg   { font-size: 13px; font-weight: 500; }
-.asset-headline-chg.up   { color: var(--green); }
-.asset-headline-chg.down { color: var(--red); }
 .asset-headline-sub { font-size: 11px; color: var(--text-muted); }
 
 /* ── Wallet Modal ── */
@@ -1149,7 +1146,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn active" id="col2BtnAsset" onclick="showCol2('asset')">Balance</button>
           <button class="col2-nav-btn" id="col2BtnBatches" onclick="showCol2('batches')">Batches</button>
           <button class="col2-nav-btn" id="col2BtnDir" onclick="showCol2('directory')">Directory</button>
-          <button class="col2-nav-btn" id="col2BtnIntel" onclick="showTool('intel')">Insights</button>
           <button class="col2-nav-btn" id="col2BtnInvoices" onclick="showCol2('invoices')">Invoices</button>
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
@@ -1158,7 +1154,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
-          <button class="col2-nav-btn" id="col2BtnTok" onclick="showTool('tokens')">Tokens</button>
           <button class="col2-nav-btn" id="col2BtnTreasury" onclick="showTool('treasury')">Treasury</button>
           <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
         </div>
@@ -1179,7 +1174,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           </div>
           <div class="asset-headline">
             <div class="asset-headline-price" id="portfolioTotal">$0.00</div>
-            <div class="asset-headline-chg" id="portfolioChg">-</div>
           </div>
           <div class="asset-headline-sub" id="portfolioUpdated">Loading…</div>
         </div>
@@ -1401,77 +1395,8 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
         </div><!-- /accountingView -->
 
-        <!-- ── Tools View (token creator / treasury / intelligence / risk / names / x402) ── -->
+        <!-- ── Tools View (treasury / risk / x402) ── -->
         <div id="toolsView" style="display:none">
-          <div id="toolsTokensPane">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Create an ERC-20 token</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">Compiled from pinned, tested templates only - never arbitrary Solidity. First time doing this? Here's the flow:</div>
-              <ol class="howto-steps">
-                <li>Pick a <strong>template</strong> below (each one explains what it can and can't do) and the <strong>network</strong> to deploy on - this costs real gas, so pick a wallet that's funded there.</li>
-                <li>Fill in the token's details - a display name, a short ticker symbol, and how many to create.</li>
-                <li><strong>Preview deployment</strong> first - it shows the exact fee and any centralisation risks before anything is signed.</li>
-                <li><strong>Deploy</strong> when you're happy. The token then shows up under "Deployed tokens" below, where you can mint/burn/transfer it - and if a PolygonScan/Etherscan API key is configured, its source is automatically submitted for verification a few seconds after it confirms.</li>
-              </ol>
-              <div id="tokenTemplateList" style="font-size:11px;margin-bottom:8px">Loading templates…</div>
-              <div class="field-grid field-grid-wide">
-                <div class="field">
-                  <label class="field-label" for="tokTemplate">Template</label>
-                  <select class="settings-input" id="tokTemplate"></select>
-                  <div class="field-hint">Which contract behavior to deploy - see the descriptions above.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokWallet">Wallet</label>
-                  <select class="settings-input" id="tokWallet"></select>
-                  <div class="field-hint">Pays the gas fee and becomes the token's default owner.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokNetwork">Network</label>
-                  <select class="settings-input" id="tokNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option><option value="arc">Arc</option></select>
-                  <div class="field-hint">Polygon usually has the lowest gas fees - good for a first try.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokName">Token name</label>
-                  <input class="settings-input" id="tokName" maxlength="64" placeholder="e.g. Rohas Coin">
-                  <div class="field-hint">The full display name people will see, e.g. "Rohas Coin".</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokSymbol">Symbol</label>
-                  <input class="settings-input" id="tokSymbol" maxlength="16" placeholder="e.g. RHS">
-                  <div class="field-hint">Short ticker shown in wallets, usually 3-5 capital letters.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokDecimals">Decimals</label>
-                  <input class="settings-input" id="tokDecimals" type="number" value="18" min="0" max="36" placeholder="18">
-                  <div class="field-hint">How finely the token divides. 18 matches ETH/most tokens - leave it unless you have a specific reason not to.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokSupply">Initial supply</label>
-                  <input class="settings-input" id="tokSupply" placeholder="e.g. 1000000">
-                  <div class="field-hint">How many whole tokens to create at launch, e.g. 1000000 for one million.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokCap">Cap</label>
-                  <input class="settings-input" id="tokCap" placeholder="e.g. 10000000">
-                  <div class="field-hint">Mintable template only - the hard maximum that can ever exist. Leave blank on Fixed supply.</div>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="tokOwner">Owner address</label>
-                  <input class="settings-input" id="tokOwner" placeholder="Blank = deploying wallet">
-                  <div class="field-hint">Who can mint more later (Mintable template) or holds the full supply (Fixed supply). Leave blank to use the wallet selected above.</div>
-                </div>
-              </div>
-              <div style="display:flex;gap:6px;margin-top:10px">
-                <button class="settings-save-btn" onclick="previewTokenDeployment()">Preview deployment</button>
-                <button class="settings-save-btn" onclick="deployToken()">Deploy</button>
-              </div>
-              <div id="tokenPreview" style="font-size:11px;margin-top:8px"></div>
-              <div id="tokenDeployStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-            </div>
-            <div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><strong>Deployed tokens</strong><button class="settings-save-btn" onclick="loadTokenDeployments()">Refresh</button></div></div>
-            <div id="tokenDeploymentsList" style="font-size:11px">Loading…</div>
-          </div>
-
           <div id="toolsTreasuryPane" style="display:none">
             <div class="card" style="margin-bottom:10px">
               <div style="display:flex;justify-content:space-between;align-items:center"><strong>Treasury overview</strong><button class="settings-save-btn" onclick="loadTreasuryOverview()">Refresh</button></div>
@@ -1599,19 +1524,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
               <button class="settings-save-btn" style="margin-top:8px" onclick="startOnramp()">Buy USDC</button>
               <div id="onrampActionStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
             </div>
-          </div>
-
-          <div id="toolsIntelPane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="settings-save-btn" onclick="loadIntel('top-payees')">Largest payees</button>
-                <button class="settings-save-btn" onclick="loadIntel('spend-by-category')">Spend by category</button>
-                <button class="settings-save-btn" onclick="loadIntel('recurring-counterparties')">Recurring counterparties</button>
-                <button class="settings-save-btn" onclick="loadIntel('unusual-activity')">Unusual activity</button>
-              </div>
-              <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Deterministic ledger queries - every figure links back to source transactions.</div>
-            </div>
-            <div class="card"><div id="intelResult" style="font-size:11px">Pick a query above.</div></div>
           </div>
 
           <div id="toolsRiskPane" style="display:none">
@@ -2786,14 +2698,10 @@ function _renderHoldingsSidebar(data, wallets) {
 
 function _renderPortfolioHeadline(data) {
   const total = document.getElementById('portfolioTotal');
-  const chg = document.getElementById('portfolioChg');
   const updated = document.getElementById('portfolioUpdated');
   const chainCount = document.getElementById('portfolioChainCount');
   if (!data) { updated.textContent = 'Error loading portfolio'; return; }
   total.textContent = _fmtUsd(data.total_usd);
-  const sign = data.change_24h_pct >= 0 ? '+' : '';
-  chg.textContent = sign + data.change_24h_pct.toFixed(2) + '% (24h)';
-  chg.className = 'asset-headline-chg ' + (data.change_24h_pct >= 0 ? 'up' : 'down');
   const chains = Object.keys(data.by_chain || {});
   chainCount.textContent = chains.length ? ('Across ' + chains.length + ' chain' + (chains.length > 1 ? 's' : '')) : 'No funded chains yet';
   if (data.prices_unavailable) {
@@ -4076,19 +3984,19 @@ async function downloadAccountingExport(format) {
 }
 
 // ══════════════════════════════════════
-// TOOLS: token creator / treasury / intelligence / risk / names / x402
+// TOOLS: treasury / risk / x402
 // ══════════════════════════════════════
-let _toolsTab = 'tokens';
+let _toolsTab = 'treasury';
 
 async function loadToolsView() {
   syncRouteTokens();
-  _fillWalletSelects(['tokWallet', 'x402Wallet', 'paywallWallet']);
+  _fillWalletSelects(['x402Wallet', 'paywallWallet']);
   return showToolsTab(_toolsTab);
 }
 
-// The Tools pages (Token Creator, Treasury, ...) each have their own button
+// The Tools pages each have their own button
 // in the top nav; they share one view container whose visible pane is chosen here.
-const _TOOL_NAV = {tokens: 'col2BtnTok', treasury: 'col2BtnTreasury', intel: 'col2BtnIntel', risk: 'col2BtnRisk', x402: 'col2BtnX402'};
+const _TOOL_NAV = {treasury: 'col2BtnTreasury', risk: 'col2BtnRisk', x402: 'col2BtnX402'};
 
 function showTool(tab) {
   _toolsTab = tab;
@@ -4097,76 +4005,11 @@ function showTool(tab) {
 
 function showToolsTab(tab) {
   _toolsTab = tab;
-  const panes = {tokens: 'toolsTokensPane', treasury: 'toolsTreasuryPane', intel: 'toolsIntelPane', risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
+  const panes = {treasury: 'toolsTreasuryPane', risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
   Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
   Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
-  if (tab === 'tokens') { loadTokenTemplates(); loadTokenDeployments(); }
   if (tab === 'treasury') { loadTreasuryOverview(); _fillWalletSelects(['aaveWallet', 'cctpWallet', 'onrampWallet']); loadAavePosition(); loadCctpTransfers(); }
   if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
-}
-
-// ---- Token creator ----
-async function loadTokenTemplates() {
-  const data = await fetch('/api/tokens/templates').then(r => r.json()).catch(() => ({templates: []}));
-  const templates = data.templates || [];
-  document.getElementById('tokTemplate').innerHTML = templates.map(t => `<option value="${t.template_id}">${_escapeHtml(t.label)}</option>`).join('');
-  document.getElementById('tokenTemplateList').innerHTML = templates.map(t => `
-    <div class="result-card" style="margin-top:6px">
-      <strong>${_escapeHtml(t.label)}</strong>
-      <div style="color:var(--text-secondary);margin-top:3px;line-height:1.5">${_escapeHtml(t.description)}</div>
-      ${t.centralisation_risks.length ? `<div style="color:var(--red);margin-top:5px;line-height:1.5">${t.centralisation_risks.map(r => '⚠ ' + _escapeHtml(r)).join('<br>')}</div>` : `<div style="color:var(--green);margin-top:5px">✓ No centralisation risk - nothing about it can change after deployment.</div>`}
-    </div>`).join('');
-}
-
-function _tokenDeployBody() {
-  return {
-    template_id: document.getElementById('tokTemplate').value,
-    wallet_id: Number(document.getElementById('tokWallet').value),
-    network: document.getElementById('tokNetwork').value,
-    name: document.getElementById('tokName').value.trim(),
-    symbol: document.getElementById('tokSymbol').value.trim(),
-    decimals: Number(document.getElementById('tokDecimals').value || 18),
-    initial_supply: document.getElementById('tokSupply').value.trim(),
-    cap: document.getElementById('tokCap').value.trim() || null,
-    owner_address: document.getElementById('tokOwner').value.trim() || null,
-  };
-}
-
-async function previewTokenDeployment() {
-  const r = await fetch('/api/tokens/deployments/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(_tokenDeployBody())});
-  const data = await r.json().catch(() => ({}));
-  const box = document.getElementById('tokenPreview');
-  if (!r.ok) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'Preview failed.'))}</div>`; return; }
-  box.innerHTML = `
-    <div class="result-card">
-      <div class="result-card-head">
-        <div><strong>${_escapeHtml(data.name)}</strong> <span class="result-card-sub">(${_escapeHtml(data.symbol)}) on ${_escapeHtml(data.network)}</span></div>
-        <span class="status-pill" style="color:var(--accent)">Preview</span>
-      </div>
-      <div class="result-row"><span>Owner</span><code title="${_escapeHtml(data.owner_address)}">${_escapeHtml(_truncMid(data.owner_address))}</code></div>
-      <div class="result-row"><span>Estimated fee</span><span>${_escapeHtml(data.estimated_fee_native)} &middot; gas ${_escapeHtml(data.estimated_gas)}</span></div>
-      <div class="result-desc">${_escapeHtml(data.description)}</div>
-      ${data.centralisation_risks.length ? `<div class="result-warn">${data.centralisation_risks.map(x => '⚠ ' + _escapeHtml(x)).join('<br>')}</div>` : ''}
-    </div>
-  `;
-}
-
-async function deployToken() {
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const body = {..._tokenDeployBody(), passphrase};
-  const r = await fetch('/api/tokens/deployments', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  const status = document.getElementById('tokenDeployStatus');
-  status.innerHTML = r.ok ? `
-    <div class="result-card">
-      <div class="result-card-head">
-        <div>Deployment submitted</div>
-        <span class="status-pill" style="color:${_statusColor(data.status)}">${_escapeHtml(data.status)}</span>
-      </div>
-      <div class="result-row"><span>Transaction</span><code title="${_escapeHtml(data.deployment_tx_hash)}">${_escapeHtml(_truncMid(data.deployment_tx_hash))}</code></div>
-    </div>
-  ` : `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'Deployment failed.'))}</div>`;
-  if (r.ok) await loadTokenDeployments();
 }
 
 const _EXPLORERS = {
@@ -4217,15 +4060,6 @@ function _ledgerDetails(t) {
     ? _escapeHtml(t.counterparty) + ' · ' : '';
   const to = t.to || (/^0x[0-9a-fA-F]{40}$/.test(t.counterparty || '') ? t.counterparty : '');
   switch (t.category) {
-    case 'token_mint':
-      add('Minted to', cp + addr(t.to));
-      add('Token contract', addr(t.token_contract));
-      if (t.from && t.from.toLowerCase() !== (t.to || '').toLowerCase()) add('Minted by', addr(t.from));
-      break;
-    case 'token_burn':
-      add('Burned from', addr(t.from));
-      add('Token contract', addr(t.token_contract || t.to));
-      break;
     case 'allowance_revocation':
       add('Token contract', addr(t.to));
       add('Wallet address', addr(t.from));
@@ -4254,90 +4088,11 @@ function _ledgerDetails(t) {
         add('Sent from', addr(t.from));
         add('Sent to', cp + addr(to));
       }
-      if (t.token_contract) add('Token contract', addr(t.token_contract));
       if (t.reference) add('Reference', _escapeHtml(t.reference));
   }
   if (t.wallet) add('Wallet', _escapeHtml(t.wallet));
   if (t.timestamp) add('Date', _escapeHtml(new Date(t.timestamp.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(t.timestamp) ? t.timestamp : t.timestamp + 'Z').toLocaleString()));
   return `<dl class="tx-card-details">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-}
-
-async function loadTokenDeployments() {
-  const data = await fetch('/api/tokens/deployments').then(r => r.json()).catch(() => ({deployments: []}));
-  const rows = data.deployments || [];
-  document.getElementById('tokenDeploymentsList').innerHTML = rows.length ? rows.map(d => {
-    const explorerUrl = d.contract_address && _EXPLORERS[d.network] ? _EXPLORERS[d.network] + d.contract_address : null;
-    const addressHtml = d.contract_address
-      ? (explorerUrl
-        ? `<a href="${_escapeHtml(explorerUrl)}" target="_blank" rel="noopener" title="${_escapeHtml(d.contract_address)}" style="font-family:var(--font-mono);color:var(--accent);text-decoration:none">${_escapeHtml(_truncMid(d.contract_address))}</a>`
-        : `<code title="${_escapeHtml(d.contract_address)}">${_escapeHtml(_truncMid(d.contract_address))}</code>`)
-      : 'pending confirmation';
-    return `
-    <div class="card" style="margin-bottom:10px">
-      <div class="result-card-head">
-        <div><strong style="font-size:15px">${_escapeHtml(d.name)}</strong> <span class="result-card-sub">${_escapeHtml(d.symbol)}</span></div>
-        <span class="status-pill" style="color:${_statusColor(d.status)}">${_escapeHtml(d.status)}</span>
-      </div>
-      <div class="result-row" style="justify-content:flex-start;gap:6px;font-size:11px;margin-top:2px">
-        <span style="text-transform:capitalize">${_escapeHtml(d.network)}</span><span>&middot;</span>${addressHtml}<span>&middot;</span><span>${_escapeHtml(d.template_id)}</span>
-      </div>
-      ${d.status === 'confirmed' ? `
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-          <button class="chip-btn" onclick="viewTokenSupply(${d.id})">Supply</button>
-          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'mint')">Mint</button>
-          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'burn')">Burn</button>
-          <button class="chip-btn" onclick="showTokenActionForm(${d.id},'transfer')">Transfer</button>
-        </div>
-        <div id="tokActionForm${d.id}" class="field-row" style="display:none;margin-top:10px"></div>
-        <div id="tokAction${d.id}" style="font-size:11px;color:var(--text-secondary);margin-top:8px"></div>
-      ` : ''}
-    </div>`;
-  }).join('') : '<div class="card" style="color:var(--text-muted);font-size:11px">No tokens deployed yet.</div>';
-}
-
-async function viewTokenSupply(id) {
-  const box = document.getElementById('tokAction' + id);
-  const data = await fetch(`/api/tokens/deployments/${id}/supply`).then(r => r.json()).catch(() => null);
-  box.textContent = data ? `Supply: ${data.total_supply}${data.cap ? ' / cap ' + data.cap : ''}${data.on_chain_owner ? ' · owner ' + data.on_chain_owner : ''}` : 'Could not load supply.';
-}
-
-function showTokenActionForm(id, kind) {
-  const el = document.getElementById('tokActionForm' + id);
-  if (el.dataset.kind === kind && el.style.display !== 'none') { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.dataset.kind = kind;
-  el.style.display = '';
-  if (kind === 'mint') {
-    el.innerHTML = `<div class="field"><label class="field-label">To address</label><input class="settings-input" id="tokActTo${id}" placeholder="0x…"></div>
-      <div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
-      <button class="settings-save-btn" onclick="submitTokenAction(${id},'mint')">Mint</button>`;
-  } else if (kind === 'burn') {
-    el.innerHTML = `<div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
-      <div class="field"><label class="field-label">From (blank = you)</label><input class="settings-input" id="tokActFrom${id}" placeholder="0x… (optional)"></div>
-      <button class="settings-save-btn" onclick="submitTokenAction(${id},'burn')">Burn</button>`;
-  } else {
-    el.innerHTML = `<div class="field"><label class="field-label">To address</label><input class="settings-input" id="tokActTo${id}" placeholder="0x…"></div>
-      <div class="field"><label class="field-label">Amount</label><input class="settings-input" id="tokActAmount${id}" placeholder="Amount"></div>
-      <button class="settings-save-btn" onclick="submitTokenAction(${id},'transfer')">Transfer</button>`;
-  }
-}
-
-async function submitTokenAction(id, kind) {
-  const box = document.getElementById('tokAction' + id);
-  const amount = (document.getElementById('tokActAmount' + id)?.value || '').trim();
-  const to = (document.getElementById('tokActTo' + id)?.value || '').trim();
-  const from = (document.getElementById('tokActFrom' + id)?.value || '').trim() || null;
-  if (kind !== 'burn' && !to) { box.textContent = 'Enter a destination address.'; return; }
-  if (!amount) { box.textContent = 'Enter an amount.'; return; }
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const endpoint = kind === 'mint' ? '/api/tokens/mint' : kind === 'burn' ? '/api/tokens/burn' : '/api/tokens/transfer';
-  const body = kind === 'mint' ? {deployment_id: id, to_address: to, amount, passphrase}
-    : kind === 'burn' ? {deployment_id: id, amount, from_address: from, passphrase}
-    : {deployment_id: id, to_address: to, amount, passphrase};
-  const r = await fetch(endpoint, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  const doneLabel = {mint: 'Minted', burn: 'Burned', transfer: 'Transferred'}[kind];
-  box.textContent = r.ok ? `${doneLabel} - tx ${data.tx_hash}` : (_apiErrorText(data, 'Action failed.'));
-  if (r.ok) { const form = document.getElementById('tokActionForm' + id); form.style.display = 'none'; form.innerHTML = ''; }
 }
 
 // ---- Treasury ----
@@ -4347,8 +4102,7 @@ async function loadTreasuryOverview() {
   if (!data) { box.textContent = 'Could not load treasury overview.'; return; }
   box.innerHTML = `
     <div>Total: <strong>$${_escapeHtml(data.total_usd)}</strong></div>
-    <div style="margin-top:6px">${(data.proposals || []).map(p => `<div>⚠ ${_escapeHtml(p.description)}</div>`).join('') || 'No proposals - nothing flagged.'}</div>
-    <div style="color:var(--text-muted);margin-top:6px;font-size:10px">${_escapeHtml(data.note)}</div>
+    <div style="margin-top:6px">${(data.low_balance_flags || []).map(f => `<div>⚠ ${_escapeHtml(f.wallet)}: ${_escapeHtml(f.token)} on ${_escapeHtml(f.network)} is ${_escapeHtml(f.condition)} its configured threshold.</div>`).join('') || 'No low-balance alerts are currently triggered.'}</div>
   `;
 }
 
@@ -4520,23 +4274,6 @@ async function compareRoutes() {
       (routes.some(r => r.kind === 'cross_chain_bridge') ? '<div style="color:var(--text-muted);font-size:10.5px;margin-top:4px">Bridge estimate; actual time may vary.</div>' : '')
     : `<div style="color:var(--text-muted)">${data.warnings && data.warnings.length ? data.warnings.map(w => _escapeHtml(w)).join('<br>') : 'No route was found for this combination.'}</div>`;
   if (routes.length && data.warnings && data.warnings.length) box.innerHTML += `<div style="color:var(--text-muted);margin-top:6px">${data.warnings.map(w => _escapeHtml(w)).join('<br>')}</div>`;
-}
-
-// ---- Wallet intelligence ----
-async function loadIntel(kind) {
-  const box = document.getElementById('intelResult');
-  box.textContent = 'Loading…';
-  const data = await fetch('/api/intelligence/wallet/' + kind).then(r => r.json()).catch(() => null);
-  if (!data) { box.textContent = 'Could not load.'; return; }
-  if (kind === 'top-payees') {
-    box.innerHTML = (data.payees || []).map(p => `<div>${_escapeHtml(p.payee)} - $${_escapeHtml(p.total_usd)} (${p.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
-  } else if (kind === 'spend-by-category') {
-    box.innerHTML = (data.categories || []).map(c => `<div>${_escapeHtml(c.category)} - $${_escapeHtml(c.total_usd)} (${c.transaction_ids.length} tx)</div>`).join('') || 'No data yet.';
-  } else if (kind === 'recurring-counterparties') {
-    box.innerHTML = (data.recurring_counterparties || []).map(c => `<div>${_escapeHtml(c.payee)} - ${c.occurrences} payments</div>`).join('') || 'No recurring counterparties yet.';
-  } else if (kind === 'unusual-activity') {
-    box.innerHTML = (data.unusual_transactions || []).map(u => `<div>Tx #${u.transaction_id} - $${_escapeHtml(u.amount_usd)} to ${_escapeHtml(u.counterparty || '?')} (${u.deviations_above_mean}σ above mean)</div>`).join('') || (data.note ? _escapeHtml(data.note) : 'Nothing unusual.');
-  }
 }
 
 // ---- Risk screening ----
@@ -4967,21 +4704,13 @@ async function loadAlertOptions() {
   const data = await fetch('/api/safety/alerts/options').then(r => r.json()).catch(() => ({groups: []}));
   _alertGroups = data.groups || [];
   document.getElementById('alertTriggers').innerHTML =
-    _alertGroups.map(g => `<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0"><input type="checkbox" class="alert-trigger" value="${_escapeHtml(g.id)}"${g.id === 'balance' ? ' checked' : ''}> ${_escapeHtml(g.label)}</label>`).join('') +
-    `<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0"><input type="checkbox" id="alertEverything" onchange="syncAlertTriggers()"> Everything <span style="color:var(--text-muted)">(very noisy: every transaction and internal update)</span></label>`;
-}
-
-function syncAlertTriggers() {
-  const all = document.getElementById('alertEverything').checked;
-  document.querySelectorAll('.alert-trigger').forEach(c => { c.disabled = all; });
+    _alertGroups.map(g => `<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0"><input type="checkbox" class="alert-trigger" value="${_escapeHtml(g.id)}" checked> ${_escapeHtml(g.label)}</label>`).join('');
 }
 
 function _alertBody() {
   const config = {bot_token: document.getElementById('alertBotToken').value.trim()};
-  if (!document.getElementById('alertEverything')?.checked) {
-    const chosen = [...document.querySelectorAll('.alert-trigger:checked')].map(c => c.value);
-    config.event_types = _alertGroups.filter(g => chosen.includes(g.id)).flatMap(g => g.event_types);
-  }
+  const chosen = [...document.querySelectorAll('.alert-trigger:checked')].map(c => c.value);
+  config.event_types = _alertGroups.filter(g => chosen.includes(g.id)).flatMap(g => g.event_types);
   return {kind: 'telegram', target: document.getElementById('alertChatId').value.trim(), config};
 }
 
@@ -5010,7 +4739,6 @@ async function saveAlert() {
 
 // Which of the trigger groups a saved destination covers, in plain words.
 function _alertCovers(eventTypes) {
-  if (!eventTypes) return 'Everything';
   const names = _alertGroups.filter(g => g.event_types.every(e => eventTypes.includes(e))).map(g => g.label);
   return names.length ? names.join(', ') : 'Custom';
 }

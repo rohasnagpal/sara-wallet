@@ -273,6 +273,13 @@ def _migration_019_directory_handles(engine: Engine) -> None:
         ))
 
 
+def _migration_020_remove_beta_scope_features(engine: Engine) -> None:
+    """Remove alpha-era data for retired token creation and portfolio history."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS token_deployments"))
+        conn.execute(text("DROP TABLE IF EXISTS portfolio_snapshots"))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -293,6 +300,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("017_single_recovery_seed", _migration_017_single_recovery_seed),
     ("018_remove_cost_basis_and_pnl", _migration_018_remove_cost_basis_and_pnl),
     ("019_directory_handles", _migration_019_directory_handles),
+    ("020_remove_beta_scope_features", _migration_020_remove_beta_scope_features),
 )
 
 
