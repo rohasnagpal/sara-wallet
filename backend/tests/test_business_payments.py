@@ -222,7 +222,7 @@ class CounterpartyPolicyAppliesEverywhereTests(BusinessPaymentsTestCase):
     """A spending policy scoped to a Directory/vendor entry (counterparty_id)
     used to only ever match a caller that already knew and passed that id —
     in practice, only a manually-tagged batch item. Every other path (chat
-    sends/swaps/bridges, x402, token transfers, CSV imports) always called
+    sends/swaps/bridges, token transfers and CSV imports) always called
     evaluate() with counterparty_id=None, so a vendor cap silently never
     applied to any of them: not the per-payment max, and not the cumulative
     total either. Regression tests for both halves of that gap."""

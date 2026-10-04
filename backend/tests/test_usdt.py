@@ -1,6 +1,6 @@
 """USDT registry, balance and plain-send support.
 
-USDT is intentionally not granted invoice, swap, bridge or x402
+USDT is intentionally not granted invoice, swap or bridge
 capabilities. Those integrations require separate protocol-specific support.
 """
 import unittest

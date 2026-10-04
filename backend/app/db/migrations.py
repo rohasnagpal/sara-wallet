@@ -144,43 +144,6 @@ def _migration_009_drop_dual_control(engine: Engine) -> None:
     _drop_column(engine, "spending_policies", "require_dual_control")
 
 
-def _migration_010_paywall_preview_message(engine: Engine) -> None:
-    """x402_paywall_pages existed for a short time without this column — an
-    install that started the app in that window needs it added explicitly
-    (create_all only creates missing tables, it never alters existing ones)."""
-    _add_columns(engine, "x402_paywall_pages", {"preview_message": "TEXT"})
-
-
-def _migration_011_fetched_content_file_path(engine: Engine) -> None:
-    """x402_fetched_content originally stored the fetched body directly in
-    a NOT NULL `body` column. Switching to file-based storage renamed that
-    to `file_path` in the model, but an install that already created this
-    table under the old schema never got the new column — every insert and
-    read against it failed outright (NOT NULL body / no such column
-    file_path) rather than degrading gracefully, since create_all only
-    creates missing tables. Drop is safe: this table only ever holds
-    disposable, regenerable fetch history, never a wallet key or anything
-    that can't be re-fetched (at the cost of a fresh payment)."""
-    _add_columns(engine, "x402_fetched_content", {"file_path": "TEXT"})
-    _drop_column(engine, "x402_fetched_content", "body")
-
-
-def _migration_012_paywall_facilitator(engine: Engine) -> None:
-    """x402_paywall_pages predates the "circle" facilitator option — every
-    live-mode row created before this column existed used Coinbase's CDP
-    facilitator exclusively (it was the only one available). Backfill it
-    explicitly so an existing live page's code still regenerates with the
-    facilitator it actually was built for, instead of silently defaulting
-    to "circle" (config that row was never given) the next time its code
-    is fetched. Test-mode rows are left null - the column is live-mode
-    only, matching the model."""
-    _add_columns(engine, "x402_paywall_pages", {"facilitator": "TEXT"})
-    with engine.begin() as conn:
-        conn.execute(text(
-            "UPDATE x402_paywall_pages SET facilitator = 'cdp' WHERE mode = 'live' AND facilitator IS NULL"
-        ))
-
-
 def _migration_013_wallet_seeds(engine: Engine) -> None:
     """wallet_seeds is a brand-new table (SQLAlchemy's create_all handles
     that on its own, no migration needed) - only wallets needs altering,
@@ -297,9 +260,6 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("007_batch_item_tags_and_notes", _migration_007_batch_item_tags_and_notes),
     ("008_unify_directory_and_counterparties", _migration_008_unify_directory_and_counterparties),
     ("009_drop_dual_control", _migration_009_drop_dual_control),
-    ("010_paywall_preview_message", _migration_010_paywall_preview_message),
-    ("011_fetched_content_file_path", _migration_011_fetched_content_file_path),
-    ("012_paywall_facilitator", _migration_012_paywall_facilitator),
     ("013_wallet_seeds", _migration_013_wallet_seeds),
     ("014_remove_sara_proof", _migration_014_remove_sara_proof),
     ("015_remove_non_evm_data", _migration_015_remove_non_evm_data),

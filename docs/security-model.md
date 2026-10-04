@@ -68,21 +68,13 @@ breakdown of who can see what is in [privacy.md](privacy.md). In short:
 
 See [third-party-services.md](third-party-services.md) for the complete,
 code-verified list of every external service Sara connects to, and
-Sara's own no-markup policy on swaps/bridges/sends/x402 payments.
+Sara's own no-markup policy on swaps, bridges and sends.
 
 ### Can the AI send money itself?
 
 Not without your say-so. Every send requires you to explicitly confirm
 (type `CONFIRM` and your passphrase) before anything is signed — the model
 proposes an action, it doesn't execute one unilaterally.
-
-The one deliberate exception is **x402 policy-gated auto-pay**: you can
-configure a spending policy (scoped to a wallet/network, with a cap) that
-lets Sara pay for machine-priced HTTP resources without a passphrase
-prompt each time, so an unattended agent flow can work. This only applies
-within the policy you explicitly configured in advance — anything outside
-it falls back to a normal passphrase-confirmed send. See
-[x402.md](x402.md).
 
 ## Security Philosophy
 
@@ -97,12 +89,10 @@ it falls back to a normal passphrase-confirmed send. See
   recovery reuses persisted signed transaction bytes instead of creating a
   second payment
 - Spending limits are enforced at preview and again immediately before chat,
-  token, batch and x402 sends; time windows use the policy's configured IANA
+  token and batch sends; time windows use the policy's configured IANA
   timezone
 - Payment batches are validated and shown to you in full before anything is
   signed, and sending one asks for your passphrase
-- Risk screening can be configured to fail closed, and provider evidence is
-  stored as bounded identifiers rather than allegation text
 - Token symbols only ever resolve to a hardcoded, developer-verified
   contract address list — never an arbitrary on-chain lookup
 - No telemetry, no cloud sync, no external key custody (see [privacy.md](privacy.md))

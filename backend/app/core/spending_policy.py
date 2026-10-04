@@ -2,7 +2,7 @@
 
 Scope: governs the batch engine (app.services.batch_engine) — manual batch
 payments, airdrops, recurring schedules and payroll runs — and chat sends,
-swaps and bridges (app.routers.chat._spending_policy_denial), and x402 payments.
+swaps and bridges (app.routers.chat._spending_policy_denial).
 
 Policies are evaluated twice per item, per CLAUDE_STAGES_3_TO_7.md: once
 during batch preparation (app.services.batch_engine.validate_batch) and
@@ -33,7 +33,7 @@ class PolicyResult:
 def resolve_counterparty_id(db: Session, destination_address: str | None) -> int | None:
     """Looks up the Directory (AddressBook) entry for a raw destination
     address, if one exists — so a vendor-scoped policy applies no matter
-    which payment path (chat send/swap/bridge, x402, token transfer, batch
+    which payment path (chat send/swap/bridge, token transfer, batch
     or CSV import) sends to that same address, without every one of those
     call sites having to resolve it themselves. A caller that already knows
     the counterparty (e.g. a batch item explicitly tagged with one) should
@@ -80,7 +80,7 @@ def _cumulative_raw(db: Session, policy: SpendingPolicy, when: datetime, princip
     """Sums every outgoing, submitted/confirmed payment this policy's window
     covers. Transaction is the single ledger every payment path writes to
     exactly once it's broadcast — chat sends/swaps/bridges, batches
-    (including CSV imports), payroll, token transfers and x402 —
+    (including CSV imports), payroll and token transfers —
     so summing it here (rather than separately re-deriving the same total
     from PaymentBatchItem for counterparty-scoped policies, as before) is
     both simpler and correctly counts spend regardless of which of those

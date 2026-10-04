@@ -18,16 +18,6 @@ class Settings(BaseSettings):
     EVM_CONFIRMATIONS_DEFAULT: int = 12
     EVM_CONFIRMATIONS_POLYGON: int = 64
 
-    # Address risk screening (Stage 5.6) — provider-neutral. No vendor ships
-    # configured by default; PROVIDER + API_KEY select the adapter and the
-    # generic HTTP adapter additionally requires an HTTPS API_URL. Until configured, every
-    # screen returns "unavailable" rather than a fabricated "clear" result.
-    RISK_SCREENING_PROVIDER: str = ""
-    RISK_SCREENING_API_KEY: str = ""
-    RISK_SCREENING_API_URL: str = ""
-    RISK_SCREENING_MANDATORY: bool = False
-    RISK_SCREENING_TTL_HOURS: int = 24
-
     model_config = SettingsConfigDict(env_file="../.env.local", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

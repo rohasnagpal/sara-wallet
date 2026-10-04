@@ -12,7 +12,7 @@ Any trading, swapping, bridging, lending, staking, perpetuals, derivatives, comm
 
 Sara Wallet does not operate, control, clear, settle, custody, intermediate, guarantee, or make markets for any transaction. All transactions are between you and the relevant third-party protocol or counterparty, and are subject to that protocol's or counterparty's own terms, risks, and limitations.
 
-Sara Wallet's own software does not add any markup, commission, spread, or fee on top of a swap, bridge, send, or x402 payment — you pay exactly what the underlying third-party protocol or network charges. Those third-party protocols, aggregators, and networks may charge their own fees, spreads, or commissions under their own terms, entirely outside Sara Wallet's control; see [docs/third-party-services.md](docs/third-party-services.md) for the full list of services Sara connects to.
+Sara Wallet's own software does not add any markup, commission, spread, or fee on top of a swap, bridge, or send — you pay exactly what the underlying third-party protocol or network charges. Those third-party protocols, aggregators, and networks may charge their own fees, spreads, or commissions under their own terms, entirely outside Sara Wallet's control; see [docs/third-party-services.md](docs/third-party-services.md) for the full list of services Sara connects to.
 
 ## 3. No Advice
 

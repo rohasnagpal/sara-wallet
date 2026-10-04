@@ -16,11 +16,6 @@ Actively being worked on, or explicitly blocking the next release.
   hardware-controlled multisig, authoritative reconfirmation of
   network/token addresses, and a low-value canary deployment, all required
   before any mainnet launch. ([#2](https://github.com/rohasnagpal/sara-wallet/issues/2))
-- **Harden and expand x402 real-payment coverage** — the buyer client,
-  policy-gated auto-pay and demo seller landed recently; broadening seller/
-  network coverage and policy-gating scenarios beyond the demo is next.
-  ([#3](https://github.com/rohasnagpal/sara-wallet/issues/3))
-
 ## Next
 
 Scoped and wanted, not yet started.

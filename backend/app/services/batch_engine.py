@@ -20,7 +20,6 @@ from sqlalchemy import and_, or_, update
 from sqlalchemy.orm import Session
 
 from app.core import spending_policy
-from app.tools.risk import screening as risk_screening
 from app.core.audit import append_audit
 from app.core.events import publish
 from app.db.models import BatchApproval, PaymentBatch, PaymentBatchItem, Wallet
@@ -294,16 +293,6 @@ def execute_batch(db: Session, batch: PaymentBatch, wallet: Wallet, private_key:
                 item.failure_reason = "; ".join(policy_result.denial_reasons)
                 append_audit(db, "payment_batch_item.policy_denied", "payment_batch_item",
                              resource_id=str(item.id), details={"reasons": policy_result.denial_reasons}, actor_id=actor)
-                db.commit()
-                continue
-
-            try:
-                risk_screening.enforce_mandatory_screening(db, item.recipient_address, batch.network)
-            except ValueError as exc:
-                item.status = "failed"
-                item.failure_reason = str(exc)
-                append_audit(db, "payment_batch_item.risk_screening_denied", "payment_batch_item",
-                             resource_id=str(item.id), details={"reason": str(exc)}, actor_id=actor)
                 db.commit()
                 continue
 

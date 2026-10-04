@@ -17,7 +17,7 @@ Sara Wallet is the stablecoin wallet for small businesses: invoice customers, ma
 
 > **Status: alpha.** Use small amounts and testnets while Sara is under active development. There has been no third-party security audit yet; see [SECURITY.md](SECURITY.md). What is planned next is in [ROADMAP.md](ROADMAP.md).
 
-Sara runs on your own computer. The frontend is a single HTML app and the backend is a Python FastAPI server. It is self-custodial and open source (Apache 2.0): your keys, wallet database and signing all stay on your machine, and every line is auditable. It is also built for agents: with x402, Sara can pay machine-priced resources on its own, within spending policies you set.
+Sara runs on your own computer. The frontend is a single HTML app and the backend is a Python FastAPI server. It is self-custodial and open source (Apache 2.0): your keys, wallet database and signing all stay on your machine, and every line is auditable.
 
 ## What you can do
 
@@ -26,8 +26,7 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Payments** | Natural-language stablecoin sends with the exact amount and fee shown before you confirm. Swaps and bridges with the quote shown before you sign, and a choice between routes when there is more than one. | |
 | **Invoicing** | Invoices with a QR code any wallet app can scan, automatic on-chain reconciliation and proof-of-payment receipts. | [invoicing.md](docs/invoicing.md) |
 | **Business and accounting** | Batch payments from a CSV, recurring payments, payroll, spending policies, income and expense reports, CSV and Excel exports. | [business-payments.md](docs/business-payments.md) |
-| **Agentic payments (x402)** | Pay-per-call for machine-priced HTTP resources, policy-gated for unattended use. Paid content is saved so you never lose it or pay twice. A paywall generator turns any PHP page on your own site into a paid page, settled through Circle Gateway Nanopayments (no API key) or Coinbase's CDP facilitator. A runnable demo site and agent are in [`examples/x402/`](examples/x402/README.md). | [x402.md](docs/x402.md) |
-| **Safety** | Review and revoke leftover approvals, monitor low balances, and screen addresses against a sanctions list. | [business-payments.md](docs/business-payments.md) |
+| **Safety** | Review and revoke leftover approvals, and monitor low balances. | [business-payments.md](docs/business-payments.md) |
 | **Recovery phrase** | One 24-word BIP-39 recovery phrase backs every wallet Sara creates, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. An existing phrase can be restored before creating a wallet. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
 | **Directory handles** | Save an EVM address with a name and unique local handle, such as `Rohas Nagpal` and `rohasnagpal`, and use the handle wherever Sara accepts a recipient. Dotted names are reserved for on-chain naming. | |
@@ -44,11 +43,11 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | Arc | USDC | ✅ | ✅ | — | — |
 | Tempo | USD stablecoin | ✅ USDC.e | — | ✅ USDT0 | ✅ |
 
-✅ means Sara can display the balance and make plain sends; — means the asset is not supported on that network. Protocol-specific features such as swaps, bridges, x402 and invoices have their own narrower network and asset support.
+✅ means Sara can display the balance and make plain sends; — means the asset is not supported on that network. Protocol-specific features such as swaps, bridges and invoices have their own narrower network and asset support.
 
 USDC and EURC use Circle-published contracts ([contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses)). Ethereum USDT uses Tether's [official deployment](https://tether.to/en/supported-protocols/); the Arbitrum, OP Mainnet and Polygon entries use the network deployments listed by [USDT0](https://docs.usdt0.to/technical-documentation/deployments). Open USD uses the Ethereum, Base and Tempo contracts published by [Open Standard](https://joinopenstandard.com/blog/ousd-is-live/).
 
-Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances and plain sends. Swaps, bridges and x402 are not available on Arc yet.
+Arc is Circle's network where gas is paid in USDC, so its native balance and USDC balance are the same money and Sara counts it once. On Arc, Sara supports wallets, balances and plain sends. Swaps and bridges are not available on Arc yet.
 
 Tempo has no separate native gas coin. Sara pays a transfer's fee in the TIP-20 stablecoin being sent and requires at least one Tempo stablecoin to remain enabled.
 
@@ -66,7 +65,7 @@ Some services necessarily see part of what you do. Your AI provider sees your ch
 
 - **Does the AI see my private key?** No. Keys are decrypted only in local signing code and never sent to the AI model.
 - **Who signs transactions?** Local Python code, using web3.py, not the AI.
-- **Can the AI send money itself?** No. Every send needs your explicit `CONFIRM` and passphrase, except a spending-policy cap you configure in advance for unattended x402 auto-pay.
+- **Can the AI send money itself?** No. Every send needs your explicit `CONFIRM` and passphrase.
 
 More in [docs/security-model.md](docs/security-model.md), including the threat model. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
@@ -129,15 +128,13 @@ Set these in **Settings** or in `.env.local`. Only an AI provider is required.
 | `ALCHEMY_API_KEY` | Required to swap or bridge; optional otherwise | Sara verifies every swap and bridge before signing and refuses without it. Also token balances and automatic payment reconciliation |
 | `COINGECKO_API_KEY` | Optional | Higher rate limit for prices |
 | `ETH_RPC`, `ARB_RPC`, `BASE_RPC`, `POLY_RPC`, `OP_RPC`, `ARC_RPC` | Optional | Use your own blockchain node instead of public ones ([privacy](docs/privacy.md)) |
-| `RISK_SCREENING_PROVIDER`, `_API_URL`, `_API_KEY` | Optional | Broader screening (scams, hacks, mixers) than the built-in sanctions check |
-| `RISK_SCREENING_MANDATORY` | Optional, default `false` | Block sends to flagged addresses, or when screening can't run |
 | `SARA_EURC_NETWORKS` | Optional | Limit which networks show EURC |
 
-Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page. Buying USDC needs a free Coinbase CDP API key, entered in the app and stored encrypted like a wallet key. The same goes for a CDP key used by a live x402 paywall.
+Telegram alerts need no setting: you enter your bot token and chat ID on the **Alerts** page.
 
 ## Contributing
 
-We're looking for contributors interested in wallets, stablecoins, x402, AI agents, security and Web3 UX. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first, then look at [good first issues](https://github.com/rohasnagpal/sara-wallet/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22), [help wanted](https://github.com/rohasnagpal/sara-wallet/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) or start a conversation in [Discussions](https://github.com/rohasnagpal/sara-wallet/discussions).
+We're looking for contributors interested in wallets, stablecoins, AI agents, security and Web3 UX. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first, then look at [good first issues](https://github.com/rohasnagpal/sara-wallet/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22), [help wanted](https://github.com/rohasnagpal/sara-wallet/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) or start a conversation in [Discussions](https://github.com/rohasnagpal/sara-wallet/discussions).
 
 ## Documentation
 
@@ -145,7 +142,7 @@ We're looking for contributors interested in wallets, stablecoins, x402, AI agen
 - [docs/privacy.md](docs/privacy.md): what stays on your machine, who can see what, and how to reduce exposure
 - [docs/security-model.md](docs/security-model.md): trust questions, threat model and security philosophy
 - [docs/third-party-services.md](docs/third-party-services.md): every external service Sara connects to, which need API keys, and Sara's no-markup policy
-- [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md), [docs/x402.md](docs/x402.md), [docs/token-creator.md](docs/token-creator.md): feature guides
+- [docs/invoicing.md](docs/invoicing.md), [docs/business-payments.md](docs/business-payments.md), [docs/token-creator.md](docs/token-creator.md): feature guides
 - [ROADMAP.md](ROADMAP.md): what's Now, Next and Exploring
 - [SECURITY.md](SECURITY.md): supported versions, vulnerability reporting, audit status
 

@@ -96,8 +96,7 @@ class MigrationTests(unittest.TestCase):
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
                 "004_activity_identity", "005_invoicing", "006_payment_safety",
                 "007_batch_item_tags_and_notes", "008_unify_directory_and_counterparties",
-                "009_drop_dual_control", "010_paywall_preview_message",
-                "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
+                "009_drop_dual_control", "013_wallet_seeds",
                 "014_remove_sara_proof", "015_remove_non_evm_data", "016_remove_onchain_sara_names",
                 "017_single_recovery_seed", "018_remove_cost_basis_and_pnl", "019_directory_handles",
                 "020_remove_beta_scope_features",
@@ -134,79 +133,6 @@ class MigrationTests(unittest.TestCase):
             session.commit()
             self.assertEqual(sorted(p.name for p in session.query(SpendingPolicy)), ["new cap", "old cap"])
             session.close()
-
-    def test_fetched_content_table_created_under_the_old_body_schema_still_works(self):
-        """x402_fetched_content originally stored the fetched body directly
-        in a NOT NULL `body` column; switching to file-based storage
-        renamed that to `file_path` in the model without a matching
-        migration for a database that already created the table under the
-        old schema - every insert (NOT NULL body unset) and every read (no
-        such column file_path) then failed outright. This is exactly the
-        real bug, reproduced against the real migration path rather than
-        just asserted against the model."""
-        from app.db.models import X402FetchedContent
-        with tempfile.NamedTemporaryFile(suffix=".db") as db_file:
-            engine = create_engine(f"sqlite:///{db_file.name}")
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "CREATE TABLE x402_fetched_content (id INTEGER PRIMARY KEY, wallet_id INTEGER NOT NULL, "
-                    "network VARCHAR NOT NULL, url TEXT NOT NULL, content_type VARCHAR, "
-                    "status_code INTEGER NOT NULL, body TEXT NOT NULL, amount_raw VARCHAR NOT NULL, "
-                    "tx_hash VARCHAR, transaction_id INTEGER, fetched_at DATETIME NOT NULL)"
-                ))
-            Base.metadata.create_all(engine)
-            run_migrations(engine)
-
-            columns = {c["name"] for c in inspect(engine).get_columns("x402_fetched_content")}
-            self.assertIn("file_path", columns)
-            self.assertNotIn("body", columns)
-
-            session = sessionmaker(bind=engine)()
-            session.add(X402FetchedContent(
-                wallet_id=1, network="base", url="https://example.com/a", status_code=200,
-                file_path="abc123.txt", amount_raw="10000",
-            ))
-            session.commit()
-            row = session.query(X402FetchedContent).one()
-            self.assertEqual(row.file_path, "abc123.txt")
-            session.close()
-
-    def test_existing_live_paywall_pages_are_backfilled_to_the_cdp_facilitator(self):
-        """x402_paywall_pages predates the "circle" facilitator option -
-        every live-mode row created before this column existed used CDP
-        exclusively. The migration must backfill it explicitly, not leave
-        it null (which would make the row regenerate for the wrong
-        facilitator, "circle", the next time its code is fetched) - and
-        must leave a test-mode row alone, since the column is live-mode
-        only."""
-        from app.db.models import X402PaywallPage
-        with tempfile.NamedTemporaryFile(suffix=".db") as db_file:
-            engine = create_engine(f"sqlite:///{db_file.name}")
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "CREATE TABLE x402_paywall_pages (id INTEGER PRIMARY KEY, label VARCHAR NOT NULL, "
-                    "wallet_id INTEGER NOT NULL, mode VARCHAR NOT NULL, network VARCHAR NOT NULL, "
-                    "price_usd VARCHAR NOT NULL, cdp_key_id VARCHAR, encrypted_cdp_secret TEXT, "
-                    "preview_message TEXT, created_at DATETIME)"
-                ))
-                conn.execute(text(
-                    "INSERT INTO x402_paywall_pages (label, wallet_id, mode, network, price_usd, cdp_key_id) "
-                    "VALUES ('Old live page', 1, 'live', 'base', '1.00', 'orgs/x/apiKeys/y')"
-                ))
-                conn.execute(text(
-                    "INSERT INTO x402_paywall_pages (label, wallet_id, mode, network, price_usd) "
-                    "VALUES ('Old test page', 1, 'test', 'base-sepolia', '0.05')"
-                ))
-            Base.metadata.create_all(engine)
-            run_migrations(engine)
-
-            session = sessionmaker(bind=engine)()
-            live_page = session.query(X402PaywallPage).filter_by(label="Old live page").one()
-            test_page = session.query(X402PaywallPage).filter_by(label="Old test page").one()
-            self.assertEqual(live_page.facilitator, "cdp")
-            self.assertIsNone(test_page.facilitator)
-            session.close()
-
 
 class AuditAndEventTests(unittest.TestCase):
     def setUp(self):

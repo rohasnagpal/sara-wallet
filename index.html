@@ -1150,11 +1150,9 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
-          <button class="col2-nav-btn" id="col2BtnRisk" onclick="showTool('risk')">Risk</button>
           <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
-          <button class="col2-nav-btn" id="col2BtnX402" onclick="showTool('x402')">x402</button>
         </div>
 
         <!-- ── Asset View ── -->
@@ -1394,151 +1392,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
         </div><!-- /accountingView -->
 
-        <!-- ── Tools View (risk / x402) ── -->
-        <div id="toolsView" style="display:none">
-          <div id="toolsRiskPane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Screen an address</div>
-              <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">Checks whether an address is on a public sanctions list before you send it funds. It is free and needs no account. It checks sanctions only, so it can't tell you whether an address is linked to scams, hacks or mixers.</div>
-              <div class="field-row" style="margin-top:8px">
-                <div class="field"><label class="field-label" for="riskAddress">Address</label><input class="settings-input" id="riskAddress" placeholder="Address (0x…)"></div>
-                <div class="field"><label class="field-label" for="riskNetwork">Network</label><select class="settings-input" id="riskNetwork"><option value="polygon">Polygon</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">Optimism</option></select></div>
-                <button class="settings-save-btn" onclick="screenAddress()">Screen</button>
-              </div>
-              <div id="riskResult" style="font-size:11px;margin-top:8px"></div>
-            </div>
-          </div>
-
-          <div id="toolsX402Pane" style="display:none">
-            <div class="card" style="margin-bottom:10px">
-              <div style="font-size:15px;font-weight:600">Pay &amp; fetch (x402)</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                x402 is an open standard that lets an API charge per request over plain HTTP.
-                Give Sara a URL - if it answers "402 Payment Required," Sara pays the exact
-                USDC price from the wallet below and fetches the resource, no account or API
-                key needed on either side. Set a spending policy scoped to this wallet/network
-                (Business &rarr; Policies) to let payments under your cap go through automatically;
-                without one, Sara asks for your passphrase before every payment, same as any other send.
-                New to this? Pick <strong>Base Sepolia (testnet)</strong> first - it's free (faucet USDC,
-                no real money) and isn't recorded in your ledger, so it's a safe way to try the whole flow.
-                Also supported for real payments: Base, Polygon, Ethereum, Arbitrum.
-              </div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="x402Wallet">Wallet</label><select class="settings-input" id="x402Wallet"></select></div>
-                <div class="field"><label class="field-label" for="x402Network">Network</label>
-                  <select class="settings-input" id="x402Network">
-                    <option value="base-sepolia">Base Sepolia (testnet - free)</option>
-                    <option value="base">Base</option>
-                    <option value="polygon">Polygon</option>
-                    <option value="ethereum">Ethereum</option>
-                    <option value="arbitrum">Arbitrum</option>
-                  </select>
-                </div>
-                <div class="field"><label class="field-label" for="x402Method">Method</label>
-                  <select class="settings-input" id="x402Method"><option value="GET">GET</option><option value="POST">POST</option></select>
-                </div>
-              </div>
-              <div class="field" style="margin-top:7px"><label class="field-label" for="x402Url">Resource URL</label><input class="settings-input" id="x402Url" placeholder="https://api.example.com/paid-endpoint"></div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="x402Note">Note (optional)</label><input class="settings-input" id="x402Note" placeholder="Note (optional)"></div>
-                <div class="field"><label class="field-label" for="x402Tags">Tags (optional)</label><input class="settings-input" id="x402Tags" placeholder="e.g. api, data"></div>
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="x402Fetch()">Fetch</button>
-              <div id="x402Result" style="margin-top:10px"></div>
-            </div>
-
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Payment log</strong><button class="settings-save-btn" onclick="loadX402Payments()">Refresh</button></div>
-              <div id="x402PaymentsList" style="font-size:11px;margin-top:8px">Loading…</div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Previously purchased content</strong><button class="settings-save-btn" onclick="loadX402FetchedContent()">Refresh</button></div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                x402 has no concept of a receipt or a session - once you pay for something, the resource is
-                returned exactly once. Sara saves what you paid for here so you don't lose it (and don't have
-                to pay again just to see it a second time).
-              </div>
-              <div id="x402FetchedList" style="font-size:11px;margin-top:8px">Loading…</div>
-              <div id="x402FetchedViewBox" style="display:none;margin-top:8px">
-                <div class="result-desc" style="font-family:var(--font-mono);white-space:pre-wrap;word-break:break-all;max-height:280px;overflow:auto" id="x402FetchedViewBody"></div>
-              </div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="font-size:15px;font-weight:600">Get paid: paywall generator</div>
-              <div style="font-size:10.5px;color:var(--text-secondary);margin:3px 0 8px">
-                Pick a Sara wallet and a price, and Sara writes a single PHP file for you to paste
-                at the top of any page on your own site. Once uploaded, that page charges the price
-                below per visit before showing its content - no plugin, database, or special server
-                needed (just PHP's standard <code>curl</code> and <code>sodium</code> extensions,
-                present on virtually every host). Sara never sees traffic to your page; it only
-                generates this code, once. <strong>Test mode</strong> runs on Base Sepolia
-                (testnet, free faucet USDC) with no signup, so you can try the whole flow for free.
-                <strong>Live mode</strong> settles real USDC via one of two facilitators:
-                <strong>Circle's Gateway</strong> (Base only, completely free, no signup or API key at all)
-                or <strong>Coinbase's CDP</strong> (Base, Polygon or Arbitrum, needs your own free
-                <a href="https://portal.cdp.coinbase.com/" target="_blank" rel="noopener">CDP API key</a> -
-                Sara encrypts that secret the same way it protects a wallet's private key).
-              </div>
-              <div class="field-grid">
-                <div class="field"><label class="field-label" for="paywallLabel">Label</label><input class="settings-input" id="paywallLabel" placeholder="e.g. Premium article"></div>
-                <div class="field"><label class="field-label" for="paywallWallet">Gets paid to</label><select class="settings-input" id="paywallWallet"></select></div>
-                <div class="field"><label class="field-label" for="paywallPrice">Price (USDC)</label><input class="settings-input" id="paywallPrice" placeholder="0.05"></div>
-              </div>
-              <div class="field-row" style="margin-top:7px">
-                <div class="field"><label class="field-label" for="paywallMode">Mode</label>
-                  <select class="settings-input" id="paywallMode" onchange="_onPaywallModeChange()">
-                    <option value="test">Test (Base Sepolia - free)</option>
-                    <option value="live">Live (real USDC)</option>
-                  </select>
-                </div>
-                <div class="field" id="paywallFacilitatorField" style="display:none"><label class="field-label" for="paywallFacilitator">Facilitator</label>
-                  <select class="settings-input" id="paywallFacilitator" onchange="_onPaywallFacilitatorChange()">
-                    <option value="circle">Circle Gateway (Base - no signup)</option>
-                    <option value="cdp">Coinbase CDP (Base, Polygon, Arbitrum)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field" id="paywallNetworkField" style="display:none;margin-top:7px"><label class="field-label" for="paywallNetwork">Network</label>
-                <select class="settings-input" id="paywallNetwork">
-                  <option value="base">Base</option>
-                  <option value="polygon">Polygon</option>
-                  <option value="arbitrum">Arbitrum</option>
-                </select>
-              </div>
-              <div id="paywallCdpFields" style="display:none;margin-top:7px">
-                <div style="font-size:10.5px;color:var(--text-secondary);margin-bottom:6px">
-                  Get these from <a href="https://portal.cdp.coinbase.com/access/api" target="_blank" rel="noopener">portal.cdp.coinbase.com &rarr; API Keys</a> (free).
-                  When creating the key, choose the <strong>Ed25519</strong> key type - this generator only supports Ed25519, not EC/ES256.
-                </div>
-                <div class="field" style="margin-bottom:7px"><label class="field-label" for="paywallCdpKeyId">CDP API key ID</label><input class="settings-input" id="paywallCdpKeyId" placeholder="organizations/.../apiKeys/..."></div>
-                <div class="field"><label class="field-label" for="paywallCdpKeySecret">CDP API key secret</label><input class="settings-input" id="paywallCdpKeySecret" type="password" placeholder="Ed25519 private key, base64"></div>
-              </div>
-              <div class="field" style="margin-top:7px">
-                <label class="field-label" for="paywallPreview">Message shown to visitors who haven't paid (optional)</label>
-                <input class="settings-input" id="paywallPreview" placeholder="e.g. Subscribe for $0.05 to read the full article">
-              </div>
-              <button class="settings-save-btn" style="margin-top:8px" onclick="createPaywallPage()">Generate code</button>
-              <div id="paywallCreateStatus" style="font-size:10.5px;color:var(--text-secondary);margin-top:6px"></div>
-              <div id="paywallCodeBox" style="display:none;margin-top:8px">
-                <div style="font-size:10.5px;color:var(--text-secondary);margin-bottom:4px">
-                  Paste this at the very top of your PHP page. Everything you write <strong>after</strong> the
-                  marked line near the bottom of this code only renders once someone has paid - that's where
-                  your premium content goes.
-                </div>
-                <textarea id="paywallCodeOutput" readonly style="width:100%;height:220px;font-family:var(--font-mono, monospace);font-size:10.5px" onclick="this.select()"></textarea>
-                <button class="settings-save-btn" style="margin-top:6px" onclick="copyPaywallCode()">Copy code</button>
-                <span id="paywallCopyStatus" style="font-size:10.5px;color:var(--text-secondary);margin-left:6px"></span>
-              </div>
-            </div>
-
-            <div class="card" style="margin-top:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center"><strong>Your monetized pages</strong><button class="settings-save-btn" onclick="loadPaywallPages()">Refresh</button></div>
-              <div id="paywallPagesList" style="font-size:11px;margin-top:8px">Loading…</div>
-            </div>
-          </div>
-        </div><!-- /toolsView -->
 
         <div id="safetyView" style="display:none">
           <div class="card" style="margin-bottom:10px">
@@ -2991,7 +2844,6 @@ async function showCol2(mode) {
   document.getElementById('payrollView').style.display    = mode === 'payroll'    ? '' : 'none';
   document.getElementById('policiesView').style.display   = mode === 'policies'   ? '' : 'none';
   document.getElementById('accountingView').style.display = mode === 'accounting' ? '' : 'none';
-  document.getElementById('toolsView').style.display      = mode === 'tools'      ? '' : 'none';
   document.getElementById('safetyView').style.display     = mode === 'safety'     ? '' : 'none';
   document.getElementById('alertsView').style.display     = mode === 'alerts'     ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'   ? '' : 'none';
@@ -2999,7 +2851,7 @@ async function showCol2(mode) {
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
-   'col2BtnPolicies','col2BtnAccounting',...Object.values(_TOOL_NAV),'col2BtnAlerts','col2BtnSafety','col2BtnDir','col2BtnSettings'].forEach(id => {
+   'col2BtnPolicies','col2BtnAccounting','col2BtnAlerts','col2BtnSafety','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
@@ -3030,7 +2882,6 @@ async function showCol2(mode) {
     await loadPayrollRuns();
   }
   if (mode === 'policies') await loadSpendingPolicies();
-  if (mode === 'tools') await loadToolsView();
   if (mode === 'safety') await loadSafety();
   if (mode === 'alerts') await loadAlertsView();
   if (mode === 'settings') await _loadSettingsView();
@@ -3823,32 +3674,6 @@ async function downloadAccountingExport(format) {
 }
 
 // ══════════════════════════════════════
-// TOOLS: risk / x402
-// ══════════════════════════════════════
-let _toolsTab = 'risk';
-
-async function loadToolsView() {
-  _fillWalletSelects(['x402Wallet', 'paywallWallet']);
-  return showToolsTab(_toolsTab);
-}
-
-// The Tools pages each have their own button
-// in the top nav; they share one view container whose visible pane is chosen here.
-const _TOOL_NAV = {risk: 'col2BtnRisk', x402: 'col2BtnX402'};
-
-function showTool(tab) {
-  _toolsTab = tab;
-  return showCol2('tools');
-}
-
-function showToolsTab(tab) {
-  _toolsTab = tab;
-  const panes = {risk: 'toolsRiskPane', x402: 'toolsX402Pane'};
-  Object.entries(panes).forEach(([t, id]) => { const el = document.getElementById(id); if (el) el.style.display = t === tab ? '' : 'none'; });
-  Object.entries(_TOOL_NAV).forEach(([t, id]) => document.getElementById(id)?.classList.toggle('active', t === tab && _col2Mode === 'tools'));
-  if (tab === 'x402') { loadX402Payments(); loadX402FetchedContent(); loadPaywallPages(); }
-}
-
 const _EXPLORERS = {
   ethereum: 'https://etherscan.io/address/', polygon: 'https://polygonscan.com/address/',
   arbitrum: 'https://arbiscan.io/address/', base: 'https://basescan.org/address/',
@@ -3906,10 +3731,6 @@ function _ledgerDetails(t) {
       add('Method', t.reference ? _escapeHtml(t.reference) : '');
       add('From wallet', addr(t.from));
       break;
-    case 'x402_payment':
-      add('Paid to', addr(t.to));
-      add('Resource', t.reference ? _escapeHtml(t.reference) : '');
-      break;
     case 'swap': case 'bridge':
       add('Wallet address', addr(t.from));
       add('Via contract', addr(t.to));
@@ -3931,236 +3752,6 @@ function _ledgerDetails(t) {
   if (t.timestamp) add('Date', _escapeHtml(new Date(t.timestamp.endsWith('Z') || /[+-]\d\d:?\d\d$/.test(t.timestamp) ? t.timestamp : t.timestamp + 'Z').toLocaleString()));
   return `<dl class="tx-card-details">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
 }
-
-// ---- Risk screening ----
-async function screenAddress() {
-  const body = {address: document.getElementById('riskAddress').value.trim(), network: document.getElementById('riskNetwork').value};
-  const r = await fetch('/api/risk/screen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  const box = document.getElementById('riskResult');
-  if (!r.ok) { box.textContent = _apiErrorText(data, 'Screening failed.'); return; }
-  const builtIn = data.provider === 'Chainalysis sanctions oracle';
-  const headline = data.result === 'clear'
-    ? '<div style="color:var(--green);font-weight:600">✓ Not on the sanctions list.</div>'
-    : data.result === 'flagged'
-      ? '<div style="color:var(--red);font-weight:600">⚠ This address is on a sanctions list. Do not send funds to it.</div>'
-      : `<div style="font-weight:600">Couldn't check right now.</div><div style="color:var(--text-muted)">${_escapeHtml(data.reason || 'Try again in a moment.')}</div>`;
-  const source = data.result === 'unavailable' ? '' : `<div style="color:var(--text-muted);margin-top:4px">${builtIn
-    ? "Checked with the free Chainalysis sanctions oracle. This only covers sanctions. It doesn't cover scams, hacks or mixers, so it isn't a full safety check."
-    : 'Checked by ' + _escapeHtml(data.provider) + '.'}</div>`;
-  box.innerHTML = `
-    ${headline}
-    ${source}
-    ${data.mandatory ? '<div style="color:var(--text-muted);margin-top:4px">Screening is required: a flagged address, or a check that can\'t be completed, blocks batch sends.</div>' : ''}
-  `;
-}
-
-// ---- x402: pay & fetch ----
-async function x402Fetch() {
-  const box = document.getElementById('x402Result');
-  const url = document.getElementById('x402Url').value.trim();
-  if (!url) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">Enter a URL first.</div>`; return; }
-  const body = {
-    wallet_id: Number(document.getElementById('x402Wallet').value),
-    network: document.getElementById('x402Network').value,
-    method: document.getElementById('x402Method').value,
-    url,
-    note: document.getElementById('x402Note').value.trim() || null,
-    tags: document.getElementById('x402Tags').value.split(',').map(t => t.trim()).filter(Boolean),
-  };
-  box.innerHTML = `<div class="result-desc">Checking…</div>`;
-  let r = await fetch('/api/x402/fetch', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  let data = await r.json().catch(() => ({}));
-
-  if (r.ok && data.requires_confirmation) {
-    box.innerHTML = `<div class="result-desc">This resource costs <strong>${_escapeHtml(data.amount)} ${_escapeHtml(data.token)}</strong> on ${_escapeHtml(data.network)} (no spending policy auto-approves it - ${_escapeHtml(data.reason)}). Confirm your passphrase to pay this once.</div>`;
-    const passphrase = await requestTransactionPassphrase();
-    if (!passphrase) { box.innerHTML += `<div class="result-desc" style="color:var(--red);margin-top:6px">Cancelled.</div>`; return; }
-    box.innerHTML = `<div class="result-desc">Paying…</div>`;
-    r = await fetch('/api/x402/fetch', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...body, passphrase})});
-    data = await r.json().catch(() => ({}));
-  }
-
-  if (!r.ok) { box.innerHTML = `<div class="result-desc" style="color:var(--red)">${_escapeHtml(_apiErrorText(data, 'x402 fetch failed.'))}</div>`; return; }
-
-  const bodyPreview = (data.body || '').slice(0, 2000);
-  box.innerHTML = `
-    <div class="result-card">
-      <div class="result-card-head">
-        <div>${data.paid ? 'Paid & fetched' : 'Fetched (free)'}${data.is_testnet ? ' <span class="status-pill" style="color:var(--accent)">TESTNET</span>' : ''}</div>
-        <span class="status-pill" style="color:${data.status_code < 400 ? 'var(--green)' : 'var(--red)'}">HTTP ${_escapeHtml(data.status_code)}</span>
-      </div>
-      ${data.paid ? `
-        <div class="result-row"><span>Amount</span><span>${_escapeHtml(_fmtBal(Number(data.amount_raw || 0) / 1e6))} USDC</span></div>
-        <div class="result-row"><span>Transaction</span><code title="${_escapeHtml(data.tx_hash)}">${_escapeHtml(_truncMid(data.tx_hash))}</code></div>
-        <div class="result-row"><span>Approval</span><span>${data.auto_approved ? 'Auto (spending policy)' : 'Passphrase confirmed'}</span></div>
-        ${data.is_testnet ? `<div class="result-desc">Testnet payment - not recorded in your ledger.</div>` : ''}
-      ` : ''}
-      <div class="result-desc" style="font-family:var(--font-mono);white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto">${_escapeHtml(bodyPreview)}${(data.body || '').length > 2000 ? '\n…' : ''}</div>
-    </div>`;
-  if (data.paid) { await loadX402Payments(); await loadX402FetchedContent(); }
-}
-
-async function loadX402Payments() {
-  const box = document.getElementById('x402PaymentsList');
-  try {
-    const data = await fetch('/api/x402/payments').then(r => r.json());
-    const rows = data.payments || [];
-    box.innerHTML = rows.length ? rows.map(p => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-        <div style="display:flex;justify-content:space-between"><span>${_escapeHtml(p.amount)} USDC</span><span>${_escapeHtml(p.status)}</span></div>
-        <div style="color:var(--text-muted)">${_escapeHtml(p.network)} · ${_escapeHtml(_truncMid(p.to_address))}${p.reference ? ' · ' + _escapeHtml(p.reference) : ''}${p.note ? ' · ' + _escapeHtml(p.note) : ''}${(p.tags || []).length ? ' · ' + p.tags.map(t => _escapeHtml(t)).join(', ') : ''}</div>
-      </div>`).join('') : '<div style="color:var(--text-muted)">No x402 payments yet.</div>';
-  } catch (e) { box.textContent = 'Could not load payments.'; }
-}
-
-async function loadX402FetchedContent() {
-  const box = document.getElementById('x402FetchedList');
-  try {
-    const data = await fetch('/api/x402/fetched').then(r => r.json());
-    const rows = data.items || [];
-    box.innerHTML = rows.length ? rows.map(item => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border-dark)">
-        <div style="display:flex;justify-content:space-between;gap:8px">
-          <span class="tx-title-text" title="${_escapeHtml(item.url)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escapeHtml(item.url)}</span>
-          <span style="color:var(--text-muted);white-space:nowrap">${_escapeHtml(item.network)}</span>
-        </div>
-        <div style="color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
-          <span>${_escapeHtml(_fmtBal(Number(item.amount_raw || 0) / 1e6))} USDC · ${item.fetched_at ? new Date(item.fetched_at).toLocaleString() : ''}</span>
-          <span>
-            <button class="settings-save-btn" onclick="viewX402FetchedContent(${item.id})">View</button>
-            <button class="settings-save-btn" onclick="confirmDeleteX402FetchedContent(this, ${item.id})">Delete</button>
-          </span>
-        </div>
-      </div>`).join('') : '<div style="color:var(--text-muted)">Nothing purchased yet.</div>';
-  } catch (e) { box.textContent = 'Could not load your purchased content.'; }
-}
-
-async function viewX402FetchedContent(id) {
-  const viewBox = document.getElementById('x402FetchedViewBox');
-  const body = document.getElementById('x402FetchedViewBody');
-  body.textContent = 'Loading…';
-  viewBox.style.display = '';
-  try {
-    const r = await fetch(`/api/x402/fetched/${id}`);
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { body.textContent = _apiErrorText(data, 'Could not load this content.'); return; }
-    body.textContent = data.body;
-    viewBox.scrollIntoView({behavior: 'smooth', block: 'center'});
-  } catch (e) { body.textContent = 'Could not load this content.'; }
-}
-
-async function deleteX402FetchedContent(id) {
-  await fetch(`/api/x402/fetched/${id}`, {method: 'DELETE'});
-  document.getElementById('x402FetchedViewBox').style.display = 'none';
-  await loadX402FetchedContent();
-}
-function confirmDeleteX402FetchedContent(btn, id) { _armConfirm(btn, () => deleteX402FetchedContent(id)); }
-
-// ---- x402: paywall generator (sell, not buy) ----
-function _onPaywallModeChange() {
-  const live = document.getElementById('paywallMode').value === 'live';
-  document.getElementById('paywallFacilitatorField').style.display = live ? '' : 'none';
-  if (live) _onPaywallFacilitatorChange(); else {
-    document.getElementById('paywallNetworkField').style.display = 'none';
-    document.getElementById('paywallCdpFields').style.display = 'none';
-  }
-}
-
-function _onPaywallFacilitatorChange() {
-  const cdp = document.getElementById('paywallFacilitator').value === 'cdp';
-  // Circle only settles Base - no network choice needed when using it.
-  document.getElementById('paywallNetworkField').style.display = cdp ? '' : 'none';
-  document.getElementById('paywallCdpFields').style.display = cdp ? '' : 'none';
-}
-
-async function createPaywallPage() {
-  const status = document.getElementById('paywallCreateStatus');
-  const mode = document.getElementById('paywallMode').value;
-  const walletId = Number(document.getElementById('paywallWallet').value);
-  const label = document.getElementById('paywallLabel').value.trim();
-  const price_usd = document.getElementById('paywallPrice').value.trim();
-  if (!walletId) { status.textContent = 'Create or choose a wallet first.'; return; }
-  if (!label) { status.textContent = 'Give this page a label.'; return; }
-  if (!price_usd) { status.textContent = 'Set a price.'; return; }
-
-  const body = {label, wallet_id: walletId, mode, price_usd};
-  const preview = document.getElementById('paywallPreview').value.trim();
-  if (preview) body.preview_message = preview;
-  if (mode === 'live') {
-    const facilitator = document.getElementById('paywallFacilitator').value;
-    body.facilitator = facilitator;
-    if (facilitator === 'cdp') {
-      body.network = document.getElementById('paywallNetwork').value;
-      body.cdp_key_id = document.getElementById('paywallCdpKeyId').value.trim();
-      body.cdp_key_secret = document.getElementById('paywallCdpKeySecret').value.trim();
-      if (!body.cdp_key_id || !body.cdp_key_secret) { status.textContent = 'Live mode via Coinbase CDP needs your API key id and secret.'; return; }
-    } else {
-      body.network = 'base'; // Circle's facilitator only settles Base
-    }
-  }
-
-  status.textContent = 'Generating…';
-  const r = await fetch('/api/x402-paywall/pages', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not generate the code.'); return; }
-
-  status.textContent = 'Done - paste the code below at the very top of the PHP file you want to gate.';
-  document.getElementById('paywallCodeOutput').value = data.code;
-  document.getElementById('paywallCodeBox').style.display = '';
-  document.getElementById('paywallCdpKeySecret').value = '';
-  await loadPaywallPages();
-}
-
-function copyPaywallCode() {
-  const output = document.getElementById('paywallCodeOutput');
-  navigator.clipboard.writeText(output.value).then(() => {
-    const status = document.getElementById('paywallCopyStatus');
-    status.textContent = 'Copied to clipboard.';
-    setTimeout(() => { status.textContent = ''; }, 2500);
-  });
-}
-
-async function loadPaywallPages() {
-  const box = document.getElementById('paywallPagesList');
-  try {
-    const data = await fetch('/api/x402-paywall/pages').then(r => r.json());
-    const rows = data.pages || [];
-    box.innerHTML = rows.length ? rows.map(p => _listCard({
-      title: p.label,
-      pill: {text: p.mode === 'live' ? 'LIVE' : 'TEST', cls: p.mode === 'live' ? 'confirmed' : 'pending'},
-      details: [
-        ['Pays to', `${p.wallet_name || 'Unknown wallet'} (${_truncMid(p.wallet_address || '')})`],
-        ['Network', p.network],
-        p.facilitator ? ['Facilitator', p.facilitator === 'circle' ? 'Circle Gateway' : 'Coinbase CDP'] : null,
-        ['Price', `${p.price_usd} USDC`],
-        ['Balance', p.usdc_balance == null ? 'Unknown' : `${_fmtBal(p.usdc_balance)} USDC`],
-      ],
-      actions: `
-        <button class="settings-save-btn" onclick="viewPaywallCode(${p.id})">View code</button>
-        <button class="settings-save-btn" onclick="confirmDeletePaywallPage(this, ${p.id})">Delete</button>
-      `,
-    })).join('') : '<div style="color:var(--text-muted)">No monetized pages yet - generate one above.</div>';
-  } catch (e) { box.textContent = 'Could not load your monetized pages.'; }
-}
-
-async function viewPaywallCode(id) {
-  const status = document.getElementById('paywallCreateStatus');
-  status.textContent = 'Loading code…';
-  const r = await fetch(`/api/x402-paywall/pages/${id}/code`);
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { status.textContent = _apiErrorText(data, 'Could not load this page\'s code.'); return; }
-  status.textContent = '';
-  document.getElementById('paywallCodeOutput').value = data.code;
-  document.getElementById('paywallCodeBox').style.display = '';
-  document.getElementById('paywallCodeBox').scrollIntoView({behavior: 'smooth', block: 'center'});
-}
-
-async function deletePaywallPage(id) {
-  await fetch(`/api/x402-paywall/pages/${id}`, {method: 'DELETE'});
-  await loadPaywallPages();
-}
-function confirmDeletePaywallPage(btn, id) { _armConfirm(btn, () => deletePaywallPage(id)); }
 
 let _ledgerTransactions = [];
 
@@ -4201,7 +3792,6 @@ function _txDisplayInfo(t) {
     token_mint: { label: `New ${token} minted`, icon: '🪙', color: 'tx-token' },
     token_burn: { label: `${token} burned`, icon: '🔥', color: 'tx-token' },
     token_transfer: sent,
-    x402_payment: { label: 'Paid for a resource', icon: '⚡', color: 'tx-out' },
     allowance_revocation: { label: 'Revoked a spending allowance', icon: '🛡️', color: 'tx-token' },
     contract_interaction: { label: t.reference ? `Contract call: ${_escapeHtml(t.reference)}` : 'Contract call', icon: '📄', color: 'tx-token' },
     invoice_payment: { label: 'Invoice paid', icon: '↓', color: 'tx-in' },

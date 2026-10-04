@@ -24,7 +24,7 @@ def _trusted_contracts(network: str) -> list[dict]:
 def _direct_rpc_balances(address: str, network: str) -> list[dict]:
     """Fallback for a network Alchemy doesn't (yet) cover — a plain
     on-chain balanceOf() call per trusted contract, same mechanism used
-    elsewhere in Sara (the x402 paywall generator) when no
+    elsewhere in Sara when no
     balance-indexing API is available. Used instead of silently returning
     nothing, or (the actual prior bug) silently defaulting to Ethereum
     mainnet's Alchemy slug and checking a contract address that only makes

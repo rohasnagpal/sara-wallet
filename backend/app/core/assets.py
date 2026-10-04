@@ -34,7 +34,6 @@ INVOICE = "invoice"
 RECONCILE = "reconcile"
 SWAP = "swap"
 BRIDGE = "bridge"
-X402 = "x402"
 
 
 @dataclass(frozen=True)
@@ -53,7 +52,6 @@ class Stablecoin:
 
 
 _USDC_STANDARD = frozenset({BALANCE, SEND, ACTIVITY, INVOICE, RECONCILE, SWAP, BRIDGE})
-_USDC_X402 = _USDC_STANDARD | {X402}
 _BALANCE_AND_SEND = frozenset({BALANCE, SEND})
 _BALANCE_SEND_ACTIVITY = frozenset({BALANCE, SEND, ACTIVITY})
 
@@ -74,11 +72,11 @@ def _coin(symbol: str, name: str, issuer: str, network: str, address: str,
 # through USDT0 on Optimism and Polygon. Arc's USDC address is its enshrined
 # ERC-20 precompile, not a conventional deployed contract.
 STABLECOINS: dict[tuple[str, str], Stablecoin] = {
-    ("ethereum", "USDC"): _coin("USDC", "USD Coin", "Circle", "ethereum", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", _USDC_X402),
-    ("arbitrum", "USDC"): _coin("USDC", "USD Coin", "Circle", "arbitrum", "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", _USDC_X402),
-    ("base", "USDC"): _coin("USDC", "USD Coin", "Circle", "base", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", _USDC_X402),
+    ("ethereum", "USDC"): _coin("USDC", "USD Coin", "Circle", "ethereum", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", _USDC_STANDARD),
+    ("arbitrum", "USDC"): _coin("USDC", "USD Coin", "Circle", "arbitrum", "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", _USDC_STANDARD),
+    ("base", "USDC"): _coin("USDC", "USD Coin", "Circle", "base", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", _USDC_STANDARD),
     ("optimism", "USDC"): _coin("USDC", "USD Coin", "Circle", "optimism", "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", _USDC_STANDARD),
-    ("polygon", "USDC"): _coin("USDC", "USD Coin", "Circle", "polygon", "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", _USDC_X402),
+    ("polygon", "USDC"): _coin("USDC", "USD Coin", "Circle", "polygon", "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", _USDC_STANDARD),
     ("arc", "USDC"): _coin("USDC", "USD Coin", "Circle", "arc", "0x3600000000000000000000000000000000000000", _BALANCE_AND_SEND),
     ("ethereum", "EURC"): _coin("EURC", "EURC", "Circle", "ethereum", "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c", _BALANCE_SEND_ACTIVITY),
     ("base", "EURC"): _coin("EURC", "EURC", "Circle", "base", "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", _BALANCE_SEND_ACTIVITY),

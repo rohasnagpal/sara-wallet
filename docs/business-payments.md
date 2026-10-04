@@ -29,7 +29,7 @@ duplicate.
 1. **Automatic money in / money out** — each transaction counts toward the
    income and expense report based on the category Sara records when it's
    made: invoice payments, airdrops and payroll received are money in;
-   payments you send, batch payments, x402 payments and name fees are money
+   payments you send, batch payments and name fees are money
    out. Moves between your own wallets, swaps and anything Sara can't tell
    apart are left out. You can override any transaction in the Ledger tab
    (Edit, then "Counts as").
@@ -65,8 +65,7 @@ duplicate.
    amount is read in that token's own units.
 
 > Spending-policy enforcement covers batch payments (manual batches,
-> airdrops, schedules, payroll), chat sends, chat swaps and bridges,
-> and x402 payments. Chat sends,
+> airdrops, schedules, payroll), chat sends, chat swaps and bridges. Chat sends,
 > swaps and bridges are checked twice: when the action is previewed (so a
 > blocked action never asks for CONFIRM) and again right before signing. A
 > swap or bridge counts the token you spend against your caps.

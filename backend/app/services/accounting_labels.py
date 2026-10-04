@@ -24,7 +24,6 @@ _FROM_CATEGORY = {
     ("outgoing", "airdrop"): "expense",
     ("outgoing", "batch_payment"): "expense",
     ("outgoing", "transfer"): "expense",
-    ("outgoing", "x402_payment"): "expense",
     ("incoming", "swap"): "swap",
     ("outgoing", "swap"): "swap",
     ("outgoing", "bridge"): "transfer",

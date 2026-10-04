@@ -25,8 +25,6 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
             self.assertEqual(len(addresses), len(set(addresses)))
 
     def test_capabilities_are_chain_specific(self):
-        self.assertTrue(assets.get_stablecoin("USDC", "base").supports(assets.X402))
-        self.assertFalse(assets.get_stablecoin("USDC", "optimism").supports(assets.X402))
         self.assertFalse(assets.get_stablecoin("USDC", "arc").supports(assets.INVOICE))
         self.assertFalse(assets.get_stablecoin("EURC", "base").supports(assets.SWAP))
 
@@ -65,7 +63,6 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
 
     def test_capabilities_match_current_integration_networks(self):
         from app.tools.market import paraswap
-        from app.tools.payments import x402_client
         from app.tools.trading import lifi
 
         self.assertEqual(
@@ -75,10 +72,6 @@ class CanonicalStablecoinRegistryTests(unittest.TestCase):
         self.assertEqual(
             set(assets.stablecoin_networks("USDC", capability=assets.BRIDGE, enabled_only=False)),
             set(lifi.CHAIN_IDS),
-        )
-        self.assertEqual(
-            set(assets.stablecoin_networks("USDC", capability=assets.X402, enabled_only=False)),
-            set(x402_client.SUPPORTED_NETWORKS) - set(x402_client.TESTNET_NETWORKS),
         )
 
 

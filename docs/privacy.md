@@ -30,10 +30,8 @@ how keys are protected, see [security-model.md](security-model.md).
 | **Alchemy** | Your wallet addresses (for token balances and payment matching) and the full transaction you are about to sign (sender, recipient, data). | Sara verifies every swap and bridge with Alchemy before signing and **refuses without an Alchemy key**, so this applies to anyone who swaps or bridges. |
 | **LI.FI and ParaSwap** | The tokens, amount, network and your wallet address. | When you swap or bridge. |
 | **CoinGecko** | Token names or symbols, to fetch prices. Not your addresses. | Prices and market data. |
-| **x402 facilitator** | The details of an x402 payment you make. | Only when you pay for an x402 resource. |
 | **Telegram** | The alert messages you set up, such as a wallet name and balance, and your bot. | Only if you set up Telegram alerts. |
 | **Block explorers** | Nothing from Sara. Links open in your browser. | When you click a link. |
-| **The sanctions list** (Chainalysis oracle, read through a public node) | The address you screen. | Only when you screen an address. |
 
 Directory names, handles and addresses are stored only in Sara's local
 database. Local handles are not published or registered on-chain.

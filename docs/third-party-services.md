@@ -10,10 +10,10 @@ happens if you don't configure one.
 (fonts and all other assets are served locally).
 
 **Fees**: Sara Wallet's own software takes no cut, markup, commission, or
-spread on any swap, bridge, send, or x402 payment routed through these
+spread on any swap, bridge or send routed through these
 services — confirmed by reading the integration code itself (no
-referrer/affiliate/fee parameter exists anywhere in the swap, bridge, or
-x402 client). The third-party services themselves may charge their own
+referrer/affiliate/fee parameter exists anywhere in the swap or bridge
+clients). The third-party services themselves may charge their own
 fees or spreads under their own terms, entirely outside Sara's control.
 See [../DISCLAIMER.md](../DISCLAIMER.md) for the full legal disclaimer.
 
@@ -48,19 +48,6 @@ See [../DISCLAIMER.md](../DISCLAIMER.md) for the full legal disclaimer.
 | Service | Used for | API key? |
 |---|---|---|
 | Public RPC endpoints (publicnode.com, drpc.org, and each network's own default endpoint) | Reading/broadcasting on Ethereum, Arbitrum, Base, OP Mainnet, Polygon | No — overridable via `ETH_RPC`/`ARB_RPC`/`BASE_RPC`/`POLY_RPC`/`OP_RPC` if you want your own |
-
-## Payments
-
-| Service | Used for | API key? |
-|---|---|---|
-| x402 facilitator (`x402.org`, or whichever you configure) | Verifying/settling x402 pay-per-call payments | No |
-
-## Address risk screening
-
-| Service | Used for | API key? |
-|---|---|---|
-| Chainalysis sanctions oracle (public on-chain contract, read through the same public RPC nodes Sara uses for balances) | Checking whether a destination address is on a sanctions list (sanctions only). The address you screen is visible to the RPC node that answers | No |
-| Optional provider-neutral adapter | Broader risk screening (scams, hacks, mixers) | Yes, and takes priority when you set `RISK_SCREENING_PROVIDER`/`_API_KEY`/`_API_URL` |
 
 ## Alerts
 

@@ -6,7 +6,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from app.db.session import init_db, SessionLocal, engine
 from app.db.models import Config
-from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, system, ledger, safety, payment_batches, schedules, payroll, spending_policies, accounting, risk, x402, x402_paywall
+from app.routers import chat, wallets, market, portfolio, settings, address_book, intelligence, lock, tokens, payments, system, ledger, safety, payment_batches, schedules, payroll, spending_policies, accounting
 from app.tools.wallet import lock as lock_state
 from app.core.session_auth import LAUNCH_TOKEN
 from app.core.access import ensure_local_owner
@@ -229,9 +229,6 @@ app.include_router(schedules.router, prefix="/api")
 app.include_router(payroll.router, prefix="/api")
 app.include_router(spending_policies.router, prefix="/api")
 app.include_router(accounting.router, prefix="/api")
-app.include_router(risk.router, prefix="/api")
-app.include_router(x402.router, prefix="/api")
-app.include_router(x402_paywall.router, prefix="/api")
 
 @app.get("/health")
 async def health():

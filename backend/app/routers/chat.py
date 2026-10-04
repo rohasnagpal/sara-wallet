@@ -622,15 +622,12 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• **Batches** — upload a CSV to pay or airdrop many recipients; Sara checks the whole file, you review it, then press Send\n"
             "• **Schedules** — recurring payments that create a reviewable batch each time one is due\n"
             "• **Payroll** — run payroll for employees and contractors in one action\n"
-            "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges, batches, x402)\n"
+            "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges and batches)\n"
             "• **Ledger** — every send and receive with fiat value, tags and notes, linked to block explorers\n"
             "• **Accounts** — income/expense reports and CSV/XLSX export\n\n"
             "**Safety**\n"
-            "• **Risk** — screen an address against a public sanctions list\n"
             "• **Safety** — check for leftover token approvals from Sara's own swaps and bridges, and revoke them\n"
             "• **Alerts** — Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit\n\n"
-            "**x402 agentic payments**\n"
-            "• Pay machine-priced HTTP resources in USDC automatically; a spending policy lets payments under your cap go through unattended\n\n"
             "**Market Data & Intelligence** *(live via CoinGecko)*\n"
             "• Crypto prices, gas fees, global market cap and ENS resolution\n\n"
             "**Security**\n"
@@ -1465,7 +1462,7 @@ def _record_submitted_transaction(
 ):
     """Persist the ledger row, audit record and outbox event atomically.
 
-    direction defaults to "outgoing" (every send/swap/bridge/x402-payment
+    direction defaults to "outgoing" (every send/swap/bridge
     caller genuinely pays out); pass "incoming" for money coming back to
     the wallet so it isn't shown as an outflow."""
     from datetime import datetime
@@ -1529,15 +1526,12 @@ def _stream_send(pending: dict, db: Session, session_id: str):
             decimals = pending.get("token_decimals", 18) if pending.get("token_address") else 18
             token_sym = pending.get("token") or _NETWORK_NATIVE_TOKEN.get(network, "ETH")
             amount_raw = to_base_units(amount, decimals, token_sym)
-            from app.tools.risk.screening import enforce_mandatory_screening
             denial = _spending_policy_denial(
                 db, wallet_id=pending["wallet_id"], network=network, token=token_sym,
                 destination=to_addr, amount_raw=amount_raw,
             )
             if denial:
                 raise ValueError(denial)
-            enforce_mandatory_screening(db, to_addr, network)
-
             if pending.get("token_address"):
                 tx_hash = evm_chain.send_erc20_tx(
                     plain_key, pending["token_address"], pending["token_decimals"],

@@ -1,7 +1,7 @@
 """Tests for adding Arc (Circle's own L1) as a supported network.
 
 Deliberately narrow scope: wallet creation, balance display, and plain
-sends only. Swap (Paraswap), bridge (LI.FI) and the x402
+sends only. Swap (Paraswap) and bridge (LI.FI)
 facilitators are NOT wired in - none of them have a confirmed Arc
 integration, and test_security_regressions.py's
 test_only_usdc_and_native_assets_are_trusted already asserts Paraswap

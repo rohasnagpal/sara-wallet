@@ -3,8 +3,8 @@ asset - deliberately narrow scope, same pattern as Arc's own rollout:
 wallet balance display and plain sends only, on the three networks EURC is
 actually live on among Sara's six (Ethereum, Base, Arc - NOT Arbitrum,
 Optimism or Polygon, which Circle has never deployed EURC to). Not wired
-into swap (Paraswap), bridge (LI.FI) or x402 - each of those is a separate,
-larger decision.
+into swap (Paraswap) or bridge (LI.FI) - each of those is a separate, larger
+decision.
 
 While building this, two real pre-existing bugs surfaced and are fixed
 here too (both blocked Arc regardless of EURC):

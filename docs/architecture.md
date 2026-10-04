@@ -7,7 +7,6 @@ machine.
 ```
 sara-wallet/
 ├── index.html              # Frontend app
-├── examples/x402/          # Runnable x402 demo seller + tool-calling agent
 └── backend/
     ├── main.py             # FastAPI entrypoint
     ├── requirements.txt    # Developer dependency inputs
@@ -15,7 +14,7 @@ sara-wallet/
     └── app/
         ├── routers/        # API routes
         ├── services/       # Batches, accounting, alerts, schedules and monitoring
-        ├── tools/          # Wallet, market, names, tokens, risk, contract and x402 tools
+        ├── tools/          # Wallet, market, names, tokens and contract tools
         ├── chains/         # Chain-specific transaction logic
         ├── db/             # SQLite models and session setup
         ├── llm/            # AI provider integration
@@ -42,9 +41,8 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Batch/recurring payments, payroll and authenticated approvals
 - Accounting, fiat valuation, income/expense reporting and exports
 - Allowance controls and transaction simulation
-- Risk screening and alerts
+- Alerts and balance monitoring
 - Local Directory handles and ENS resolution
-- x402 pay-per-call payments, policy-gated for unattended/agent use
 - Market data requests
 - AI provider integration
 - Local SQLite persistence
@@ -55,7 +53,7 @@ Sara uses SQLite by default at `backend/sara.db`. Versioned startup
 migrations preserve existing local databases. In addition to wallets and
 transactions, the schema stores invoices, receipts, counterparties, batches
 and approvals, schedules and payroll, spending policies, accounting
-classifications, alert/outbox records, risk checks and local Directory entries.
+classifications, alert/outbox records and local Directory entries.
 
 ## Wallet Encryption & Locking
 
@@ -95,10 +93,9 @@ Sara's tools live in `backend/app/tools/`, organized into:
 - Market data tools
 - Local alias and ENS resolution tools
 - Token creation and management tools
-- Contract simulation, allowance and risk tools
+- Contract simulation and allowance tools
 - Trading integrations (swaps & cross-chain bridging)
 - Payment, invoicing, receipt and reconciliation tools
-- x402 client (pay-per-call HTTP fetches, trusted-asset-only)
 
 The chat interface routes user messages into these tools when a command
 can be handled deterministically — the model decides *which* tool to call
@@ -108,6 +105,6 @@ key decryption, transaction building and signing.
 ---
 
 See also: [security-model.md](security-model.md) ·
-[x402.md](x402.md) · [business-payments.md](business-payments.md) ·
+[business-payments.md](business-payments.md) ·
 [token-creator.md](token-creator.md) · [sara-names.md](sara-names.md) ·
 [invoicing.md](invoicing.md)
