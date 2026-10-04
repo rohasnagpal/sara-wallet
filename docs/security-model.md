@@ -56,7 +56,7 @@ breakdown of who can see what is in [privacy.md](privacy.md). In short:
 - **Signed transactions** are broadcast to the public blockchain network
   you're using, same as any other wallet.
 - **Public blockchain nodes** see the addresses Sara looks up (balances,
-  allowances, address screening) and your IP address. You can point Sara at
+  balances and swap/bridge allowances) and your IP address. You can point Sara at
   your own node.
 - **Swap and bridge services** (LI.FI, ParaSwap) see your wallet address, and
   Alchemy sees the transaction you are about to sign, because Sara verifies

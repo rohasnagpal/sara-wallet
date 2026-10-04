@@ -4,9 +4,11 @@ Sara's crypto invoicing turns a request for payment into a QR code and
 payment page a customer can just pay — no manual bookkeeping to mark it
 received.
 
-The **Invoices** screen creates persistent Polygon USDC invoices and public
-payment pages. Sara checks active invoices in the background, links a
-matching on-chain transfer, and exposes a proof-of-payment receipt.
+The **Invoices** screen creates persistent USDC invoices and public payment
+pages on Ethereum, Arbitrum, Base, OP Mainnet and Polygon. Only networks that
+are enabled for USDC in **Settings → Manage Networks & Tokens** are offered.
+Sara checks active invoices in the background, links a matching on-chain
+transfer, and exposes a proof-of-payment receipt.
 
 ## Payment features
 

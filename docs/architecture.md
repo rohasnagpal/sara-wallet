@@ -14,7 +14,7 @@ sara-wallet/
     └── app/
         ├── routers/        # API routes
         ├── services/       # Batches, accounting, alerts, schedules and monitoring
-        ├── tools/          # Wallet, market, names, tokens and contract tools
+        ├── tools/          # Wallet, market, names, payment and contract tools
         ├── chains/         # Chain-specific transaction logic
         ├── db/             # SQLite models and session setup
         ├── llm/            # AI provider integration
@@ -24,7 +24,7 @@ sara-wallet/
 ## Frontend
 
 The frontend lives in `index.html`. It provides the wallet UI, chat
-interface, settings screen, address book, portfolio views, and local
+interface, settings screen, Directory, balance views, and local
 interaction flows. It communicates with the backend through local API
 routes under `/api/*`.
 
@@ -40,7 +40,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 - Invoices, payment QR codes, receipts and automatic reconciliation
 - Batch/recurring payments, payroll and authenticated approvals
 - Accounting, fiat valuation, income/expense reporting and exports
-- Allowance controls and transaction simulation
+- Swap and bridge transaction validation
 - Alerts and balance monitoring
 - Local Directory handles and ENS resolution
 - Market data requests
@@ -51,7 +51,7 @@ The backend is a FastAPI app in `backend/main.py`. It handles:
 
 Sara uses SQLite by default at `backend/sara.db`. Versioned startup
 migrations preserve existing local databases. In addition to wallets and
-transactions, the schema stores invoices, receipts, counterparties, batches
+transactions, the schema stores invoices, receipts, batches
 and approvals, schedules and payroll, spending policies, accounting
 classifications, alert/outbox records and local Directory entries.
 
@@ -92,8 +92,7 @@ Sara's tools live in `backend/app/tools/`, organized into:
 - Wallet tools
 - Market data tools
 - Local alias and ENS resolution tools
-- Token creation and management tools
-- Contract simulation and allowance tools
+- Contract simulation and swap/bridge allowance handling
 - Trading integrations (swaps & cross-chain bridging)
 - Payment, invoicing, receipt and reconciliation tools
 
@@ -106,5 +105,4 @@ key decryption, transaction building and signing.
 
 See also: [security-model.md](security-model.md) ·
 [business-payments.md](business-payments.md) ·
-[token-creator.md](token-creator.md) · [sara-names.md](sara-names.md) ·
 [invoicing.md](invoicing.md)

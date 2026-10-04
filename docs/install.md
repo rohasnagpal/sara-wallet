@@ -1,8 +1,10 @@
 # Installing Sara
 
-The easiest way is the one-click installer attached to each
-[release](https://github.com/rohasnagpal/sara-wallet/releases). It needs no
-Python, no terminal knowledge and no administrator rights.
+New installer builds are paused while Sara's alpha feature set is being
+completed. For current testing, use Docker or run from source as described in
+the [README](../README.md#quick-start). The installer workflow below is retained
+for the completed build and does not mean every alpha release has installer
+assets.
 
 | You have | Download | Then |
 |---|---|---|

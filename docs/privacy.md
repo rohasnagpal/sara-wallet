@@ -26,7 +26,7 @@ how keys are protected, see [security-model.md](security-model.md).
 | Who | What they can see | When |
 |---|---|---|
 | **Your AI provider** (OpenRouter by default, or OpenAI, Anthropic, Groq, xAI, Gemini, Cloudflare) | Your chat messages and the replies in the conversation, which can include amounts, recipient names or addresses, and balances (the last 20 messages are sent with each turn). Never keys or your passphrase. | Whenever you chat. With a local **Ollama** model, nothing leaves your machine. |
-| **Public blockchain nodes** (publicnode.com, drpc.org, each network's default endpoint) | The addresses you look up and your IP address. | Reading balances and allowances, screening an address, broadcasting a transaction. You can use your own node (see below). |
+| **Public blockchain nodes** (publicnode.com, drpc.org, each network's default endpoint) | The addresses you look up and your IP address. | Reading balances and swap/bridge allowances, and broadcasting a transaction. You can use your own node (see below). |
 | **Alchemy** | Your wallet addresses (for token balances and payment matching) and the full transaction you are about to sign (sender, recipient, data). | Sara verifies every swap and bridge with Alchemy before signing and **refuses without an Alchemy key**, so this applies to anyone who swaps or bridges. |
 | **LI.FI and ParaSwap** | The tokens, amount, network and your wallet address. | When you swap or bridge. |
 | **CoinGecko** | Token names or symbols, to fetch prices. Not your addresses. | Prices and market data. |

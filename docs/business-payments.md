@@ -1,7 +1,7 @@
-# Business Payments, Accounting & Intelligence
+# Business Payments and Accounting
 
-The **Business** view manages counterparties, payment/airdrop batches,
-schedules, payroll runs, spending policies and accounting. Batch amounts
+Sara's **Directory**, **Batches**, **Schedules**, **Payroll**, **Policies**,
+**Ledger** and **Accounts** views cover business payments and accounting. Batch amounts
 remain integers in token base units through validation and signing.
 Transactions are signed and durably recorded before broadcast so an
 interrupted run can retry the same transaction without signing a
@@ -22,14 +22,14 @@ duplicate.
    batches appear under **Schedules → Generated payments**, where you Send
    or Cancel them; payroll runs are reviewed and sent under **Payroll**.
 3. **Crypto payroll** — run payroll for a list of employees/contractors in
-   one action, built on top of counterparties and batches.
+   one action, built on top of Directory entries and batches.
 
 ## Accounting
 
 1. **Automatic money in / money out** — each transaction counts toward the
    income and expense report based on the category Sara records when it's
    made: invoice payments, airdrops and payroll received are money in;
-   payments you send, batch payments and name fees are money
+   payments you send and batch payments are money
    out. Moves between your own wallets, swaps and anything Sara can't tell
    apart are left out. You can override any transaction in the Ledger tab
    (Edit, then "Counts as").
@@ -40,8 +40,8 @@ duplicate.
    value at the time it happened, for accurate reporting later.
 4. **Tags and notes** — label transactions, e.g. "rent" or "invoice #42",
    so you can filter and categorize your ledger.
-5. **Counterparties** — save vendors, employees and contractors separately
-   from your personal address book, for use in batches and payroll.
+5. **Directory** — save people and organisations with a display name, unique
+   local handle, type and address for use in sends, batches and payroll.
 6. **Income/expense reporting** — totals every ledger entry by category
    over a date range and shows money in, money out and the net amount.
 7. **CSV/XLSX exports** — download your full ledger with fiat values, fees

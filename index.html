@@ -1150,7 +1150,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
           <button class="col2-nav-btn" id="col2BtnLedger" onclick="showCol2('ledger')">Ledger</button>
           <button class="col2-nav-btn" id="col2BtnPayroll" onclick="showCol2('payroll')">Payroll</button>
           <button class="col2-nav-btn" id="col2BtnPolicies" onclick="showCol2('policies')">Policies</button>
-          <button class="col2-nav-btn" id="col2BtnSafety" onclick="showCol2('safety')">Safety</button>
           <button class="col2-nav-btn" id="col2BtnSchedules" onclick="showCol2('schedules')">Schedules</button>
           <button class="col2-nav-btn" id="col2BtnSettings" onclick="showCol2('settings')">Settings</button>
         </div>
@@ -1392,19 +1391,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
             </div>
         </div><!-- /accountingView -->
 
-
-        <div id="safetyView" style="display:none">
-          <div class="card" style="margin-bottom:10px">
-            <div style="font-size:15px;font-weight:600">Wallet safety</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin:3px 0 10px">When you swap or bridge USDC, Sara first gives its swap or bridge partner permission to spend that exact amount. The swap normally uses that permission up straight away. This checks whether any of Sara's own permissions are still open on a wallet, for example after a swap that failed, so you can cancel them. It doesn't cover approvals you gave in other apps or websites.</div>
-            <div class="field-row" style="margin-top:10px">
-              <div class="field"><label class="field-label" for="safetyWallet">Wallet</label><select class="settings-input" id="safetyWallet"></select></div>
-              <div class="field"><label class="field-label" for="safetyNetwork">Network</label><select class="settings-input" id="safetyNetwork"><option value="polygon">Polygon PoS</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option><option value="optimism">OP Mainnet</option></select></div>
-              <button class="settings-save-btn" onclick="loadAllowances()">Check approvals</button>
-            </div>
-            <div id="allowanceList" style="font-size:11px;margin-top:9px"></div>
-          </div>
-        </div>
 
         <!-- ── Alerts View ── -->
         <div id="alertsView" style="display:none">
@@ -2844,14 +2830,13 @@ async function showCol2(mode) {
   document.getElementById('payrollView').style.display    = mode === 'payroll'    ? '' : 'none';
   document.getElementById('policiesView').style.display   = mode === 'policies'   ? '' : 'none';
   document.getElementById('accountingView').style.display = mode === 'accounting' ? '' : 'none';
-  document.getElementById('safetyView').style.display     = mode === 'safety'     ? '' : 'none';
   document.getElementById('alertsView').style.display     = mode === 'alerts'     ? '' : 'none';
   document.getElementById('settingsView').style.display   = mode === 'settings'   ? '' : 'none';
   document.getElementById('directoryView').style.display  = mode === 'directory'  ? '' : 'none';
 
   // Highlight active nav buttons (panel nav)
   ['col2BtnAsset','col2BtnLedger','col2BtnInvoices','col2BtnBatches','col2BtnSchedules','col2BtnPayroll',
-   'col2BtnPolicies','col2BtnAccounting','col2BtnAlerts','col2BtnSafety','col2BtnDir','col2BtnSettings'].forEach(id => {
+   'col2BtnPolicies','col2BtnAccounting','col2BtnAlerts','col2BtnDir','col2BtnSettings'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   if (mode === 'asset')      document.getElementById('col2BtnAsset')?.classList.add('active');
@@ -2862,7 +2847,6 @@ async function showCol2(mode) {
   if (mode === 'payroll')    document.getElementById('col2BtnPayroll')?.classList.add('active');
   if (mode === 'policies')   document.getElementById('col2BtnPolicies')?.classList.add('active');
   if (mode === 'accounting') document.getElementById('col2BtnAccounting')?.classList.add('active');
-  if (mode === 'safety')     document.getElementById('col2BtnSafety')?.classList.add('active');
   if (mode === 'alerts')     document.getElementById('col2BtnAlerts')?.classList.add('active');
   if (mode === 'directory')  document.getElementById('col2BtnDir')?.classList.add('active');
   if (mode === 'settings')   document.getElementById('col2BtnSettings')?.classList.add('active');
@@ -2882,7 +2866,6 @@ async function showCol2(mode) {
     await loadPayrollRuns();
   }
   if (mode === 'policies') await loadSpendingPolicies();
-  if (mode === 'safety') await loadSafety();
   if (mode === 'alerts') await loadAlertsView();
   if (mode === 'settings') await _loadSettingsView();
   if (mode === 'directory') { await loadWalletMgmt(); await loadDirectory(); }
@@ -3722,10 +3705,6 @@ function _ledgerDetails(t) {
     ? _escapeHtml(t.counterparty) + ' · ' : '';
   const to = t.to || (/^0x[0-9a-fA-F]{40}$/.test(t.counterparty || '') ? t.counterparty : '');
   switch (t.category) {
-    case 'allowance_revocation':
-      add('Token contract', addr(t.to));
-      add('Wallet address', addr(t.from));
-      break;
     case 'contract_interaction':
       add('Contract', addr(t.to));
       add('Method', t.reference ? _escapeHtml(t.reference) : '');
@@ -3792,7 +3771,6 @@ function _txDisplayInfo(t) {
     token_mint: { label: `New ${token} minted`, icon: '🪙', color: 'tx-token' },
     token_burn: { label: `${token} burned`, icon: '🔥', color: 'tx-token' },
     token_transfer: sent,
-    allowance_revocation: { label: 'Revoked a spending allowance', icon: '🛡️', color: 'tx-token' },
     contract_interaction: { label: t.reference ? `Contract call: ${_escapeHtml(t.reference)}` : 'Contract call', icon: '📄', color: 'tx-token' },
     invoice_payment: { label: 'Invoice paid', icon: '↓', color: 'tx-in' },
     payroll: { label: 'Payroll payment', icon: '↑', color: 'tx-out' },
@@ -3876,55 +3854,11 @@ async function saveLedgerEdit(id) {
   await loadLedger();
 }
 
-async function loadSafety() {
-  const select = document.getElementById('safetyWallet');
-  const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
-  select.innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
-}
-
 async function loadAlertsView() {
   const wallets = (_portfolioWallets || []).filter(w => w.chain === 'evm');
   document.getElementById('monitorWallet').innerHTML = wallets.map(w => `<option value="${Number(w.id)}">${_escapeHtml(w.name)}</option>`).join('');
   await loadAlertOptions();
   await Promise.all([loadBalanceMonitors(), loadAlertDestinations()]);
-}
-
-async function loadAllowances() {
-  const wid = document.getElementById('safetyWallet').value;
-  const net = document.getElementById('safetyNetwork').value;
-  const walletSel = document.getElementById('safetyWallet');
-  const walletName = walletSel.options[walletSel.selectedIndex]?.text || 'this wallet';
-  const netLabel = _chainLabel(net);
-  const box = document.getElementById('allowanceList');
-  if (!wid) { box.textContent = 'Add a wallet first.'; return; }
-  box.textContent = 'Checking…';
-  try {
-    const r = await fetch(`/api/safety/allowances/${encodeURIComponent(wid)}?network=${encodeURIComponent(net)}`);
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { box.textContent = _apiErrorText(data, 'Could not check approvals.'); return; }
-    box.innerHTML = data.allowances?.length
-      ? `<div style="margin-bottom:6px">${_escapeHtml(_plural(data.allowances.length, 'open approval'))} on ${_escapeHtml(walletName)} (${_escapeHtml(netLabel)}). Revoke any you don't need.</div>` +
-        data.allowances.map(a => _listCard({
-          title: a.spender_label, titleAttr: a.spender, accent: 'tx-out',
-          pill: {text: 'Open', cls: 'pending'},
-          details: [
-            ['Can spend', `${_fmtBal(Number(a.allowance))} USDC`],
-            ['Contract', _truncMid(a.spender, 8, 6)],
-          ],
-          actions: `<button class="mini-btn" onclick="confirmRevokeAllowance(this, '${_escapeHtml(a.spender)}')" title="Cancel this permission (needs your passphrase and a small network fee)">Revoke</button>`,
-        })).join('')
-      : `<div style="color:var(--green);font-weight:600">✓ No open approvals.</div>
-         <div style="color:var(--text-muted);margin-top:2px">Sara's swap and bridge partners can't spend any USDC from ${_escapeHtml(walletName)} on ${_escapeHtml(netLabel)}. That's the normal, safe result.</div>`;
-  } catch (e) { box.textContent = 'Could not check approvals. Try again in a moment.'; }
-}
-
-function confirmRevokeAllowance(btn, spender) { _armConfirm(btn, () => revokeAllowance(spender), 'Confirm revoke?'); }
-
-async function revokeAllowance(spender) {
-  const passphrase = await requestTransactionPassphrase(); if (!passphrase) return;
-  const body = {wallet_id:Number(document.getElementById('safetyWallet').value), network:document.getElementById('safetyNetwork').value, token:'USDC', spender, passphrase};
-  const r = await fetch('/api/safety/allowances/revoke', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if (!r.ok) alert(_apiErrorText((await r.json().catch(()=>({}))), 'Revocation failed')); else await loadAllowances();
 }
 
 async function createBalanceMonitor() {

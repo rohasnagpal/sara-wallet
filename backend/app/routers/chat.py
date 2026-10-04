@@ -606,17 +606,17 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
         lock_status = "🔓 unlocked" if _lock_state.is_unlocked() else "🔒 locked"
 
         return (
-            "**Sara specializes in USDC payments** — sending, requesting, and moving USDC across chains "
+            "**Sara specializes in stablecoin payments** — sending, requesting, and moving supported stablecoins "
             "as easily as sending a text. Type in plain English here in chat, or use the tabs across the top for the full tools. Here's everything Sara can do:\n\n"
             "**Payments in chat** *(Sara's core)*\n"
-            "• Send crypto — \"send 100 USDC to rohasnagpal\" (an exact Directory handle) or to an address — review the preview, then type CONFIRM\n"
+            "• Send USDC, EURC, USDT or OUSD — for example, \"send 10 EURC to rohasnagpal\" (an exact Directory handle) or use an address — review the preview, then type CONFIRM\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
             "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n"
             "\n"
             "**Wallets & Chains**\n"
             f"• Create & import one EVM wallet that works across {chain_list}\n"
             "• **Balance** tab — holdings and portfolio value across every wallet and network\n"
-            "• **Directory** tab — one address book for people, vendors and employees; send to them by name\n\n"
+            "• **Directory** tab — one address book for people, vendors and employees; send to them by unique handle\n\n"
             "**Business tabs**\n"
             "• **Invoices** — request payment with a QR any wallet can scan; Sara checks on-chain and marks it paid automatically\n"
             "• **Batches** — upload a CSV to pay or airdrop many recipients; Sara checks the whole file, you review it, then press Send\n"
@@ -625,10 +625,9 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "• **Policies** — spending caps per transaction, day, week or month, enforced at preview and again right before signing (sends, swaps, bridges and batches)\n"
             "• **Ledger** — every send and receive with fiat value, tags and notes, linked to block explorers\n"
             "• **Accounts** — income/expense reports and CSV/XLSX export\n\n"
-            "**Safety**\n"
-            "• **Safety** — check for leftover token approvals from Sara's own swaps and bridges, and revoke them\n"
+            "**Alerts**\n"
             "• **Alerts** — Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit\n\n"
-            "**Market Data & Intelligence** *(live via CoinGecko)*\n"
+            "**Market data** *(live via CoinGecko)*\n"
             "• Crypto prices, gas fees, global market cap and ENS resolution\n\n"
             "**Security**\n"
             "• Sara locks like a normal wallet — your passphrase unlocks it, and it auto-locks after 1 hour of inactivity\n"
@@ -845,18 +844,26 @@ def _spending_policy_denial(
 def _format_send_confirmation(
     pending: dict, token_sym: str, net_display: str, balance_line: str, correction_note: str,
 ) -> str:
+    # Intent parsing uses float for historical compatibility. Avoid exposing
+    # that implementation detail as "10.0" when the user typed "10", while
+    # preserving meaningful fractional digits such as 10.25.
+    amount = format(Decimal(str(pending["amount"])), "f")
+    if "." in amount:
+        amount = amount.rstrip("0").rstrip(".")
+    if not amount:
+        amount = "0"
     handle = pending.get("to_nickname")
     name = pending.get("to_name")
     if handle:
         recipient = (
-            f"Send **{pending['amount']} {token_sym}** to `{handle}`\n"
+            f"Send **{amount} {token_sym}** to `{handle}`\n"
             f"Address: `{pending['to']}`\n"
             + (f"Name: {name}\n" if name else "")
             + f"Network: **{net_display}** · From: **{pending['wallet_name']}**\n"
         )
     else:
         recipient = (
-            f"Ready to send **{pending['amount']} {token_sym}** "
+            f"Ready to send **{amount} {token_sym}** "
             f"on **{net_display}** from **{pending['wallet_name']}**\n"
             f"To: `{pending['to']}`\n"
         )
