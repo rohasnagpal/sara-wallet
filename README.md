@@ -32,7 +32,7 @@ Sara runs on your own computer. The frontend is a single HTML app and the backen
 | **Tokens and treasury** | Deploy your own ERC-20 token (including on Arc), review and revoke leftover approvals, screen addresses against a sanctions list, and compare stablecoin routes between networks. | [token-creator.md](docs/token-creator.md) |
 | **Recovery phrase** | One 24-word BIP-39 recovery phrase backs every wallet Sara creates, using the standard Ethereum derivation path, so it also works in MetaMask and other wallets. An existing phrase can be restored before creating a wallet. | [install.md](docs/install.md#back-up-your-recovery-phrase) |
 | **Alerts** | Telegram alerts, and balance monitoring that messages you when a wallet crosses a limit. | [business-payments.md](docs/business-payments.md) |
-| **Local aliases** | Save any EVM address under a free local `.sara` alias, such as `supplier.sara`, and use it wherever Sara accepts a recipient. Aliases stay on your device and are not registered on-chain. | |
+| **Directory handles** | Save an EVM address with a name and unique local handle, such as `Rohas Nagpal` and `rohasnagpal`, and use the handle wherever Sara accepts a recipient. Dotted names are reserved for on-chain naming. | |
 
 ### Supported networks
 

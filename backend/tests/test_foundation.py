@@ -51,6 +51,10 @@ class MigrationTests(unittest.TestCase):
                     "VALUES ('removed-chain-contact', 'old-address', 'non-evm', 'friend', 1)"
                 ))
                 conn.execute(text(
+                    "INSERT INTO address_book (nickname, address, chain, type, active) "
+                    "VALUES ('amit-singh.sara', '0x1111111111111111111111111111111111111111', 'evm', 'friend', 1)"
+                ))
+                conn.execute(text(
                     "INSERT INTO transactions (wallet_id, chain, tx_hash, to_address, amount, token, status, timestamp) "
                     "VALUES (1, 'non-evm', 'old-tx', 'old-address', 1, 'OLD', 'confirmed', CURRENT_TIMESTAMP)"
                 ))
@@ -75,6 +79,10 @@ class MigrationTests(unittest.TestCase):
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM address_book WHERE chain != 'evm'")).scalar(), 0)
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM transactions WHERE chain != 'evm'")).scalar(), 0)
                 self.assertEqual(conn.execute(text("SELECT count(*) FROM payment_requests WHERE chain != 'evm'")).scalar(), 0)
+                migrated_contact = conn.execute(text(
+                    "SELECT nickname, display_name FROM address_book WHERE chain = 'evm'"
+                )).one()
+                self.assertEqual(migrated_contact, ("amit-singh", "amit-singh"))
                 versions = conn.execute(text("SELECT version FROM schema_migrations")).all()
             self.assertEqual([v[0] for v in versions], [
                 "001_legacy_payment_fields", "002_transaction_foundation", "003_wallet_intelligence",
@@ -83,7 +91,7 @@ class MigrationTests(unittest.TestCase):
                 "009_drop_dual_control", "010_paywall_preview_message",
                 "011_fetched_content_file_path", "012_paywall_facilitator", "013_wallet_seeds",
                 "014_remove_sara_proof", "015_remove_non_evm_data", "016_remove_onchain_sara_names",
-                "017_single_recovery_seed", "018_remove_cost_basis_and_pnl",
+                "017_single_recovery_seed", "018_remove_cost_basis_and_pnl", "019_directory_handles",
             ])
 
     def test_policy_created_on_a_database_from_the_dual_control_era(self):

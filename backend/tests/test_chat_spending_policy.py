@@ -58,7 +58,7 @@ class ChatSpendingPolicyTest(unittest.TestCase):
         # all — it always calls evaluate() with counterparty_id=None — so a
         # policy scoped to a Directory entry only ever protects that vendor
         # if evaluate() itself resolves the counterparty from the address.
-        vendor = AddressBook(nickname="vendor.sara", address=BOB, chain="evm", type="vendor")
+        vendor = AddressBook(nickname="vendor", display_name="Vendor", address=BOB, chain="evm", type="vendor")
         self.db.add(vendor)
         self.cap(counterparty_id=vendor.id, max_amount_raw="1000000")
         denial = chat._spending_policy_denial(

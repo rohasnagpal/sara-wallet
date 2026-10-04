@@ -1,4 +1,4 @@
-"""Resolve a recipient from a raw EVM address or a local Directory alias."""
+"""Resolve a recipient from a raw EVM address or exact local Directory handle."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,7 +10,7 @@ from web3 import Web3
 class ResolvedRecipient:
     address: str
     source: str  # "address" | "address_book"
-    input_label: str | None = None  # the nickname/name typed, when source != "address"
+    input_label: str | None = None  # the exact local handle typed, when source != "address"
 
 
 def resolve_recipient_input(db: Session, raw_input: str, network: str) -> ResolvedRecipient | None:

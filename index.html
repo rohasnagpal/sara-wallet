@@ -449,6 +449,9 @@ select.settings-input { text-overflow: ellipsis; }
   display: flex; align-items: center; gap: 8px;
 }
 .dir-nick { font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 60px; }
+.dir-identity { min-width: 120px; }
+.dir-handle { margin-top: 2px; font: 10px var(--font-mono); color: var(--text-muted); }
+.dir-edit-fields { display: flex; gap: 4px; min-width: 220px; }
 .dir-addr { font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .dir-addr:hover { color: var(--text-primary); }
 .dir-chain { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; background: var(--pill-bg); padding: 2px 6px; border-radius: 5px; }
@@ -1955,11 +1958,12 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
           <div class="card">
             <div style="font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:3px">Directory</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Free, local aliases saved as "name<strong>.sara</strong>".</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Save a person's name and a unique local handle. Dotted names are reserved for on-chain names.</div>
 
             <div class="dir-add-form">
               <div class="dir-add-row">
-                <input class="dir-input" id="dirNick" placeholder="Nickname (e.g. rohas)" maxlength="32" style="max-width:130px">
+                <input class="dir-input" id="dirName" placeholder="Name (e.g. Rohas Nagpal)" maxlength="160">
+                <input class="dir-input" id="dirHandle" placeholder="Handle (e.g. rohasnagpal)" maxlength="32">
                 <select class="dir-input" id="dirType" style="max-width:110px" title="Type">
                   <option value="friend">Friend</option>
                   <option value="vendor">Vendor</option>
@@ -1967,9 +1971,6 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
                   <option value="employee">Employee</option>
                   <option value="contractor">Contractor</option>
                   <option value="other">Other</option>
-                </select>
-                <select class="dir-input" id="dirChain" style="max-width:90px">
-                  <option value="evm">EVM</option>
                 </select>
               </div>
               <div class="dir-add-row">
@@ -2013,7 +2014,7 @@ code.chat-addr:hover { border-color: var(--accent); color: var(--text-primary); 
 
         <div class="chat-suggestions" id="chatSuggestions">
           <div class="chat-chip chat-chip-pinned" onclick="sendChip(this)">❓ How to use Sara</div>
-          <div class="chat-chip" onclick="showSampleMessage('send 10 USDC to something.sara', 'Use a name from your Directory (they end in .sara), or paste an 0x address.')">Send</div>
+          <div class="chat-chip" onclick="showSampleMessage('send 10 USDC to rohasnagpal', 'Use an exact local handle from your Directory, or paste a 0x address.')">Send</div>
           <div class="chat-chip" onclick="showSampleMessage('bridge 1 USDC from polygon to arbitrum')">Bridge</div>
           <div class="chat-chip" onclick="showSampleMessage('swap 1 POL for USDC')">Swap</div>
           <div class="chat-chip" onclick="sendMessage('My wallets')">Wallets</div>
@@ -5615,14 +5616,17 @@ function renderDirectoryList() {
   }
   list.innerHTML = entries.map(e => `
     <div class="dir-entry" id="dirEntry${Number(e.id)}">
-      <div class="dir-nick" id="dirNickDisplay${Number(e.id)}">${_escapeHtml(e.nickname)}</div>
+      <div class="dir-identity" id="dirIdentity${Number(e.id)}">
+        <div class="dir-nick">${_escapeHtml(e.name)}</div>
+        <div class="dir-handle">${_escapeHtml(e.handle)}</div>
+      </div>
       <div class="dir-addr" title="${_escapeHtml(e.address)}">${_escapeHtml(e.address)}</div>
       <div class="dir-chain">${_escapeHtml(DIR_TYPE_LABELS[e.type] || e.type)}</div>
       <div class="dir-actions" id="dirActions${Number(e.id)}">
         ${e.type === 'employee' || e.type === 'contractor' ? `<button class="mini-btn" onclick="jumpToPayrollForEntry(${Number(e.id)})" title="Set up salary">Set up salary</button>` : ''}
         ${e.type === 'customer' ? `<button class="mini-btn" onclick="jumpToInvoiceForCustomer('${_jsAttrString(e.display_name || '')}')" title="Create invoice">Create invoice</button>` : ''}
         <button class="dir-del" onclick="startRenameDirectoryEntry(${Number(e.id)})" title="Rename">✎</button>
-        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.nickname)}')" title="Remove">×</button>
+        <button class="dir-del" onclick="confirmDeleteDirectoryEntry(this, '${_jsAttrString(e.handle)}')" title="Remove">×</button>
       </div>
     </div>`).join('');
 }
@@ -5641,20 +5645,21 @@ function jumpToInvoiceForCustomer(displayName) {
 }
 
 async function addDirectoryEntry() {
-  const nick = document.getElementById('dirNick').value.trim();
+  const name = document.getElementById('dirName').value.trim();
+  const handle = document.getElementById('dirHandle').value.trim();
   const addr = document.getElementById('dirAddr').value.trim();
-  const chain = document.getElementById('dirChain').value;
   const type = document.getElementById('dirType').value;
   const status = document.getElementById('dirStatus');
-  if (!nick || !addr) { status.textContent = 'Nickname and address are required.'; status.style.color = 'var(--red)'; return; }
+  if (!name || !handle || !addr) { status.textContent = 'Name, handle and address are required.'; status.style.color = 'var(--red)'; return; }
   try {
     const r = await fetch('/api/directory', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nickname: nick, address: addr, chain, type })
+      body: JSON.stringify({ name, handle, address: addr, chain: 'evm', type })
     });
     if (!r.ok) throw new Error(await r.text());
-    document.getElementById('dirNick').value = '';
+    document.getElementById('dirName').value = '';
+    document.getElementById('dirHandle').value = '';
     document.getElementById('dirAddr').value = '';
     status.textContent = 'Saved!';
     status.style.color = 'var(--green)';
@@ -5667,29 +5672,34 @@ async function addDirectoryEntry() {
 }
 
 function startRenameDirectoryEntry(id) {
-  const display = document.getElementById('dirNickDisplay' + id);
+  const display = document.getElementById('dirIdentity' + id);
   const actions = document.getElementById('dirActions' + id);
   if (!display || !actions) return;
-  const currentPlain = display.textContent.replace(/\.sara$/, '');
-  display.outerHTML = `<input class="dir-nick-input" id="dirNickInput${id}" value="${_escapeHtml(currentPlain)}" maxlength="60">`;
+  const entry = _directoryEntries.find(e => Number(e.id) === Number(id));
+  if (!entry) return;
+  display.outerHTML = `<div class="dir-edit-fields" id="dirIdentity${id}"><input class="dir-nick-input" id="dirNameInput${id}" value="${_escapeHtml(entry.name)}" maxlength="160" title="Name"><input class="dir-nick-input" id="dirHandleInput${id}" value="${_escapeHtml(entry.handle)}" maxlength="32" title="Handle"></div>`;
   actions.innerHTML = `<button class="dir-del" onclick="saveRenameDirectoryEntry(${id})" title="Save">✓</button><button class="dir-del" onclick="loadDirectory()" title="Cancel">✕</button>`;
-  const input = document.getElementById('dirNickInput' + id);
+  const input = document.getElementById('dirNameInput' + id);
   input.focus(); input.select();
-  input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter') saveRenameDirectoryEntry(id);
-    if (ev.key === 'Escape') loadDirectory();
-  });
+  for (const fieldId of ['dirNameInput' + id, 'dirHandleInput' + id]) {
+    document.getElementById(fieldId).addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') saveRenameDirectoryEntry(id);
+      if (ev.key === 'Escape') loadDirectory();
+    });
+  }
 }
 
 async function saveRenameDirectoryEntry(id) {
-  const input = document.getElementById('dirNickInput' + id);
-  if (!input) return;
-  const newNick = input.value.trim();
-  if (!newNick) return;
+  const nameInput = document.getElementById('dirNameInput' + id);
+  const handleInput = document.getElementById('dirHandleInput' + id);
+  if (!nameInput || !handleInput) return;
+  const name = nameInput.value.trim();
+  const handle = handleInput.value.trim();
+  if (!name || !handle) return;
   try {
     const r = await fetch('/api/directory/' + id, {
       method: 'PATCH', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({nickname: newNick}),
+      body: JSON.stringify({name, handle}),
     });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));

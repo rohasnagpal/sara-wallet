@@ -60,7 +60,7 @@ class RedactionUnitTests(unittest.TestCase):
         self.assertNotIn(token, out)
 
     def test_ordinary_send_commands_are_completely_unaffected(self):
-        msg = "send 10 USDC to zara.sara"
+        msg = "send 10 USDC to zara"
         self.assertEqual(redact_for_storage(msg, role="user"), msg)
 
     def test_empty_string_is_a_no_op(self):
@@ -125,7 +125,7 @@ class HistoricScrubTests(unittest.TestCase):
         self.assertEqual(second, 0)
 
     def test_a_clean_history_is_a_no_op(self):
-        self.db.add(ChatMessage(session_id="s1", role="user", content="send 10 USDC to zara.sara"))
+        self.db.add(ChatMessage(session_id="s1", role="user", content="send 10 USDC to zara"))
         self.db.commit()
         self.assertEqual(scrub_existing_chat_history(self.db), 0)
 

@@ -35,8 +35,8 @@ how keys are protected, see [security-model.md](security-model.md).
 | **Block explorers** | Nothing from Sara. Links open in your browser. | When you click a link. Optionally, a deployed token's source code is submitted for verification if you set an explorer key. |
 | **The sanctions list** (Chainalysis oracle, read through a public node) | The address you screen. | Only when you screen an address. |
 
-Local `.sara` aliases are stored only in Sara's local database and are not
-published or registered on-chain.
+Directory names, handles and addresses are stored only in Sara's local
+database. Local handles are not published or registered on-chain.
 
 ## What Sara does not do
 

@@ -293,11 +293,13 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
         native_error = None if token_address else _native_send_error(token, network)
         if native_error:
             return ("send_rejected", {"message": native_error})
-        # Resolve to_addr from the local Directory or ENS.
+        # Resolve to_addr from an exact local Directory handle or ENS.
         to_nickname = None
+        to_name = None
         ab_entry = db.query(AddressBook).filter(AddressBook.nickname == to_addr.lower()).first()
         if ab_entry:
-            to_nickname = to_addr
+            to_nickname = ab_entry.nickname
+            to_name = ab_entry.display_name or ab_entry.nickname
             to_addr = ab_entry.address
             required_entry_chain = "evm"
             if ab_entry.chain != required_entry_chain:
@@ -333,6 +335,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     "wallet_name": wallet.name,
                     "to": to_addr,
                     "to_nickname": to_nickname,
+                    "to_name": to_name,
                     "amount": amount,
                     "token": token.upper(),
                     "network": network,
@@ -346,6 +349,7 @@ def _detect_intent(msg: str, db: Session, session_id: str = "default") -> Option
                     "token": token.upper(),
                     "to": to_addr,
                     "to_nickname": to_nickname,
+                    "to_name": to_name,
                     "network": network,
                     "token_address": token_address,
                     "token_decimals": token_decimals,
@@ -605,7 +609,7 @@ def _handle_tool_call(tool_name: str, args: dict, db: Session) -> str:
             "**Sara specializes in USDC payments** — sending, requesting, and moving USDC across chains "
             "as easily as sending a text. Type in plain English here in chat, or use the tabs across the top for the full tools. Here's everything Sara can do:\n\n"
             "**Payments in chat** *(Sara's core)*\n"
-            "• Send crypto — \"send 100 USDC to zara.sara\" (a Directory name) or to an address — review the preview, then type CONFIRM\n"
+            "• Send crypto — \"send 100 USDC to rohasnagpal\" (an exact Directory handle) or to an address — review the preview, then type CONFIRM\n"
             "• Bridge stablecoins across chains — \"bridge 1 USDC from polygon to arbitrum\"\n"
             "• Swap USDC and native gas assets via Paraswap — \"swap 1 POL for USDC\"\n"
             "\n"
@@ -844,6 +848,30 @@ def _spending_policy_denial(
     return None if decision.allowed else "; ".join(decision.denial_reasons)
 
 
+def _format_send_confirmation(
+    pending: dict, token_sym: str, net_display: str, balance_line: str, correction_note: str,
+) -> str:
+    handle = pending.get("to_nickname")
+    name = pending.get("to_name")
+    if handle:
+        recipient = (
+            f"Send **{pending['amount']} {token_sym}** to `{handle}`\n"
+            f"Address: `{pending['to']}`\n"
+            + (f"Name: {name}\n" if name else "")
+            + f"Network: **{net_display}** · From: **{pending['wallet_name']}**\n"
+        )
+    else:
+        recipient = (
+            f"Ready to send **{pending['amount']} {token_sym}** "
+            f"on **{net_display}** from **{pending['wallet_name']}**\n"
+            f"To: `{pending['to']}`\n"
+        )
+    return (
+        f"{correction_note}{recipient}{balance_line}\n"
+        f"Type **CONFIRM** to execute or **CANCEL** to abort."
+    )
+
+
 def _preview_pending_send(pending: dict, db: Session, session_id: str):
     w = db.query(Wallet).filter(Wallet.id == pending["wallet_id"]).first()
     if not w:
@@ -902,22 +930,13 @@ def _preview_pending_send(pending: dict, db: Session, session_id: str):
                 )
     except Exception as e:
         return _stream_text(f"Could not verify balance, so I will not prepare this send: {_exception_message(e)}", db, session_id)
-    nick = pending.get("to_nickname")
-    to_line = f"To: **{nick}** · `{pending['to']}`" if nick else f"To: `{pending['to']}`"
     correction_note = ""
     if pending.get("token_corrected_from"):
         correction_note = (
             f"📝 I read **{pending['token_corrected_from']}** as **{token_sym}** — "
             f"Sara only sends to verified contracts.\n\n"
         )
-    text = (
-        f"{correction_note}"
-        f"Ready to send **{pending['amount']} {token_sym}** "
-        f"on **{net_display}** from **{pending['wallet_name']}**\n"
-        f"{balance_line}"
-        f"{to_line}\n\n"
-        f"Type **CONFIRM** to execute or **CANCEL** to abort."
-    )
+    text = _format_send_confirmation(pending, token_sym, net_display, balance_line, correction_note)
     return _stream_text(text, db, session_id)
 
 
@@ -1159,6 +1178,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     "wallet_name": selected_wallet.name,
                     "to": pending["to"],
                     "to_nickname": pending.get("to_nickname"),
+                    "to_name": pending.get("to_name"),
                     "amount": pending["amount"],
                     "token": pending["token"],
                     "network": pending["network"],
@@ -1346,23 +1366,14 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                             "wallet_address": w.address,
                             "wallet_encrypted_key": w.encrypted_key,
                         }
-                        # Format recipient line
-                        nick = send_args.get("to_nickname")
-                        to_line = (f"To: **{nick}** · `{send_args['to']}`" if nick
-                                   else f"To: `{send_args['to']}`")
                         correction_note = ""
                         if send_args.get("token_corrected_from"):
                             correction_note = (
                                 f"📝 I read **{send_args['token_corrected_from']}** as **{token_sym}** — "
                                 f"Sara only sends to verified contracts.\n\n"
                             )
-                        text = (
-                            f"{correction_note}"
-                            f"Ready to send **{send_args['amount']} {token_sym}** "
-                            f"on **{net_display}** from **{send_args['wallet_name']}**\n"
-                            f"{balance_line}"
-                            f"{to_line}\n\n"
-                            f"Type **CONFIRM** to execute or **CANCEL** to abort."
+                        text = _format_send_confirmation(
+                            send_args, token_sym, net_display, balance_line, correction_note,
                         )
                 elif result.startswith("__PENDING_SWAP__"):
                     swap_args = json.loads(result[len("__PENDING_SWAP__"):])
@@ -1391,7 +1402,7 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 if _looks_like_transaction_text(msg):
                     text = (
                         "I could not parse that as a safe transaction command. "
-                        "Use: `send <amount> <token> from <wallet> to <address or saved nickname>`."
+                        "Use: `send <amount> <token> from <wallet> to <address or exact Directory handle>`."
                     )
                     full_response = text
                     for chunk in _chunk(text):

@@ -38,7 +38,7 @@ class RecoverySeed(Base):
     created_at     = Column(DateTime, default=datetime.utcnow)
 
 class AddressBook(Base):
-    """The single "who do I know" list — a free, local nickname/address
+    """The single "who do I know" list — a local handle/name/address
     entry, optionally typed (vendor/customer/employee/etc.) for use in
     batches, payroll and invoicing. Used to be split across this table and
     a separate Counterparty table; unified here so there's one list, not
@@ -46,11 +46,11 @@ class AddressBook(Base):
     (unused) rather than dropped, so nothing already in it is destroyed."""
     __tablename__ = "address_book"
     id           = Column(Integer, primary_key=True, index=True)
-    nickname     = Column(String, unique=True, nullable=False)
+    nickname     = Column(String, unique=True, nullable=False)  # normalized local handle; column name retained for SQLite compatibility
     address      = Column(String, nullable=False)
     chain        = Column(String, default="evm")
     type         = Column(String, nullable=False, default="friend")  # vendor | customer | employee | contractor | friend | other
-    display_name = Column(String, nullable=True)  # friendlier label; falls back to nickname (minus .sara) if blank
+    display_name = Column(String, nullable=True)  # human-readable name, e.g. "Rohas Nagpal"
     tags         = Column(Text, nullable=True, default="[]")  # JSON string array
     notes        = Column(Text, nullable=True)
     active       = Column(Boolean, nullable=False, default=True)

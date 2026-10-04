@@ -247,6 +247,32 @@ def _migration_018_remove_cost_basis_and_pnl(engine: Engine) -> None:
         conn.execute(text("DROP TABLE IF EXISTS cost_lots"))
 
 
+def _migration_019_directory_handles(engine: Engine) -> None:
+    """Turn alpha-era ``name.sara`` aliases into ordinary local handles.
+
+    Dotted names are reserved for the separate on-chain naming system. If an
+    unusual database already contains both ``name`` and ``name.sara``, retain
+    both contacts by giving the suffixed row a deterministic legacy handle.
+    """
+    with engine.begin() as conn:
+        conn.execute(text(
+            "UPDATE address_book SET display_name = "
+            "COALESCE(NULLIF(trim(display_name), ''), substr(nickname, 1, length(nickname) - 5)) "
+            "WHERE lower(nickname) LIKE '%.sara'"
+        ))
+        conn.execute(text(
+            "UPDATE address_book AS old SET nickname = "
+            "substr(old.nickname, 1, length(old.nickname) - 5) || '-legacy-' || old.id "
+            "WHERE lower(old.nickname) LIKE '%.sara' AND EXISTS ("
+            "SELECT 1 FROM address_book AS plain "
+            "WHERE lower(plain.nickname) = lower(substr(old.nickname, 1, length(old.nickname) - 5)))"
+        ))
+        conn.execute(text(
+            "UPDATE address_book SET nickname = substr(nickname, 1, length(nickname) - 5) "
+            "WHERE lower(nickname) LIKE '%.sara'"
+        ))
+
+
 MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("001_legacy_payment_fields", _migration_001_legacy_payment_fields),
     ("002_transaction_foundation", _migration_002_transaction_foundation),
@@ -266,6 +292,7 @@ MIGRATIONS: tuple[tuple[str, Callable[[Engine], None]], ...] = (
     ("016_remove_onchain_sara_names", _migration_016_remove_onchain_sara_names),
     ("017_single_recovery_seed", _migration_017_single_recovery_seed),
     ("018_remove_cost_basis_and_pnl", _migration_018_remove_cost_basis_and_pnl),
+    ("019_directory_handles", _migration_019_directory_handles),
 )
 
 

@@ -68,10 +68,11 @@ class DirectoryTests(BusinessPaymentsTestCase):
 
     def test_create_list_and_delete_entry(self):
         row = address_book.add_entry(
-            address_book.DirectoryEntry(nickname="acme", address=ADDR_A, type="vendor", display_name="Acme Vendor"),
+            address_book.DirectoryEntry(name="Acme Vendor", handle="acme-vendor", address=ADDR_A, type="vendor"),
             self.db,
         )
         self.assertEqual(row["display_name"], "Acme Vendor")
+        self.assertEqual(row["handle"], "acme-vendor")
         self.assertEqual(row["address"], ADDR_A)
         self.assertEqual(row["type"], "vendor")
 
@@ -79,7 +80,7 @@ class DirectoryTests(BusinessPaymentsTestCase):
         self.assertEqual(len(address_book.list_entries("vendor", None, self.db)), 1)
         self.assertEqual(address_book.list_entries("friend", None, self.db), [])
 
-        deleted = address_book.delete_entry(row["nickname"], self.db)
+        deleted = address_book.delete_entry(row["handle"], self.db)
         self.assertEqual(deleted["status"], "deleted")
         self.assertEqual(address_book.list_entries(None, None, self.db), [])
 
@@ -87,7 +88,28 @@ class DirectoryTests(BusinessPaymentsTestCase):
         from fastapi import HTTPException
         with self.assertRaises(HTTPException):
             address_book.add_entry(
-                address_book.DirectoryEntry(nickname="bad", address="not-an-address", type="vendor"),
+                address_book.DirectoryEntry(name="Bad", handle="bad", address="not-an-address", type="vendor"),
+                self.db,
+            )
+
+    def test_handle_rejects_dots_and_underscores(self):
+        from fastapi import HTTPException
+        for handle in ("rohas.sara", "rohas_nagpal", "-rohas", "rohas-"):
+            with self.subTest(handle=handle), self.assertRaises(HTTPException):
+                address_book.add_entry(
+                    address_book.DirectoryEntry(name="Rohas Nagpal", handle=handle, address=ADDR_A),
+                    self.db,
+                )
+
+    def test_duplicate_handle_is_rejected(self):
+        from fastapi import HTTPException
+        address_book.add_entry(
+            address_book.DirectoryEntry(name="Rohas Nagpal", handle="rohasnagpal", address=ADDR_A),
+            self.db,
+        )
+        with self.assertRaises(HTTPException):
+            address_book.add_entry(
+                address_book.DirectoryEntry(name="Another Person", handle="ROHASNAGPAL", address=ADDR_B),
                 self.db,
             )
 
@@ -207,7 +229,7 @@ class CounterpartyPolicyAppliesEverywhereTests(BusinessPaymentsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.vendor = AddressBook(nickname="vendor.sara", address=ADDR_A, chain="evm", type="vendor")
+        self.vendor = AddressBook(nickname="vendor", display_name="Vendor", address=ADDR_A, chain="evm", type="vendor")
         self.db.add(self.vendor)
         self.db.commit()
 
@@ -427,7 +449,7 @@ class ScheduleTests(BusinessPaymentsTestCase):
 
 class PayrollTests(BusinessPaymentsTestCase):
     def test_payroll_run_reuses_the_batch_engine_pipeline(self):
-        entry = AddressBook(nickname="jane.sara", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
+        entry = AddressBook(nickname="jane", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
         self.db.add(entry)
         self.db.commit()
 
@@ -473,7 +495,7 @@ class PayrollTests(BusinessPaymentsTestCase):
         # (whitespace/case variants of the same period) each looked like a
         # distinct, never-before-paid period and minted a fresh payroll batch
         # for the same person every time.
-        entry = AddressBook(nickname="jane.sara", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
+        entry = AddressBook(nickname="jane", address=ADDR_A, chain="evm", type="employee", display_name="Jane")
         self.db.add(entry)
         self.db.commit()
         payroll.create_payroll_person(

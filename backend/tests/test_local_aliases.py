@@ -3,8 +3,9 @@ import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.models import AddressBook, Base
+from app.db.models import AddressBook, Base, Wallet
 from app.tools.names.resolver import resolve_recipient_input
+from app.routers.chat import _detect_intent, _format_send_confirmation
 
 
 ADDRESS = "0x" + "33" * 20
@@ -16,6 +17,8 @@ class LocalAliasResolverTests(unittest.TestCase):
         Base.metadata.create_all(self.engine)
         session = sessionmaker(bind=self.engine, expire_on_commit=False)
         self.db = session()
+        self.db.add(Wallet(name="Main", chain="evm", address="0x" + "11" * 20, encrypted_key="x"))
+        self.db.commit()
 
     def tearDown(self):
         self.db.close()
@@ -25,20 +28,40 @@ class LocalAliasResolverTests(unittest.TestCase):
         self.assertIsNotNone(resolved)
         self.assertEqual(resolved.source, "address")
 
-    def test_local_sara_alias_resolves_from_directory(self):
-        self.db.add(AddressBook(nickname="supplier.sara", address=ADDRESS, chain="evm"))
+    def test_exact_local_handle_resolves_from_directory(self):
+        self.db.add(AddressBook(nickname="amit-singh", display_name="Amit Singh", address=ADDRESS, chain="evm"))
         self.db.commit()
 
-        resolved = resolve_recipient_input(self.db, "SUPPLIER.SARA", "base")
+        resolved = resolve_recipient_input(self.db, "AMIT-SINGH", "base")
 
         self.assertIsNotNone(resolved)
         self.assertEqual(resolved.source, "address_book")
         self.assertEqual(resolved.address, ADDRESS)
-        self.assertEqual(resolved.input_label, "SUPPLIER.SARA")
+        self.assertEqual(resolved.input_label, "AMIT-SINGH")
 
     def test_unknown_name_is_not_guessed_or_resolved_onchain(self):
         self.assertIsNone(resolve_recipient_input(self.db, "unknown.sara", "ethereum"))
         self.assertIsNone(resolve_recipient_input(self.db, "unknown", "ethereum"))
+
+    def test_send_confirmation_shows_handle_address_and_name(self):
+        text = _format_send_confirmation({
+            "amount": 10, "token": "USDC", "to_nickname": "rohasnagpal",
+            "to_name": "Rohas Nagpal", "to": ADDRESS, "wallet_name": "Main",
+        }, "USDC", "Base", "Balance: **20 USDC**\n", "")
+        self.assertIn("Send **10 USDC** to `rohasnagpal`", text)
+        self.assertIn(f"Address: `{ADDRESS}`", text)
+        self.assertIn("Name: Rohas Nagpal", text)
+
+    def test_chat_send_uses_exact_handle_and_carries_display_name(self):
+        self.db.add(AddressBook(
+            nickname="rohasnagpal", display_name="Rohas Nagpal", address=ADDRESS, chain="evm",
+        ))
+        self.db.commit()
+        tool, args = _detect_intent("send 10 USDC to rohasnagpal", self.db)
+        self.assertEqual(tool, "send_crypto")
+        self.assertEqual(args["to"], ADDRESS)
+        self.assertEqual(args["to_nickname"], "rohasnagpal")
+        self.assertEqual(args["to_name"], "Rohas Nagpal")
 
 
 if __name__ == "__main__":
